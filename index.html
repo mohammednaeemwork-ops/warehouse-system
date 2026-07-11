@@ -216,6 +216,7 @@ tr:hover td{background:#ffffff05;}
       <div class="nav-item" data-page="purchase-orders" onclick="showPage('purchase-orders')"><span class="ico">🛒</span> طلبات التوريد</div>
       <div class="nav-item" data-page="price-quotes" onclick="showPage('price-quotes')"><span class="ico">💹</span> عروض الأسعار</div>
       <div class="nav-item" data-page="bulk-movement" onclick="showPage('bulk-movement')"><span class="ico">📋</span> تسجيل الحركات</div>
+      <div class="nav-item mgr-only" data-page="price-entry" onclick="showPage('price-entry')" style="display:none"><span class="ico">💲</span> إدخال أسعار الوارد</div>
       <div class="nav-item" data-page="movements" onclick="showPage('movements')"><span class="ico">🔄</span> سجل الحركات</div>
       <div class="nav-item" data-page="inventory" onclick="showPage('inventory')"><span class="ico">📦</span> أرصدة المخزون</div>
       <div class="nav-section">التكويد</div>
@@ -348,6 +349,28 @@ tr:hover td{background:#ffffff05;}
     </div>
 
 <!-- MOVEMENTS LOG -->
+    <div class="page" id="page-price-entry">
+      <div class="page-header">
+        <div><h2>💲 إدخال أسعار الوارد</h2><p>أضف الأسعار على حركات الوارد المسجلة</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="date" id="pe-date-from" style="padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          <input type="date" id="pe-date-to" style="padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          <input type="text" id="pe-search" placeholder="بحث بالصنف أو المستند..." oninput="filterPriceEntry()" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:200px">
+          <button class="btn btn-ghost" onclick="loadPriceEntry()">🔄 تحديث</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>حركات الوارد بدون سعر</h3>
+          <span id="pe-count" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div id="pe-table"><div class="loading"><div class="spinner"></div></div></div>
+        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+          <button class="btn btn-success" onclick="savePriceEntry()">💾 حفظ الأسعار</button>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-price-quotes">
       <div class="page-header"><div><h2>مقارنة عروض الأسعار</h2><p>قارن عروض الموردين</p></div><button class="btn btn-ghost" onclick="printPriceComparison()">🖨️ طباعة</button></div>
       <div class="card" style="margin-bottom:16px">
@@ -372,9 +395,15 @@ tr:hover td{background:#ffffff05;}
     <div class="page" id="page-movements">
       <div class="page-header">
         <div><h2>سجل الحركات</h2><p>جميع حركات المخزون</p></div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="mov-doc-search" placeholder="🔍 بحث برقم المستند..." style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:200px" oninput="filterMovements()">
+          <span class="mgr-only" style="display:none">
+            <button class="btn btn-danger btn-sm" onclick="deleteByDocNumber()">🗑️ مسح مستند</button>
+          </span>
           <input type="text" id="print-doc-num" placeholder="رقم المستند للطباعة..." style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:200px">
           <button class="btn btn-ghost" onclick="printByDocNumber()">🖨️ طباعة بالمستند</button>
+          <button class="btn btn-ghost" onclick="attachDocByNumber()">📎 إرفاق مستند</button>
+          <button class="btn btn-ghost" onclick="viewDocByNumber()">👁️ عرض المستند</button>
         </div>
       </div>
       <div class="card">
@@ -832,6 +861,7 @@ async function showApp(){
   await loadAll();
 }
 function applyRoles(){
+  document.querySelectorAll('.mgr-only').forEach(el=>el.style.display=CP?.role==='مدير'?'flex':'none');
   const r=CP.role;
   const isAdmin=r==='مدير';
   const isStorekeeper=r==='أمين مخزن';
@@ -1162,7 +1192,8 @@ function updateBulkType(){
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
   let headers='<tr><th style="width:30px">#</th><th style="min-width:180px">اسم الصنف</th><th style="width:110px;color:#f59e0b">كود الصنف</th><th style="width:90px">الكمية</th>';
-  if(isIn)  headers+='<th style="width:100px">السعر</th><th style="width:110px;color:#10b981">القيمة</th><th style="width:100px">الوحدة</th><th style="width:160px">المورد</th><th style="width:110px">حد الصرف</th><th style="width:180px">طلب التوريد</th>';
+  const isMgrType=CP?.role==='مدير';
+  if(isIn)  headers+=(isMgrType?'<th style="width:100px">السعر</th><th style="width:110px;color:#10b981">القيمة</th>':'')+'<th style="width:100px">الوحدة</th><th style="width:160px">المورد</th><th style="width:110px">حد الصرف</th><th style="width:180px">طلب التوريد</th>';
   if(isOut) headers+='<th style="width:160px">المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
   if(isRet) headers+='<th style="width:160px">اسم المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
   if(isTrans) headers+='<th style="width:160px">من مخزن</th><th style="width:160px">إلى مخزن</th>';
@@ -1210,10 +1241,11 @@ function renderBulkRows(){
     if(isIn){
       const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
       const itemUnit=allItems.find(x=>x.id===parseInt(row.item_id))?.unit||'وحدة';
+      const isMgr=CP?.role==='مدير';
       const lineValue=((parseFloat(row.qty)||0)*(parseFloat(row.price)||0)).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
       h+=`
-      <td><input type="number" value="${row.price||''}" min="0" step="0.01" placeholder="0" oninput="bulkRows[${i}].price=this.value;updateRowValue(${i})" id="bulk-price-${i}"></td>
-      <td><span id="bulk-value-${i}" style="font-weight:700;color:#10b981">${lineValue}</span></td>
+      ${isMgr?`<td><input type="number" value="${row.price||''}" min="0" step="0.01" placeholder="0" oninput="bulkRows[${i}].price=this.value;updateRowValue(${i})" id="bulk-price-${i}"></td>
+      <td><span id="bulk-value-${i}" style="font-weight:700;color:#10b981">${lineValue}</span></td>`:''}
       <td><input type="text" value="${row.unit||itemUnit}" placeholder="وحدة" style="text-align:center;font-weight:600;color:#f59e0b" oninput="bulkRows[${i}].unit=this.value"></td>
       <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
         <option value="">اختر المورد</option>${supOpts}
@@ -1469,7 +1501,10 @@ function printBulkMovements(){
   const docNum=document.getElementById('bulk-doc').value.trim();
   const dateVal=document.getElementById('bulk-date').value;
   const validRows=bulkRows.filter(r=>r.item_id&&r.qty>0);
-  if(!validRows.length){toast('أضف أصناف أولاً','error');return;}
+  if(!validRows.length){
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 حفظ الحركة';}
+    toast('أضف أصناف أولاً','error');return;
+  }
   const errors=[];
 
   const isIn=type==='وارد';
@@ -1538,6 +1573,11 @@ function printBulkMovements(){
 }
 
 async function saveBulkMovements(){
+  // منع الضغط المزدوج
+  const saveBtn=document.querySelector('button[onclick="saveBulkMovements()"]');
+  if(saveBtn?.disabled)return;
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ جاري الحفظ...';}
+
   const type=document.getElementById('bulk-type').value;
   const project_id=parseInt(document.getElementById('bulk-project').value)||null;
   const doc_number=document.getElementById('bulk-doc').value.trim();
@@ -1646,7 +1686,11 @@ async function saveBulkMovements(){
   }
   
   const {error,data:insertedMovs}=await sb.from('movements').insert(toInsert).select();
-  if(error){toast('خطأ في الحفظ: '+error.message,'error');return;}
+  if(error){
+    const sb2=document.querySelector('button[onclick="saveBulkMovements()"]');
+    if(sb2){sb2.disabled=false;sb2.textContent='💾 حفظ الحركة';}
+    toast('خطأ في الحفظ: '+error.message,'error');return;
+  }
   
   // Add FIFO layers for وارد movements
   if(insertedMovs){
@@ -1691,11 +1735,31 @@ async function saveBulkMovements(){
   document.getElementById('bulk-date').value='';
   if(document.getElementById('bulk-general-notes'))document.getElementById('bulk-general-notes').value='';
   localStorage.removeItem('bulk_draft');updateBulkSummary();
+  const saveBtnEnd=document.querySelector('button[onclick="saveBulkMovements()"]');
+  if(saveBtnEnd){saveBtnEnd.disabled=false;saveBtnEnd.textContent='💾 حفظ الحركة';}
   await Promise.all([loadMovements(),loadInventory(),loadDashboard(),loadAlerts()]);
 }
 
 
 // MOVEMENTS LOG
+async function deleteByDocNumber(){
+  const docNum=document.getElementById('mov-doc-search')?.value?.trim();
+  if(!docNum){toast('أدخل رقم المستند في خانة البحث أولاً','error');return;}
+  const movs=allMovements.filter(m=>m.doc_number===docNum);
+  if(!movs.length){toast('لا توجد حركات برقم المستند: '+docNum,'error');return;}
+  if(!confirm('هل تريد مسح كل حركات المستند "'+docNum+'" ('+movs.length+' حركة)؟ لا يمكن التراجع!'))return;
+  let deleted=0;
+  for(const m of movs){
+    const {error}=await sb.from('movements').delete().eq('id',m.id);
+    if(!error)deleted++;
+  }
+  toast('✅ تم مسح '+deleted+' حركة من المستند '+docNum,'success');
+  document.getElementById('mov-doc-search').value='';
+  await loadMovements();
+  await loadInventory();
+  await loadDashboard();
+}
+
 async function deleteMov(id){
   if(!confirm('هل تريد حذف هذه الحركة؟ سيتم خصمها من الرصيد فوراً'))return;
   const {error}=await sb.from('movements').delete().eq('id',id);
@@ -1720,12 +1784,15 @@ async function loadMovements(){
 }
 function filterMovements(){
   const s=document.getElementById('mov-search').value.toLowerCase();
+  const docS=(document.getElementById('mov-doc-search')?.value||'').toLowerCase();
   const t=document.getElementById('mov-type-f').value;
   const p=document.getElementById('mov-proj-f').value;
   const f=document.getElementById('mov-from').value;
   const to=document.getElementById('mov-to').value;
   let filtered=allMovements.filter(m=>{
     if(s&&!(m.items?.name||'').toLowerCase().includes(s)&&!(m.doc_number||'').toLowerCase().includes(s))return false;
+    if(docS&&!(m.doc_number||'').toLowerCase().includes(docS))return false;
+    if(docS&&!(m.doc_number||'').toLowerCase().includes(docS))return false;
     if(t&&m.type!==t)return false;
     if(p&&String(m.project_id)!==p)return false;
     if(f&&m.created_at<f)return false;
@@ -2504,6 +2571,7 @@ function showPage(name){
   document.querySelector('[data-page="'+name+'"]')?.classList.add('active');
   if(name==='purchase-orders') setTimeout(initPOBulk,50);
   if(name==='price-quotes') setTimeout(initPQBulk,50);
+  if(name==='price-entry') loadPriceEntry();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
     const rg=document.getElementById('rep-group');if(rg&&rg.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rg.appendChild(o);});
@@ -2779,6 +2847,165 @@ function printPriceComparison(){
 }
 
 // Update loadAll + showPage
+// PRICE ENTRY FOR MANAGER
+let allInMovements=[], filteredInMovements=[];
+
+async function loadPriceEntry(){
+  const dateFrom=document.getElementById('pe-date-from')?.value;
+  const dateTo=document.getElementById('pe-date-to')?.value;
+  const peTable=document.getElementById('pe-table');
+  if(peTable) peTable.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+
+  let query=sb.from('movements')
+    .select('*,items(name,code,unit),projects(name)')
+    .eq('type','وارد')
+    .is('unit_price',null)
+    .order('created_at',{ascending:false});
+
+  if(dateFrom) query=query.gte('created_at',new Date(dateFrom).toISOString());
+  if(dateTo) query=query.lte('created_at',new Date(dateTo+'T23:59:59').toISOString());
+
+  const {data,error}=await query.limit(200);
+  if(error){toast('خطأ في جلب البيانات: '+error.message,'error');return;}
+  allInMovements=(data||[]).map(m=>({...m,new_price:''}));
+  filterPriceEntry();
+}
+
+function filterPriceEntry(){
+  const s=(document.getElementById('pe-search')?.value||'').toLowerCase();
+  filteredInMovements=allInMovements.filter(m=>{
+    if(s&&!(m.items?.name||'').toLowerCase().includes(s)&&!(m.doc_number||'').toLowerCase().includes(s)&&!(m.items?.code||'').toLowerCase().includes(s))return false;
+    return true;
+  });
+  renderPriceEntryTable();
+}
+
+function renderPriceEntryTable(){
+  const el=document.getElementById('pe-table');
+  const countEl=document.getElementById('pe-count');
+  if(countEl) countEl.textContent=filteredInMovements.length+' حركة بدون سعر';
+  if(!filteredInMovements.length){
+    el.innerHTML='<div class="empty"><div class="ico">✅</div><p>كل حركات الوارد عندها أسعار!</p></div>';
+    return;
+  }
+  let h='<div class="tbl-wrap"><table><thead><tr>'
+    +'<th>التاريخ</th><th>الصنف</th><th>الكود</th><th>الكمية</th><th>الوحدة</th>'
+    +'<th>المشروع</th><th>المستند</th><th>المورد</th>'
+    +'<th style="color:#10b981;min-width:120px">السعر الجديد</th>'
+    +'<th style="color:#10b981">القيمة</th>'
+    +'</tr></thead><tbody>';
+  filteredInMovements.forEach((m,i)=>{
+    const val=((parseFloat(m.new_price)||0)*m.qty).toLocaleString('ar-EG',{minimumFractionDigits:2});
+    h+=`<tr>
+      <td style="font-size:11px;color:var(--text2)">${fmtDate(m.created_at)}</td>
+      <td style="font-weight:600">${m.items?.name||'-'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#f59e0b">${m.items?.code||'-'}</td>
+      <td style="font-weight:700">${m.qty}</td>
+      <td style="font-size:12px">${m.items?.unit||'-'}</td>
+      <td style="font-size:12px">${m.projects?.name||'-'}</td>
+      <td style="font-size:11px">${m.doc_number||'-'}</td>
+      <td style="font-size:12px">${m.supplier||'-'}</td>
+      <td><input type="number" value="${m.new_price||''}" min="0" step="0.01" placeholder="أدخل السعر"
+        oninput="filteredInMovements[${i}].new_price=this.value;updatePEValue(${i})"
+        id="pe-price-${i}"
+        style="width:110px;padding:6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Cairo,sans-serif;text-align:center"></td>
+      <td style="font-weight:700;color:#10b981" id="pe-val-${i}">${m.new_price?val:'-'}</td>
+    </tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+
+function updatePEValue(i){
+  const price=parseFloat(filteredInMovements[i].new_price)||0;
+  const qty=filteredInMovements[i].qty||0;
+  const val=(price*qty).toLocaleString('ar-EG',{minimumFractionDigits:2});
+  const el=document.getElementById('pe-val-'+i);
+  if(el) el.textContent=price>0?val:'-';
+}
+
+async function savePriceEntry(){
+  const toUpdate=filteredInMovements.filter(m=>m.new_price&&parseFloat(m.new_price)>0);
+  if(!toUpdate.length){toast('أدخل سعر على الأقل لصنف واحد','error');return;}
+
+  let saved=0, updated=0;
+
+  for(const m of toUpdate){
+    const price=parseFloat(m.new_price);
+
+    // 1. Update unit_price on the incoming movement
+    const {error}=await sb.from('movements').update({unit_price:price}).eq('id',m.id);
+    if(error) continue;
+    saved++;
+
+    // 2. Find all outgoing movements for same item with no fifo_cost (null or 0)
+    // that were recorded AFTER this incoming movement
+    const {data:outMovs}=await sb.from('movements')
+      .select('id,type,qty')
+      .eq('item_id',m.item_id)
+      .in('type',['صادر','مرتجع','تحويل'])
+      .or('fifo_cost.is.null,fifo_cost.eq.0')
+      .gte('created_at',m.created_at)
+      .order('created_at',{ascending:true});
+
+    if(outMovs?.length){
+      for(const out of outMovs){
+        const fifoCost=price*out.qty;
+        await sb.from('movements').update({fifo_cost:fifoCost,unit_price:price}).eq('id',out.id);
+        updated++;
+      }
+    }
+  }
+
+  toast('✅ تم حفظ أسعار '+saved+' وارد + تحديث '+updated+' حركة صادر/مرتجع/تحويل','success');
+  await loadPriceEntry();
+  await loadInventory();
+}
+
+// DOCUMENT ATTACHMENT BY DOC NUMBER
+async function attachDocByNumber(){
+  const docNum=document.getElementById('print-doc-num')?.value.trim();
+  if(!docNum){toast('أدخل رقم المستند أولاً','error');return;}
+  const url=prompt('📎 الصق رابط المستند من Google Drive:
+(رقم المستند: '+docNum+')');
+  if(!url||!url.startsWith('http')){toast('رابط غير صحيح','error');return;}
+  // Upsert - insert or update
+  const {error}=await sb.from('document_attachments').upsert({
+    doc_number:docNum,
+    doc_url:url,
+    created_by:CU.id
+  },{onConflict:'doc_number'});
+  if(error){toast('خطأ: '+error.message,'error');return;}
+  toast('✅ تم إرفاق المستند برقم: '+docNum,'success');
+}
+
+async function viewDocByNumber(){
+  const docNum=document.getElementById('print-doc-num')?.value.trim();
+  if(!docNum){toast('أدخل رقم المستند أولاً','error');return;}
+  const {data,error}=await sb.from('document_attachments').select('doc_url').eq('doc_number',docNum).single();
+  if(error||!data){toast('لا يوجد مستند مرفق برقم: '+docNum,'info');return;}
+  window.open(data.doc_url,'_blank');
+}
+
+async function getDocUrl(docNum){
+  if(!docNum) return null;
+  const {data}=await sb.from('document_attachments').select('doc_url').eq('doc_number',docNum).single();
+  return data?.doc_url||null;
+}
+
+async function viewOrAttachDoc(docNum){
+  const {data}=await sb.from('document_attachments').select('doc_url').eq('doc_number',docNum).single();
+  if(data?.doc_url){
+    window.open(data.doc_url,'_blank');
+  } else {
+    const url=prompt('📎 لا يوجد مستند مرفق. الصق رابط Google Drive لإرفاقه:
+(رقم المستند: '+docNum+')');
+    if(!url||!url.startsWith('http'))return;
+    await sb.from('document_attachments').upsert({doc_number:docNum,doc_url:url,created_by:CU.id},{onConflict:'doc_number'});
+    toast('✅ تم إرفاق المستند','success');
+  }
+}
+
 async function seedInitialData(){
   toast('جاري استيراد الداتا...','info');
   const groups=GROUPS_DATA.map(g=>({code:g['كود المجموعة'],name:g['اسم المجموعة']}));
