@@ -2966,8 +2966,7 @@ async function savePriceEntry(){
 async function attachDocByNumber(){
   const docNum=document.getElementById('print-doc-num')?.value.trim();
   if(!docNum){toast('أدخل رقم المستند أولاً','error');return;}
-  const url=prompt('📎 الصق رابط المستند من Google Drive:
-(رقم المستند: '+docNum+')');
+  const url=prompt('📎 الصق رابط المستند من Google Drive - رقم المستند: '+docNum);
   if(!url||!url.startsWith('http')){toast('رابط غير صحيح','error');return;}
   // Upsert - insert or update
   const {error}=await sb.from('document_attachments').upsert({
