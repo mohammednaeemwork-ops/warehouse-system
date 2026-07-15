@@ -406,6 +406,10 @@ tr:hover td{background:#ffffff05;}
         </div>
       </div>
       <div class="card">
+        <div id="bulk-pending-pricing" style="display:none;background:#3b82f620;border:1px solid #3b82f660;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:#3b82f6;margin-bottom:6px">🏷️ أذون وارد لسه محتاجة تسعير</div>
+          <div id="bulk-pending-pricing-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
         <div id="bulk-edit-banner" style="display:none;background:#f59e0b20;border:1px solid #f59e0b60;color:#f59e0b;padding:8px 14px;border-radius:8px;margin-bottom:10px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
           <span id="bulk-edit-banner-text"></span>
           <button class="btn btn-ghost btn-sm" onclick="cancelDocEdit()">✖ إلغاء التعديل</button>
@@ -416,7 +420,6 @@ tr:hover td{background:#ffffff05;}
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم المستند</label><div style="display:flex;gap:6px"><input type="text" id="bulk-doc" placeholder="INV-001" style="flex:1;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><button class="btn btn-ghost btn-sm" onclick="autoGenDocNum()" title="توليد تلقائي">🔢</button></div></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ الحركة</label><input type="date" id="bulk-date" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">ملاحظة عامة</label><input type="text" id="bulk-general-notes" placeholder="ملاحظة على كل الإذن..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-          <div id="bulk-delivery-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ التسليم</label><input type="date" id="bulk-delivery-date" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
           <div id="bulk-preview" style="font-size:13px;color:var(--text2)">أضف أصناف لتظهر الملخص</div>
@@ -1179,8 +1182,6 @@ async function deleteCC(id){
 function updateBulkType(){
   const type=document.getElementById('bulk-type').value;
   const isIn=type==='وارد';
-  const dw=document.getElementById('bulk-delivery-wrap');
-  if(dw)dw.style.display=isIn?'block':'none';
   const isOut=type==='صادر';
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
@@ -1231,6 +1232,7 @@ function renderBulkRows(){
           <div class="s-dropdown" id="bulk-dd-${i}"></div>
           <input type="hidden" id="bulk-item-id-${i}" value="${row.item_id||''}">
         </div>
+        ${(isOut||isRet)?`<div id="bulk-balance-${i}" style="font-size:11px;color:var(--text3);margin-top:2px">${row.item_id?balanceLabel(row.item_id):''}</div>`:''}
       </td>
       <td><span id="bulk-item-code-${i}" style="font-family:monospace;font-size:12px;color:#f59e0b;font-weight:700">${row.item_code||''}</span></td>
       <td><input type="number" value="${row.qty||''}" min="0.01" step="0.01" placeholder="0" oninput="bulkRows[${i}].qty=this.value;updateRowValue(${i})" id="bulk-qty-${i}"></td>`;
@@ -1242,7 +1244,7 @@ function renderBulkRows(){
       h+=`
       ${hidePrice?'':`<td><input type="number" value="${row.price||''}" min="0" step="0.01" placeholder="0" oninput="bulkRows[${i}].price=this.value;updateRowValue(${i})" id="bulk-price-${i}"></td>
       <td><span id="bulk-value-${i}" style="font-weight:700;color:#10b981">${lineValue}</span></td>`}
-      <td><input type="text" value="${row.unit||itemUnit}" placeholder="وحدة" style="text-align:center;font-weight:600;color:#f59e0b" oninput="bulkRows[${i}].unit=this.value"></td>
+      <td><span style="font-weight:600;color:#f59e0b">${row.unit||itemUnit}</span></td>
       <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
         <option value="">اختر المورد</option>${supOpts}
         <option value="__other__">أخرى...</option>
@@ -1288,6 +1290,14 @@ function renderBulkRows(){
   document.getElementById('bulk-tbody').innerHTML=h;
 }
 function removeBulkRow(i){bulkRows.splice(i,1);if(bulkRows.length===0)bulkRows.push({});renderBulkRows();}
+function balanceLabel(itemId){
+  const inv=allInventory.find(x=>x.id===parseInt(itemId));
+  const item=allItems.find(x=>x.id===parseInt(itemId));
+  const qty=inv?.qty??0;
+  const unit=item?.unit||'';
+  const color=qty<=0?'#ef4444':'#10b981';
+  return `<span style="color:${color};font-weight:700">المتاح حالياً: ${qty.toLocaleString('ar-EG')} ${unit}</span>`;
+}
 function searchBulkItem(input,i){
   const q=input.value.trim();
   const dd=document.getElementById(`bulk-dd-${i}`);
@@ -1317,6 +1327,8 @@ function selectBulkItem(i,id,name,code){
   const unitEl=document.getElementById(`bulk-unit-${i}`);
   if(unitEl&&item?.unit) unitEl.value=item.unit;
   document.getElementById(`bulk-dd-${i}`).classList.remove('open');
+  const balEl=document.getElementById(`bulk-balance-${i}`);
+  if(balEl) balEl.innerHTML=balanceLabel(id);
   // Show open POs for this item (وارد only)
   const type=document.getElementById('bulk-type').value;
   if(type==='وارد'){
@@ -1603,6 +1615,14 @@ async function saveBulkMovements(){
   const validRows=bulkRows.filter(r=>r.item_id&&r.qty>0);
   if(!validRows.length){toast('أضف أصناف أولاً','error');return;}
 
+  if(!editDocMode&&doc_number){
+    const {data:existing}=await sb.from('movements').select('id').eq('doc_number',doc_number).limit(1);
+    if(existing&&existing.length){
+      const proceed=confirm('رقم المستند "'+doc_number+'" مسجل قبل كده على إذن موجود.\nلو عايز تعدّل عليه استخدم زرار "تحميل إذن وارد للتعديل" بدل الحفظ العادي.\n\nتضغط "موافق" لتسجيله برضه كإذن جديد منفصل، أو "إلغاء" للرجوع.');
+      if(!proceed) return;
+    }
+  }
+
   // EDIT MODE: updating an existing voucher (e.g. storekeeper entered وارد without price,
   // and the admin is now adding the price) — update the same rows, never insert duplicates.
   if(editDocMode){
@@ -1636,6 +1656,7 @@ async function saveBulkMovements(){
     if(document.getElementById('bulk-general-notes'))document.getElementById('bulk-general-notes').value='';
     updateBulkSummary();
     await Promise.all([loadMovements(),loadInventory(),loadDashboard(),loadAlerts()]);
+    if(CP?.role==='مدير') loadPendingPricingList();
     return;
   }
 
@@ -1781,6 +1802,7 @@ async function saveBulkMovements(){
   if(document.getElementById('bulk-general-notes'))document.getElementById('bulk-general-notes').value='';
   localStorage.removeItem('bulk_draft');updateBulkSummary();
   await Promise.all([loadMovements(),loadInventory(),loadDashboard(),loadAlerts()]);
+  if(CP?.role==='مدير') loadPendingPricingList();
 }
 
 
@@ -2593,6 +2615,7 @@ function showPage(name){
   document.querySelector('[data-page="'+name+'"]')?.classList.add('active');
   if(name==='purchase-orders') setTimeout(initPOBulk,50);
   if(name==='price-quotes') setTimeout(initPQBulk,50);
+  if(name==='bulk-movement'&&CP?.role==='مدير') loadPendingPricingList();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
     const rg=document.getElementById('rep-group');if(rg&&rg.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rg.appendChild(o);});
@@ -2695,9 +2718,10 @@ function loadDraft(){
 }
 
 // Load an existing incoming (وارد) document by doc_number for price editing (avoids duplicating the same voucher)
-async function loadDocForEdit(){
-  const docNum=document.getElementById('bulk-doc')?.value.trim();
+async function loadDocForEdit(explicitDocNum){
+  const docNum=explicitDocNum||document.getElementById('bulk-doc')?.value.trim();
   if(!docNum){toast('اكتب رقم المستند في الحقل فوق الأول','error');return;}
+  document.getElementById('bulk-doc').value=docNum;
   const {data,error}=await sb.from('movements').select('*,items(name,code,unit)').eq('doc_number',docNum).eq('type','وارد').order('id',{ascending:true});
   if(error){toast('خطأ: '+error.message,'error');return;}
   if(!data||!data.length){toast('مفيش إذن وارد بالرقم ده','error');return;}
@@ -2716,8 +2740,36 @@ async function loadDocForEdit(){
   const banner=document.getElementById('bulk-edit-banner');
   const bannerText=document.getElementById('bulk-edit-banner-text');
   if(banner&&bannerText){banner.style.display='flex';bannerText.textContent='📝 وضع تعديل — بتعدّل على إذن رقم '+docNum+' (لن يتم تكرار الحركة، هيتحدّث نفس الإذن عند الحفظ)';}
+  const ppWrap=document.getElementById('bulk-pending-pricing');
+  if(ppWrap) ppWrap.style.display='none';
   toast('✅ تم تحميل الإذن ('+bulkRows.length+' صنف) - أدخل السعر واحفظ','success');
 }
+async function loadPendingPricingList(){
+  const wrap=document.getElementById('bulk-pending-pricing');
+  const listEl=document.getElementById('bulk-pending-pricing-list');
+  if(!wrap||!listEl) return;
+  const {data,error}=await sb.from('movements').select('doc_number,project_id,created_at').eq('type','وارد').or('unit_price.is.null,unit_price.eq.0');
+  if(error||!data||!data.length){wrap.style.display='none';return;}
+  const groups={};
+  data.forEach(m=>{
+    const key=m.doc_number||'(بدون رقم)';
+    if(!groups[key]) groups[key]={count:0,project_id:m.project_id,date:m.created_at};
+    groups[key].count++;
+  });
+  const keys=Object.keys(groups);
+  if(!keys.length){wrap.style.display='none';return;}
+  listEl.innerHTML=keys.map(docNum=>{
+    const g=groups[docNum];
+    const proj=allProjects.find(p=>p.id===g.project_id);
+    const dateStr=g.date?new Date(g.date).toLocaleDateString('ar-EG'):'';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);padding:6px 10px;border-radius:6px;font-size:12px">
+      <span><b>${docNum}</b> — ${proj?.name||'مشروع غير محدد'} — ${g.count} صنف — ${dateStr}</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadDocForEdit('${docNum.replace(/'/g,"\\'")}')">تسعير الآن</button>
+    </div>`;
+  }).join('');
+  wrap.style.display='block';
+}
+
 function cancelDocEdit(){
   editDocMode=false;editDocNumber=null;
   const banner=document.getElementById('bulk-edit-banner');
@@ -2725,6 +2777,7 @@ function cancelDocEdit(){
   clearBulkRows();
   document.getElementById('bulk-doc').value='';
   toast('تم إلغاء وضع التعديل','info');
+  if(CP?.role==='مدير') loadPendingPricingList();
 }
 
 // Copy bulk row
