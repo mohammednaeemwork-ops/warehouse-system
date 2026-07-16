@@ -359,7 +359,7 @@ tr:hover td{background:#ffffff05;}
           <button class="btn btn-success" onclick="savePriceQuotes()">💾 حفظ</button>
           <button class="btn btn-ghost" onclick="clearPQRows()">🗑️ مسح</button>
         </div>
-        <div class="tbl-wrap"><table class="grid-table"><thead><tr><th style="width:30px">#</th><th style="min-width:180px">اسم الصنف</th><th style="width:110px;color:#f59e0b">الكود</th><th style="width:90px">الكمية</th><th style="width:90px">الوحدة</th><th style="width:150px">مورد 1</th><th style="width:100px">سعره</th><th style="width:150px">مورد 2</th><th style="width:100px">سعره</th><th style="width:150px">مورد 3</th><th style="width:100px">سعره</th><th style="width:160px">البيان</th><th style="width:40px"></th></tr></thead><tbody id="pq-tbody"></tbody></table></div>
+        <div class="tbl-wrap"><table class="grid-table"><thead><tr><th style="width:30px">#</th><th style="min-width:180px">اسم الصنف</th><th style="width:110px;color:#f59e0b">الكود</th><th style="width:90px">الكمية</th><th style="width:90px">الوحدة</th><th style="width:150px">مورد 1</th><th style="width:100px">سعره</th><th style="width:150px">مورد 2</th><th style="width:100px">سعره</th><th style="width:150px">مورد 3</th><th style="width:100px">سعره</th><th style="width:150px">مورد 4</th><th style="width:100px">سعره</th><th style="width:160px">البيان</th><th style="width:40px"></th></tr></thead><tbody id="pq-tbody"></tbody></table></div>
         <button class="add-row-btn" onclick="addPQRow()">➕ إضافة صنف</button>
       </div>
       <div class="card">
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.15.1';
+const APP_VERSION='2026.07.16.1';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -2897,13 +2897,13 @@ function renderPQTable(data){
   if(!data.length){document.getElementById('pq-table').innerHTML='<div class="empty"><div class="ico">💹</div><p>لا توجد عروض أسعار</p></div>';document.getElementById('pq-pag').innerHTML='';return;}
   const total=data.length,pages=Math.ceil(total/10)||1;
   const slice=data.slice((pqPg-1)*10,pqPg*10);
-  let h='<div class="tbl-wrap"><table><thead><tr><th>الصنف</th><th>الكود</th><th>المشروع</th><th>الكمية</th><th>الوحدة</th><th>مورد 1</th><th>سعره</th><th>قيمته</th><th>مورد 2</th><th>سعره</th><th>قيمته</th><th>مورد 3</th><th>سعره</th><th>قيمته</th><th>الأفضل</th></tr></thead><tbody>';
+  let h='<div class="tbl-wrap"><table><thead><tr><th>الصنف</th><th>الكود</th><th>المشروع</th><th>الكمية</th><th>الوحدة</th><th>مورد 1</th><th>سعره</th><th>قيمته</th><th>مورد 2</th><th>سعره</th><th>قيمته</th><th>مورد 3</th><th>سعره</th><th>قيمته</th><th>مورد 4</th><th>سعره</th><th>قيمته</th><th>الأفضل</th></tr></thead><tbody>';
   slice.forEach(g=>{
     const prices=g.quotes.map(x=>x.price).filter(Boolean);
     const minPrice=prices.length?Math.min(...prices):0;
     const best=g.quotes.find(x=>x.price===minPrice);
     const cell=(i)=>{if(!g.quotes[i])return '<td>-</td><td>-</td><td>-</td>';const isMin=g.quotes[i].price===minPrice&&prices.length>1;const val=(g.qty*g.quotes[i].price).toLocaleString('ar-EG',{minimumFractionDigits:0});return `<td style="font-size:12px">${g.quotes[i].vendor}</td><td style="font-weight:700;color:${isMin?'#10b981':'var(--text)'}">${g.quotes[i].price.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td style="color:${isMin?'#10b981':'var(--text2)'};font-size:12px">${val}</td>`;};
-    h+=`<tr><td style="font-weight:600">${g.item}</td><td style="font-family:monospace;font-size:11px;color:#f59e0b">${g.code}</td><td style="font-size:12px">${g.project}</td><td>${g.qty}</td><td style="font-size:12px">${g.unit}</td>${cell(0)}${cell(1)}${cell(2)}<td><span class="badge badge-in">✅ ${best?.vendor||'-'}</span></td></tr>`;
+    h+=`<tr><td style="font-weight:600">${g.item}</td><td style="font-family:monospace;font-size:11px;color:#f59e0b">${g.code}</td><td style="font-size:12px">${g.project}</td><td>${g.qty}</td><td style="font-size:12px">${g.unit}</td>${cell(0)}${cell(1)}${cell(2)}${cell(3)}<td><span class="badge badge-in">✅ ${best?.vendor||'-'}</span></td></tr>`;
   });
   h+='</tbody></table></div>';
   document.getElementById('pq-table').innerHTML=h;
@@ -2915,7 +2915,7 @@ function initPQBulk(){
   if(el)el.innerHTML='<option value="">اختر المشروع</option>'+projOpts;
   if(!pqRows.length)addPQRow();else renderPQRows();
 }
-function addPQRow(){pqRows.push({item_id:'',item_name:'',item_code:'',qty:'',unit:'',v1_id:'',v1_price:'',v2_id:'',v2_price:'',v3_id:'',v3_price:'',notes:''});renderPQRows();}
+function addPQRow(){pqRows.push({item_id:'',item_name:'',item_code:'',qty:'',unit:'',v1_id:'',v1_price:'',v2_id:'',v2_price:'',v3_id:'',v3_price:'',v4_id:'',v4_price:'',notes:''});renderPQRows();}
 function clearPQRows(){pqRows=[];addPQRow();}
 function renderPQRows(){
   const venOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
@@ -2932,6 +2932,8 @@ function renderPQRows(){
       <td><input type="number" value="${row.v2_price||''}" min="0" step="0.01" placeholder="0" oninput="pqRows[${i}].v2_price=this.value"></td>
       <td><select onchange="pqRows[${i}].v3_id=this.value" style="width:100%"><option value="">مورد 3</option>${venOpts}</select></td>
       <td><input type="number" value="${row.v3_price||''}" min="0" step="0.01" placeholder="0" oninput="pqRows[${i}].v3_price=this.value"></td>
+      <td><select onchange="pqRows[${i}].v4_id=this.value" style="width:100%"><option value="">مورد 4</option>${venOpts}</select></td>
+      <td><input type="number" value="${row.v4_price||''}" min="0" step="0.01" placeholder="0" oninput="pqRows[${i}].v4_price=this.value"></td>
       <td><input type="text" value="${row.notes||''}" placeholder="البيان..." oninput="pqRows[${i}].notes=this.value"></td>
       <td><button class="btn btn-danger btn-sm" onclick="pqRows.splice(${i},1);renderPQRows()">✕</button></td></tr>`;
   });
@@ -2960,7 +2962,7 @@ async function savePriceQuotes(){
   const toInsert=[];
   pqRows.forEach(row=>{
     if(!row.item_id||!row.qty)return;
-    [[row.v1_id,row.v1_price],[row.v2_id,row.v2_price],[row.v3_id,row.v3_price]].forEach(([vid,vp])=>{
+    [[row.v1_id,row.v1_price],[row.v2_id,row.v2_price],[row.v3_id,row.v3_price],[row.v4_id,row.v4_price]].forEach(([vid,vp])=>{
       if(vid&&vp){const rec={item_id:parseInt(row.item_id),project_id,vendor_id:parseInt(vid),qty:parseFloat(row.qty),unit_price:parseFloat(vp),notes:row.notes||null,created_by:CU.id};if(pq_date)rec.created_at=new Date(pq_date).toISOString();toInsert.push(rec);}
     });
   });
@@ -2976,10 +2978,10 @@ function printPriceComparison(){
   let rows='';
   Object.values(groups).forEach((g,idx)=>{
     const prices=g.quotes.map(x=>x.price).filter(Boolean);const minPrice=prices.length?Math.min(...prices):0;const best=g.quotes.find(x=>x.price===minPrice);const q=g.quotes;
-    rows+=`<tr><td>${idx+1}</td><td>${g.item}</td><td>${g.code}</td><td>${g.project}</td><td>${g.qty} ${g.unit}</td>${[0,1,2].map(i=>q[i]?`<td>${q[i].vendor}</td><td style="color:${q[i].price===minPrice?'green':'#333'};font-weight:${q[i].price===minPrice?'bold':'normal'}">${q[i].price.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td>${(g.qty*q[i].price).toLocaleString('ar-EG',{minimumFractionDigits:0})}</td>`:'<td>-</td><td>-</td><td>-</td>').join('')}<td style="color:green;font-weight:bold">${best?.vendor||'-'}</td></tr>`;
+    rows+=`<tr><td>${idx+1}</td><td>${g.item}</td><td>${g.code}</td><td>${g.project}</td><td>${g.qty} ${g.unit}</td>${[0,1,2,3].map(i=>q[i]?`<td>${q[i].vendor}</td><td style="color:${q[i].price===minPrice?'green':'#333'};font-weight:${q[i].price===minPrice?'bold':'normal'}">${q[i].price.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td>${(g.qty*q[i].price).toLocaleString('ar-EG',{minimumFractionDigits:0})}</td>`:'<td>-</td><td>-</td><td>-</td>').join('')}<td style="color:green;font-weight:bold">${best?.vendor||'-'}</td></tr>`;
   });
   const win=window.open('','_blank');
-  win.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:30px;direction:rtl}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:20px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:right}th{background:#1e40af;color:#fff}@media print{.no-print{display:none}}</style></head><body><h1 style="text-align:center"><img src="'+COMPANY_LOGO+'" style="height:32px;vertical-align:-8px;margin-left:8px">شركة العمار للتوسع العمراني</h1><h2 style="text-align:center;color:#666">جدول مقارنة عروض الأسعار</h2><p style="text-align:center;font-size:12px;color:#666">'+new Date().toLocaleDateString('ar-EG')+'</p><table><thead><tr><th>#</th><th>الصنف</th><th>الكود</th><th>المشروع</th><th>الكمية</th><th>مورد 1</th><th>سعره</th><th>قيمته</th><th>مورد 2</th><th>سعره</th><th>قيمته</th><th>مورد 3</th><th>سعره</th><th>قيمته</th><th>الأفضل</th></tr></thead><tbody>'+rows+'</tbody></table><button class="no-print" onclick="window.print()" style="margin-top:20px;padding:10px 30px;background:#1e40af;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨️ طباعة</button></body></html>');
+  win.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:30px;direction:rtl}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:20px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:right}th{background:#1e40af;color:#fff}@media print{.no-print{display:none}}</style></head><body><h1 style="text-align:center"><img src="'+COMPANY_LOGO+'" style="height:32px;vertical-align:-8px;margin-left:8px">شركة العمار للتوسع العمراني</h1><h2 style="text-align:center;color:#666">جدول مقارنة عروض الأسعار</h2><p style="text-align:center;font-size:12px;color:#666">'+new Date().toLocaleDateString('ar-EG')+'</p><table><thead><tr><th>#</th><th>الصنف</th><th>الكود</th><th>المشروع</th><th>الكمية</th><th>مورد 1</th><th>سعره</th><th>قيمته</th><th>مورد 2</th><th>سعره</th><th>قيمته</th><th>مورد 3</th><th>سعره</th><th>قيمته</th><th>مورد 4</th><th>سعره</th><th>قيمته</th><th>الأفضل</th></tr></thead><tbody>'+rows+'</tbody></table><button class="no-print" onclick="window.print()" style="margin-top:20px;padding:10px 30px;background:#1e40af;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨️ طباعة</button></body></html>');
   win.document.close();
 }
 
