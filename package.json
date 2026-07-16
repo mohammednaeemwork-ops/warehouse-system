@@ -1,12 +1,13 @@
 {
   "name": "warehouse-system",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "نظام إدارة المخازن - شركة العمار للتوسع العمراني",
   "main": "main.js",
   "author": "شركة العمار للتوسع العمراني",
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win",
+    "build:win:publish": "electron-builder --win --publish always",
     "build:mac": "electron-builder --mac"
   },
   "dependencies": {
