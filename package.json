@@ -1,6 +1,6 @@
 {
   "name": "warehouse-system",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "نظام إدارة المخازن - شركة العمار للتوسع العمراني",
   "main": "main.js",
   "author": "شركة العمار للتوسع العمراني",
@@ -30,7 +30,8 @@
       {
         "provider": "github",
         "owner": "mohammednaeemwork-ops",
-        "repo": "warehouse-system"
+        "repo": "warehouse-system",
+        "releaseType": "release"
       }
     ],
     "win": {
