@@ -17,6 +17,7 @@
 body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;}
 /* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f1117,#161b27,#1a1f35);}
+#reset-pass-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f1117,#161b27,#1a1f35);}
 .auth-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;width:420px;max-width:95vw;}
 .auth-logo{text-align:center;margin-bottom:28px;}
 .auth-logo .icon{font-size:44px;margin-bottom:8px;}
@@ -186,6 +187,14 @@ tr:hover td{background:#ffffff05;}
       <div class="form-group"><label>كلمة المرور</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-primary" onclick="doLogin()">دخول</button>
       <div id="l-msg"></div>
+      <p style="text-align:center;margin-top:10px"><a href="#" onclick="showForgotForm();return false" style="font-size:13px;color:var(--accent);text-decoration:none">نسيت كلمة المرور؟</a></p>
+    </div>
+    <div id="forgot-form" style="display:none">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center">اكتب بريدك الإلكتروني، هيوصلك لينك لتغيير كلمة المرور</p>
+      <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="fg-email" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doForgotPassword()"></div>
+      <button class="btn-primary" onclick="doForgotPassword()">إرسال لينك تغيير الباسورد</button>
+      <div id="fg-msg"></div>
+      <p style="text-align:center;margin-top:10px"><a href="#" onclick="switchTab('login');return false" style="font-size:13px;color:var(--accent);text-decoration:none">رجوع لتسجيل الدخول</a></p>
     </div>
     <div id="register-form" style="display:none">
       <div class="form-group"><label>الاسم الكامل</label><input type="text" id="r-name" placeholder="محمد أحمد"></div>
@@ -195,6 +204,21 @@ tr:hover td{background:#ffffff05;}
       <div id="r-msg"></div>
       <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:10px;">سيتم تفعيل حسابك بعد موافقة المدير</p>
     </div>
+  </div>
+</div>
+
+<!-- RESET PASSWORD (shown when user arrives via the recovery-link email) -->
+<div id="reset-pass-screen" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img id="reset-logo-img" alt="شعار الشركة" style="width:72px;height:72px;object-fit:contain;margin:0 auto 8px;display:block">
+      <h1>شركة العمار للتوسع العمراني</h1>
+      <p>تعيين كلمة مرور جديدة</p>
+    </div>
+    <div class="form-group"><label>كلمة المرور الجديدة</label><input type="password" id="np-pass" placeholder="6 أحرف على الأقل" onkeydown="if(event.key==='Enter')doSetNewPassword()"></div>
+    <div class="form-group"><label>تأكيد كلمة المرور</label><input type="password" id="np-pass2" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doSetNewPassword()"></div>
+    <button class="btn-primary" onclick="doSetNewPassword()">حفظ كلمة المرور الجديدة</button>
+    <div id="np-msg"></div>
   </div>
 </div>
 
@@ -761,13 +785,15 @@ function applyCompanyLogo(){
   if(el1) el1.src=COMPANY_LOGO;
   const el2=document.getElementById('sidebar-logo-img');
   if(el2) el2.src=COMPANY_LOGO;
+  const el3=document.getElementById('reset-logo-img');
+  if(el3) el3.src=COMPANY_LOGO;
   document.querySelectorAll('.company-logo-icon').forEach(img=>{img.src=COMPANY_LOGO;});
 }
 document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.16.2';
+const APP_VERSION='2026.07.16.3';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -812,6 +838,48 @@ function switchTab(t){
   document.querySelectorAll('.auth-tab').forEach((x,i)=>x.classList.toggle('active',(t==='login'&&i===0)||(t==='register'&&i===1)));
   document.getElementById('login-form').style.display=t==='login'?'block':'none';
   document.getElementById('register-form').style.display=t==='register'?'block':'none';
+  document.getElementById('forgot-form').style.display='none';
+}
+function showForgotForm(){
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('register-form').style.display='none';
+  document.getElementById('forgot-form').style.display='block';
+  document.querySelectorAll('.auth-tab').forEach(x=>x.classList.remove('active'));
+}
+async function doForgotPassword(){
+  const email=document.getElementById('fg-email').value.trim();
+  const msg=document.getElementById('fg-msg');
+  if(!email){msg.className='msg error';msg.textContent='أدخل البريد الإلكتروني';return;}
+  msg.className='msg info';msg.textContent='جاري الإرسال...';
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error){msg.className='msg error';msg.textContent='خطأ: '+error.message;return;}
+    msg.className='msg success';msg.textContent='✅ تم إرسال لينك تغيير كلمة المرور لبريدك، افحص صندوق الوارد (والـ Spam)';
+  }catch(e){
+    msg.className='msg error';msg.textContent='خطأ في الاتصال: '+e.message;
+  }
+}
+async function doSetNewPassword(){
+  const pass=document.getElementById('np-pass').value;
+  const pass2=document.getElementById('np-pass2').value;
+  const msg=document.getElementById('np-msg');
+  if(!pass||pass.length<6){msg.className='msg error';msg.textContent='كلمة المرور لازم تكون 6 أحرف على الأقل';return;}
+  if(pass!==pass2){msg.className='msg error';msg.textContent='كلمتا المرور غير متطابقتين';return;}
+  msg.className='msg info';msg.textContent='جاري الحفظ...';
+  try{
+    const {data,error}=await sb.auth.updateUser({password:pass});
+    if(error){msg.className='msg error';msg.textContent='خطأ: '+error.message;return;}
+    msg.className='msg success';msg.textContent='✅ تم تغيير كلمة المرور بنجاح، جاري الدخول...';
+    // Clean the recovery token out of the URL so a refresh doesn't reopen this screen
+    history.replaceState(null,'',window.location.origin+window.location.pathname);
+    setTimeout(async()=>{
+      document.getElementById('reset-pass-screen').style.display='none';
+      if(data?.user) await loadProfile(data.user);
+      else document.getElementById('auth-screen').style.display='flex';
+    },1200);
+  }catch(e){
+    msg.className='msg error';msg.textContent='خطأ في الاتصال: '+e.message;
+  }
 }
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
@@ -3002,9 +3070,18 @@ async function seedInitialData(){
   await loadAll();
 }
 
+let inPasswordRecovery=false;
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    inPasswordRecovery=true;
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('app').style.display='none';
+    document.getElementById('reset-pass-screen').style.display='flex';
+  }
+});
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
-  if(session?.user) await loadProfile(session.user);
+  if(session?.user&&!inPasswordRecovery) await loadProfile(session.user);
 })();
 async function loadInventory(){
   let items=[], fi=0;
