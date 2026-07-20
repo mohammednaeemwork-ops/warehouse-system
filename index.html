@@ -371,7 +371,7 @@ tr:hover td{background:#ffffff05;}
       </div>
     </div>
 
-<!-- MOVEMENTS LOG -->
+<!-- PRICE QUOTES COMPARISON -->
     <div class="page" id="page-price-quotes">
       <div class="page-header"><div><h2>مقارنة عروض الأسعار</h2><p>قارن عروض الموردين</p></div><button class="btn btn-ghost" onclick="printPriceComparison()">🖨️ طباعة</button></div>
       <div class="card" style="margin-bottom:16px">
@@ -482,7 +482,6 @@ tr:hover td{background:#ffffff05;}
             <input type="text" id="inv-search" placeholder="بحث بالاسم أو الكود..." oninput="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:180px">
             <select id="inv-grp-f" onchange="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المجموعات</option></select>
             <select id="inv-status-f" onchange="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل الحالات</option><option value="ok">متوفر</option><option value="low">منخفض</option><option value="zero">رصيد صفر</option></select>
-            <select id="inv-proj-f" onchange="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المشاريع</option></select>
           </div>
         </div>
         <div id="inv-table"><div class="loading"><div class="spinner"></div></div></div>
@@ -793,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.16.3';
+const APP_VERSION='2026.07.20.1';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -906,7 +905,7 @@ async function doRegister(){
   msg.className='msg info';msg.textContent='...';
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){msg.className='msg error';msg.textContent=error.message;return;}
-  if(data.user) await sb.from('profiles').upsert({id:data.user.id,name,email:r_email,role:null,active:false});
+  if(data.user) await sb.from('profiles').upsert({id:data.user.id,name,email,role:null,active:false});
   msg.className='msg success';msg.textContent='✅ تم الإنشاء! انتظر موافقة المدير';
 }
 async function loadProfile(user){
@@ -998,7 +997,7 @@ function populateSelects(){
   const ccOpts=COSTS_DATA.map(c=>`<option value="${c}">${c}</option>`).join('');
   document.getElementById('im-cost').innerHTML='<option value="">اختر اسم التكلفة</option>'+ccOpts;
   const projOpts=allProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  ['bulk-project','mov-proj-f','inv-proj-f','cc-project'].forEach(id=>{
+  ['bulk-project','mov-proj-f','cc-project'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;
     const def=id==='bulk-project'?'<option value="">اختر المشروع</option>':id==='cc-project'?'<option value="">غير مرتبط</option>':'<option value="">كل المشاريع</option>';
@@ -1029,18 +1028,28 @@ async function loadDashboard(){
   const stPO=document.getElementById('st-open-po');
   if(stPO) stPO.textContent=(openPOc||0).toLocaleString('ar-EG');
 
-  let items=[], fi=0;
-  while(true){const {data}=await sb.from('items').select('id,name,code,min_qty').range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
-  let movs=[], fm=0;
-  while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,projects(name)').range(fm,fm+999);if(!data||!data.length)break;movs=[...movs,...data];if(data.length<1000)break;fm+=1000;}
-  const inv={};
-  items.forEach(i=>inv[i.id]={...i,qty:0,value:0,projects:new Set()});
-  movs.forEach(m=>{
-    if(!inv[m.item_id])return;
-    if(m.type==='وارد'||m.type==='مرتجع'){inv[m.item_id].qty+=m.qty;inv[m.item_id].value+=(m.qty*(m.unit_price||0));}
-    else if(m.type==='صادر'||m.type==='تحويل'){inv[m.item_id].qty-=m.qty;inv[m.item_id].value-=(m.fifo_cost||m.qty*(m.unit_price||0));}
-    if(m.projects?.name) inv[m.item_id].projects.add(m.projects.name);
-  });
+  let inv={}, usingView=true;
+  {
+    const {data:balData,error:balErr}=await sb.from('item_balances').select('*');
+    if(balErr){
+      usingView=false;
+      console.warn('item_balances view not found, dashboard falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',balErr.message);
+      let items=[], fi=0;
+      while(true){const {data}=await sb.from('items').select('id,name,code,min_qty').range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
+      let movsAll=[], fm=0;
+      while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,projects(name)').range(fm,fm+999);if(!data||!data.length)break;movsAll=[...movsAll,...data];if(data.length<1000)break;fm+=1000;}
+      items.forEach(i=>inv[i.id]={...i,qty:0,value:0,projects:new Set(),hasMoved:false});
+      movsAll.forEach(m=>{
+        if(!inv[m.item_id])return;
+        inv[m.item_id].hasMoved=true;
+        if(m.type==='وارد'||m.type==='مرتجع'){inv[m.item_id].qty+=m.qty;inv[m.item_id].value+=(m.qty*(m.unit_price||0));}
+        else if(m.type==='صادر'||m.type==='تحويل'){inv[m.item_id].qty-=m.qty;inv[m.item_id].value-=(m.fifo_cost||m.qty*(m.unit_price||0));}
+        if(m.projects?.name) inv[m.item_id].projects.add(m.projects.name);
+      });
+    } else {
+      (balData||[]).forEach(r=>{inv[r.item_id]={id:r.item_id,name:r.name,code:r.code,min_qty:r.min_qty,qty:r.qty||0,value:r.fifo_value||0,projects:new Set(),hasMoved:(r.movement_count||0)>0};});
+    }
+  }
   const totalValue=Object.values(inv).reduce((s,i)=>s+Math.max(0,i.value),0);
   const stVal=document.getElementById('st-value');
   if(stVal) stVal.textContent=totalValue.toLocaleString('ar-EG',{minimumFractionDigits:0})+' ج';
@@ -1050,10 +1059,15 @@ async function loadDashboard(){
   const zero=Object.values(inv).filter(i=>i.qty<=0).length;
   renderDonut(ok,low,zero);
 
-  const alerts=Object.values(inv).filter(i=>{
-    const hasMoved=movs.some(m=>m.item_id===i.id);
-    return (hasMoved&&i.qty<=0)||(i.min_qty>0&&i.qty<=i.min_qty);
-  });
+  let alerts=Object.values(inv).filter(i=>(i.hasMoved&&i.qty<=0)||(i.min_qty>0&&i.qty<=i.min_qty));
+  // Only when using the fast view path do we still need each alert item's affected-projects list;
+  // fetch that with one small targeted query instead of pulling every movement in the system.
+  if(usingView&&alerts.length){
+    const alertIds=alerts.map(a=>a.id);
+    const {data:alertMovs}=await sb.from('movements').select('item_id,projects(name)').in('item_id',alertIds).not('project_id','is',null);
+    (alertMovs||[]).forEach(m=>{if(inv[m.item_id]&&m.projects?.name) inv[m.item_id].projects.add(m.projects.name);});
+    alerts=Object.values(inv).filter(i=>(i.hasMoved&&i.qty<=0)||(i.min_qty>0&&i.qty<=i.min_qty));
+  }
   const alertsCard=document.getElementById('alerts-card');
   if(!alerts.length){if(alertsCard)alertsCard.style.display='none';}
   else{
@@ -1200,8 +1214,13 @@ async function saveProject(){
   closeModal('project-modal');await loadProjects();populateSelects();
 }
 async function deleteProject(id){
-  if(!confirm('حذف هذا المشروع؟'))return;
-  await sb.from('projects').delete().eq('id',id);
+  const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('project_id',id);
+  const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('project_id',id);
+  const total=(count||0)+(poCount||0);
+  const warn=total>0?`\n\n⚠️ تنبيه: المشروع ده مربوط بـ ${total} حركة/طلب توريد. حذفه ممكن يبوّظ سجلات قديمة.`:'';
+  if(!confirm('حذف هذا المشروع؟'+warn))return;
+  const {error}=await sb.from('projects').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadProjects();populateSelects();
 }
 
@@ -1269,8 +1288,13 @@ async function saveCC(){
   closeModal('cc-modal');await loadCostCenters();populateSelects();
 }
 async function deleteCC(id){
-  if(!confirm('حذف مركز التكلفة؟'))return;
-  await sb.from('cost_centers').delete().eq('id',id);
+  const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('cost_center_id',id);
+  const {count:childCount}=await sb.from('cost_centers').select('id',{count:'exact',head:true}).eq('parent_id',id);
+  const total=(count||0)+(childCount||0);
+  const warn=total>0?`\n\n⚠️ تنبيه: مركز التكلفة ده مربوط بـ ${count||0} حركة و${childCount||0} مركز فرعي. حذفه ممكن يبوّظ سجلات قديمة.`:'';
+  if(!confirm('حذف مركز التكلفة؟'+warn))return;
+  const {error}=await sb.from('cost_centers').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadCostCenters();populateSelects();
 }
 
@@ -1476,8 +1500,12 @@ async function consumeFIFO(item_id, qty_needed){
     await sb.from('fifo_layers').update({qty_remaining:newRemaining}).eq('id',layer.id);
   }
   
-  // If still remaining (not enough stock), add with price 0
-  if(remaining>0) consumed.push({qty:remaining, unit_price:0});
+  // If still remaining (not enough stock in FIFO layers - can happen in rare timing races
+  // between two users; the balance check before this call catches the normal case)
+  if(remaining>0){
+    console.warn(`⚠️ FIFO: نقص في طبقات التكلفة للصنف ${item_id} - ${remaining} وحدة اتسجلت بسعر 0 (تزامن محتمل بين مستخدمين)`);
+    consumed.push({qty:remaining, unit_price:0});
+  }
   
   return consumed;
 }
@@ -1758,6 +1786,7 @@ async function saveBulkMovements(){
 
   const toInsert=[];
   const alertsToCreate=[];
+  const errors=[];
   
   for(const row of validRows){
     const qty=parseFloat(row.qty);
@@ -1789,7 +1818,17 @@ async function saveBulkMovements(){
       let unit_price_calc=parseFloat(row.price)||0;
       let fifo_cost=0;
       let fifo_consumed=[];
-      
+
+      // Check stock balance for صادر BEFORE touching FIFO layers - prevent negative balance
+      // AND prevent depleting FIFO cost layers for a movement that ends up being rejected/skipped
+      if(isOutType){
+        const currentBalance=allInventory.find(i=>i.id===itemId)?.qty??null;
+        if(currentBalance!==null && qty>currentBalance){
+          errors.push(`الصنف "${row.item_name}": الرصيد الحالي (${currentBalance}) لا يكفي للصرف (${qty})`);
+          continue;
+        }
+      }
+
       // For صادر/مرتجع/تحويل - use FIFO pricing
       if(isOutType||isRetType||isTransType){
         fifo_consumed=await consumeFIFO(itemId, qty);
@@ -1818,15 +1857,6 @@ async function saveBulkMovements(){
       if((isOutType||isRetType)&&!payload.cost_center_id){
         const globalCC=parseInt(document.getElementById('bulk-cc')?.value)||null;
         if(globalCC) payload.cost_center_id=globalCC;
-      }
-
-      // Check stock balance for صادر - prevent negative balance
-      if(isOutType){
-        const currentBalance=allInventory.find(i=>i.id===itemId)?.qty??null;
-        if(currentBalance!==null && qty>currentBalance){
-          errors.push(`الصنف "${row.item_name}": الرصيد الحالي (${currentBalance}) لا يكفي للصرف (${qty})`);
-          continue;
-        }
       }
 
       // Check limit for outgoing
@@ -1980,7 +2010,26 @@ function renderMovTable(data){
 
 async function genReport(type){
   document.getElementById('report-out').innerHTML='<div class="loading"><div class="spinner"></div><br>جاري التوليد...</div>';
-  
+
+  // Shared filters from the top of the Reports page
+  const fFrom=document.getElementById('rep-date-from')?.value||'';
+  const fTo=document.getElementById('rep-date-to')?.value||'';
+  const fProject=document.getElementById('rep-project')?.value||'';
+  const fGroup=document.getElementById('rep-group')?.value||'';
+  // Applies date-range + project filters directly on a movements query (group filter needs post-fetch since it's on the joined item)
+  function applyMovFilters(q){
+    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
+    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
+    if(fProject) q=q.eq('project_id',parseInt(fProject));
+    return q;
+  }
+  // Applies the group filter after fetch (group lives on the joined items table; each query below selects items(...,group_id,...))
+  function applyGroupFilter(rows,getItem){
+    if(!fGroup) return rows;
+    return rows.filter(m=>String((getItem?getItem(m):m.items)?.group_id||'')===fGroup);
+  }
+  const activeFiltersNote=(fFrom||fTo||fProject||fGroup)?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر)</span>':'';
+
   const commonHeaders=['التاريخ','الصنف','كود الصنف','المجموعة','اسم التكلفة','النوع','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','المشروع','المورد/المقاول','المستند','البيان'];
   
   function movRow(m){
@@ -1990,7 +2039,10 @@ async function genReport(type){
   }
 
   if(type==='top'){
-    const {data}=await sb.from('movements').select('item_id,qty,unit_price,fifo_cost,items(name,code,unit,cost_center,groups(name))').eq('type','وارد');
+    let q=sb.from('movements').select('item_id,qty,unit_price,fifo_cost,project_id,items(id,name,code,unit,cost_center,group_id,groups(name))').eq('type','وارد');
+    q=applyMovFilters(q);
+    let {data}=await q;
+    data=applyGroupFilter(data||[],m=>m.items);
     const agg={};
     (data||[]).forEach(m=>{
       if(!agg[m.item_id]) agg[m.item_id]={name:m.items?.name||'-',code:m.items?.code||'-',group:m.items?.groups?.name||'-',cost:m.items?.cost_center||'-',unit:m.items?.unit||'-',qty:0,val:0};
@@ -1998,35 +2050,44 @@ async function genReport(type){
       agg[m.item_id].val+=(m.qty*(m.unit_price||0));
     });
     const rows=Object.values(agg).sort((a,b)=>b.qty-a.qty).slice(0,50);
-    renderReport('أكثر الأصناف وارداً',['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','إجمالي الكمية','إجمالي القيمة'],
+    renderReport('أكثر الأصناف وارداً'+activeFiltersNote,['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','إجمالي الكمية','إجمالي القيمة'],
       rows.map(r=>[r.name,r.code,r.group,r.cost,r.unit,r.qty,r.val.toFixed(2)]));
 
   } else if(type==='zero'){
     const {data:items}=await sb.from('items').select('*,groups(name)');
     const {data:movs}=await sb.from('movements').select('item_id,type,qty');
     const inv={};
-    (items||[]).forEach(i=>inv[i.id]={name:i.name,code:i.code,group:i.groups?.name||'-',cost:i.cost_center||'-',unit:i.unit||'-',qty:0});
+    (items||[]).forEach(i=>inv[i.id]={name:i.name,code:i.code,group:i.groups?.name||'-',cost:i.cost_center||'-',unit:i.unit||'-',qty:0,group_id:i.group_id});
     (movs||[]).forEach(m=>{
       if(!inv[m.item_id])return;
       if(m.type==='وارد'||m.type==='مرتجع') inv[m.item_id].qty+=m.qty;
       else if(m.type==='صادر') inv[m.item_id].qty-=m.qty;
     });
-    const zeros=Object.values(inv).filter(i=>i.qty<=0);
-    renderReport('الأصناف برصيد صفر',['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','الرصيد'],
+    const zeros=Object.values(inv).filter(i=>i.qty<=0&&(!fGroup||String(i.group_id)===fGroup));
+    renderReport('الأصناف برصيد صفر'+(fGroup?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر بالمجموعة)</span>':''),['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','الرصيد'],
       zeros.map(r=>[r.name,r.code,r.group,r.cost,r.unit,r.qty]));
 
   } else if(type==='monthly'){
     const now=new Date();
-    const from=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
-    const {data}=await sb.from('movements').select('*,items(name,code,unit,cost_center,groups(name)),projects(name)').gte('created_at',from).order('created_at',{ascending:false});
-    renderReport('حركات '+now.toLocaleString('ar',{month:'long',year:'numeric'}),commonHeaders,(data||[]).map(movRow));
+    const defaultFrom=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').order('created_at',{ascending:false});
+    q=fFrom?applyMovFilters(q):(fProject?applyMovFilters(q).gte('created_at',defaultFrom):q.gte('created_at',defaultFrom));
+    let {data}=await q;
+    data=applyGroupFilter(data||[]);
+    renderReport((fFrom||fTo?'حركات الفترة المحددة':'حركات '+now.toLocaleString('ar',{month:'long',year:'numeric'}))+activeFiltersNote,commonHeaders,(data||[]).map(movRow));
 
   } else if(type==='by-project'){
-    const {data}=await sb.from('movements').select('*,items(name,code,unit,cost_center,groups(name)),projects(name)').order('created_at',{ascending:false});
-    renderReport('تقرير بالمشاريع',commonHeaders,(data||[]).map(movRow));
+    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').order('created_at',{ascending:false});
+    q=applyMovFilters(q);
+    let {data}=await q;
+    data=applyGroupFilter(data||[]);
+    renderReport('تقرير بالمشاريع'+activeFiltersNote,commonHeaders,(data||[]).map(movRow));
 
   } else if(type==='cost-centers'){
-    const {data:movs}=await sb.from('movements').select('*,items(name,code,unit,cost_center,groups(name)),projects(name),cost_centers(name,level,parent_id)').in('type',['صادر','تحويل']);
+    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name),cost_centers(name,level,parent_id)').in('type',['صادر','تحويل']);
+    q=applyMovFilters(q);
+    let {data:movs}=await q;
+    movs=applyGroupFilter(movs||[]);
     const rows=[];
     const cc1Map={};
     (movs||[]).forEach(m=>{
@@ -2043,10 +2104,13 @@ async function genReport(type){
       cc1Map[key].rows.push([cc1Name,cc2Name,m.items?.name||'-',m.items?.code||'-',m.items?.groups?.name||'-',m.items?.cost_center||'-',m.qty,m.items?.unit||'-',m.unit_price||0,fifo,total,fmtDate(m.created_at)]);
     });
     Object.values(cc1Map).forEach(g=>g.rows.forEach(r=>rows.push(r)));
-    renderReport('تقرير مراكز التكلفة',['م.تكلفة 1','م.تكلفة 2','الصنف','الكود','المجموعة','اسم التكلفة','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','التاريخ'],rows);
+    renderReport('تقرير مراكز التكلفة'+activeFiltersNote,['م.تكلفة 1','م.تكلفة 2','الصنف','الكود','المجموعة','اسم التكلفة','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','التاريخ'],rows);
 
   } else if(type==='cost-type'){
-    const {data:movs}=await sb.from('movements').select('*,items(name,code,unit,cost_center,groups(name)),projects(name)').in('type',['صادر']);
+    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').in('type',['صادر']);
+    q=applyMovFilters(q);
+    let {data:movs}=await q;
+    movs=applyGroupFilter(movs||[]);
     const rows=[];
     const agg={};
     (movs||[]).forEach(m=>{
@@ -2060,7 +2124,12 @@ async function genReport(type){
     renderReport('تقرير اسم التكلفة',['اسم التكلفة','الصنف','الكود','المجموعة','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','التاريخ'],rows);
 
   } else if(type==='purchase-orders'){
-    const {data}=await sb.from('purchase_orders').select('*,items(name,code,unit,groups(name)),projects(name),vendors(name)').order('created_at',{ascending:false});
+    let q=sb.from('purchase_orders').select('*,items(id,name,code,unit,group_id,groups(name)),projects(name),vendors(name)').order('created_at',{ascending:false});
+    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
+    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
+    if(fProject) q=q.eq('project_id',parseInt(fProject));
+    let {data}=await q;
+    data=applyGroupFilter(data||[]);
     let tReq=0,tRec=0,tVal=0;
     const rows=(data||[]).map(p=>{
       const rem=p.qty_requested-p.qty_received;const pct=p.qty_requested>0?Math.round((p.qty_received/p.qty_requested)*100):0;
@@ -2069,26 +2138,30 @@ async function genReport(type){
       return [p.po_number||'-',fmtDate(p.created_at),p.items?.name||'-',p.items?.code||'-',p.items?.groups?.name||'-',p.projects?.name||'-',p.vendors?.name||'-',p.qty_requested,p.qty_received,rem,pct+'%',p.expected_price?p.expected_price.toFixed(2):'-',expVal>0?expVal.toFixed(2):'-',p.status,p.notes||'-'];
     });
     rows.push(['','','','','','','الإجمالي',tReq,tRec,tReq-tRec,'','',tVal.toFixed(2),'','']);
-    renderReport('تقرير مقارنة طلبات التوريد',['رقم الطلب','التاريخ','الصنف','الكود','المجموعة','المشروع','المورد','المطلوب','الواصل','الفرق','%','السعر المتوقع','قيمة الطلب','الحالة','البيان'],rows);
+    renderReport('تقرير مقارنة طلبات التوريد'+activeFiltersNote,['رقم الطلب','التاريخ','الصنف','الكود','المجموعة','المشروع','المورد','المطلوب','الواصل','الفرق','%','السعر المتوقع','قيمة الطلب','الحالة','البيان'],rows);
 
   } else if(type==='item-movement'){
     const search=document.getElementById('rep-item-search')?.value?.trim()||'';
     if(!search){toast('أدخل اسم أو كود الصنف في خانة البحث','error');return;}
     const item=allItems.find(x=>x.name.toLowerCase().includes(search.toLowerCase())||(x.code||'').includes(search));
     if(!item){toast('الصنف غير موجود','error');return;}
-    const {data}=await sb.from('movements').select('*,projects(name),cost_centers:cost_center_id(name)').eq('item_id',item.id).order('created_at',{ascending:true});
+    let q=sb.from('movements').select('*,projects(name),cost_centers:cost_center_id(name)').eq('item_id',item.id).order('created_at',{ascending:true});
+    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
+    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
+    if(fProject) q=q.eq('project_id',parseInt(fProject));
+    const {data}=await q;
     let bal=0;
     const rows=(data||[]).map(m=>{
       if(m.type==='وارد'||m.type==='مرتجع')bal+=m.qty;else bal-=m.qty;
       return [fmtDate(m.created_at),m.type,m.qty,item.unit||'-',m.unit_price||0,((m.qty||0)*(m.unit_price||0)).toFixed(2),bal,m.projects?.name||'-',m.doc_number||'-',m.notes||'-'];
     });
-    renderReport('حركة الصنف: '+item.name,['التاريخ','النوع','الكمية','الوحدة','السعر','القيمة','الرصيد التراكمي','المشروع','المستند','البيان'],rows);
+    renderReport('حركة الصنف: '+item.name+activeFiltersNote,['التاريخ','النوع','الكمية','الوحدة','السعر','القيمة','الرصيد التراكمي','المشروع','المستند','البيان'],rows);
 
   } else if(type==='inventory-value'){
-    const rows=allInventory.filter(i=>i.qty>0).sort((a,b)=>b.fifo_value-a.fifo_value).map(i=>[i.code||'-',i.name,i.group_name||'-',i.cost_center||'-',i.unit||'-',i.qty,i.fifo_value>0?i.fifo_value.toFixed(2):0]);
-    const total=allInventory.reduce((s,i)=>s+i.fifo_value,0);
+    const rows=allInventory.filter(i=>i.qty>0&&(!fGroup||String(i.group_id)===fGroup)).sort((a,b)=>b.fifo_value-a.fifo_value).map(i=>[i.code||'-',i.name,i.group_name||'-',i.cost_center||'-',i.unit||'-',i.qty,i.fifo_value>0?i.fifo_value.toFixed(2):0]);
+    const total=allInventory.filter(i=>!fGroup||String(i.group_id)===fGroup).reduce((s,i)=>s+i.fifo_value,0);
     rows.push(['','الإجمالي','','','','',total.toFixed(2)]);
-    renderReport('تقرير قيمة المخزون',['الكود','الصنف','المجموعة','اسم التكلفة','الوحدة','الرصيد','القيمة (ج)'],rows);
+    renderReport('تقرير قيمة المخزون'+(fGroup?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر بالمجموعة)</span>':''),['الكود','الصنف','المجموعة','اسم التكلفة','الوحدة','الرصيد','القيمة (ج)'],rows);
 
   } else if(type==='snapshot'){
     const snapDate=document.getElementById('rep-snapshot-date')?.value;
@@ -2105,22 +2178,11 @@ async function genReport(type){
   }
 }
 
-function exportReport(title){
-  const table=document.querySelector('#report-out table');if(!table)return;
-  const wb=XLSX.utils.table_to_book(table);
-  XLSX.writeFile(wb,title+'.xlsx');
-}
-
 function renderReport(title,headers,rows){
   let h=`<div class="card"><div class="card-header"><h3>📊 ${title}</h3><button class="btn btn-ghost btn-sm" onclick="exportReport('${title}')">📥 Excel</button></div><div class="tbl-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
   rows.forEach(r=>{h+=`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`;});
   h+='</tbody></table></div></div>';
   document.getElementById('report-out').innerHTML=h;
-}
-function exportReport(title){
-  const table=document.querySelector('#report-out table');if(!table)return;
-  const wb=XLSX.utils.table_to_book(table);
-  XLSX.writeFile(wb,title+'.xlsx');
 }
 
 // GROUPS
@@ -2155,8 +2217,11 @@ async function saveGroup(){
   toast('تم الحفظ ✅','success');closeModal('group-modal');await loadGroups();populateSelects();
 }
 async function deleteGroup(id){
-  if(!confirm('حذف هذه المجموعة؟'))return;
-  await sb.from('groups').delete().eq('id',id);
+  const {count}=await sb.from('items').select('id',{count:'exact',head:true}).eq('group_id',id);
+  const warn=count>0?`\n\n⚠️ تنبيه: المجموعة دي مربوطة بـ ${count} صنف. حذفها ممكن يبوّظ تصنيف الأصناف دي.`:'';
+  if(!confirm('حذف هذه المجموعة؟'+warn))return;
+  const {error}=await sb.from('groups').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadGroups();populateSelects();
 }
 
@@ -2236,8 +2301,13 @@ async function saveItem(){
   closeModal('item-modal');await loadItems();
 }
 async function deleteItem(id){
-  if(!confirm('حذف هذا الصنف؟'))return;
-  await sb.from('items').delete().eq('id',id);
+  const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('item_id',id);
+  const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('item_id',id);
+  const total=(count||0)+(poCount||0);
+  const warn=total>0?`\n\n⚠️ تنبيه: الصنف ده مربوط بـ ${count||0} حركة و${poCount||0} طلب توريد. حذفه ممكن يبوّظ سجلات قديمة ويظهر "-" مكان اسمه في التقارير.`:'';
+  if(!confirm('حذف هذا الصنف؟'+warn))return;
+  const {error}=await sb.from('items').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadItems();
 }
 function handleItemsImport(e){
@@ -2384,8 +2454,13 @@ async function saveVendor(){
   closeModal('vendor-modal');await loadVendors();
 }
 async function deleteVendor(id){
-  if(!confirm('حذف؟'))return;
-  await sb.from('vendors').delete().eq('id',id);
+  const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('vendor_id',id);
+  const {count:pqCount}=await sb.from('price_quotes').select('id',{count:'exact',head:true}).eq('vendor_id',id);
+  const total=(poCount||0)+(pqCount||0);
+  const warn=total>0?`\n\n⚠️ تنبيه: المورد/المقاول ده مربوط بـ ${poCount||0} طلب توريد و${pqCount||0} عرض سعر. حذفه ممكن يبوّظ سجلات قديمة.`:'';
+  if(!confirm('حذف؟'+warn))return;
+  const {error}=await sb.from('vendors').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadVendors();
 }
 
@@ -2525,7 +2600,7 @@ async function saveBulkPOs(){
   const now=new Date();
   const batchRef=doc_number||('PO-'+now.getFullYear()+'-'+String(now.getTime()).slice(-6));
   const toInsert=validRows.map((row,idx)=>{
-    const num=String((allPOs.length+idx+1)).padStart(3,'0');
+    const num=String(now.getTime()).slice(-6)+String(idx+1).padStart(2,'0');
     return {
       po_number: doc_number?(doc_number+'-'+num):('PO-'+now.getFullYear()+'-'+num),
       doc_number: batchRef,
@@ -3079,11 +3154,59 @@ sb.auth.onAuthStateChange((event)=>{
     document.getElementById('reset-pass-screen').style.display='flex';
   }
 });
+// Show a clear message if the recovery/confirmation link is expired, already used, or invalid
+(function checkAuthLinkError(){
+  const hash=window.location.hash;
+  if(hash&&hash.includes('error=')){
+    const params=new URLSearchParams(hash.substring(1));
+    const errCode=params.get('error_code')||'';
+    const errDesc=params.get('error_description')||'';
+    let friendly='حصل خطأ أثناء فتح الرابط.';
+    if(errCode==='otp_expired') friendly='⚠️ الرابط منتهي الصلاحية أو تم استخدامه من قبل. برجاء الضغط على "نسيت كلمة المرور؟" وطلب رابط جديد، والضغط عليه فورًا من أول مرة.';
+    else if(errDesc) friendly='⚠️ '+decodeURIComponent(errDesc.replace(/\+/g,' '));
+    history.replaceState(null,'',window.location.origin+window.location.pathname);
+    document.addEventListener('DOMContentLoaded',()=>{
+      showForgotForm();
+      const msg=document.getElementById('fg-msg');
+      if(msg){msg.className='msg error';msg.textContent=friendly;}
+    });
+  }
+})();
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
   if(session?.user&&!inPasswordRecovery) await loadProfile(session.user);
 })();
 async function loadInventory(){
+  const {data,error}=await sb.from('item_balances').select('*');
+  if(error){
+    // Fallback to the old full-scan method if item_balances view isn't set up yet in Supabase
+    console.warn('item_balances view not found, falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',error.message);
+    return loadInventoryLegacy();
+  }
+  const groupMap={};
+  allGroups.forEach(g=>groupMap[g.id]=g.name);
+  allInventory=(data||[]).map(r=>({
+    id:r.item_id, name:r.name, code:r.code, unit:r.unit, cost_center:r.cost_center,
+    group_id:r.group_id, min_qty:r.min_qty, qty:r.qty||0, fifo_value:Math.max(0,r.fifo_value||0),
+    qty_in:r.qty_in||0, qty_out:r.qty_out||0, qty_ret:r.qty_ret||0, qty_trans:r.qty_trans||0,
+    group_name:groupMap[r.group_id]||'-'
+  }));
+  const grpF=document.getElementById('inv-grp-f');
+  if(grpF&&grpF.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;grpF.appendChild(o);});
+  const ok=allInventory.filter(i=>i.qty>(i.min_qty||0)).length;
+  const low=allInventory.filter(i=>i.qty>0&&i.min_qty>0&&i.qty<=i.min_qty).length;
+  const zero=allInventory.filter(i=>i.qty<=0).length;
+  const totalVal=allInventory.reduce((s,i)=>s+i.fifo_value,0);
+  const setStat=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setStat('inv-stat-total',allInventory.length.toLocaleString('ar-EG'));
+  setStat('inv-stat-ok',ok.toLocaleString('ar-EG'));
+  setStat('inv-stat-low',low.toLocaleString('ar-EG'));
+  setStat('inv-stat-zero',zero.toLocaleString('ar-EG'));
+  setStat('inv-stat-value',totalVal.toLocaleString('ar-EG',{minimumFractionDigits:0})+' ج');
+  filterInv();
+}
+// Legacy full-scan version - kept as an automatic fallback until performance_upgrade.sql is run in Supabase
+async function loadInventoryLegacy(){
   let items=[], fi=0;
   while(true){const {data}=await sb.from('items').select('*,groups(name)').range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
   let movs=[], fm=0;
@@ -3101,8 +3224,6 @@ async function loadInventory(){
   allInventory=Object.values(inv);
   const grpF=document.getElementById('inv-grp-f');
   if(grpF&&grpF.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;grpF.appendChild(o);});
-  const projF=document.getElementById('inv-proj-f');
-  if(projF&&projF.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;projF.appendChild(o);});
   const ok=allInventory.filter(i=>i.qty>(i.min_qty||0)).length;
   const low=allInventory.filter(i=>i.qty>0&&i.min_qty>0&&i.qty<=i.min_qty).length;
   const zero=allInventory.filter(i=>i.qty<=0).length;
