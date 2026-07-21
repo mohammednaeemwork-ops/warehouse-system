@@ -21,8 +21,11 @@ function createWindow() {
     show: false,
   });
 
-  // Load from GitHub Pages
-  mainWindow.loadURL('https://mohammednaeemwork-ops.github.io/warehouse-system/');
+  // Clear any cached HTTP responses before loading, then load with a cache-busting
+  // timestamp - belt-and-suspenders against Electron's persistent disk cache serving stale content.
+  mainWindow.webContents.session.clearCache().then(() => {
+    mainWindow.loadURL('https://mohammednaeemwork-ops.github.io/warehouse-system/?_launch=' + Date.now());
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
