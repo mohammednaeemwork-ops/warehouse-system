@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.20.3';
+const APP_VERSION='2026.07.20.4';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -810,7 +810,9 @@ function showUpdateBanner(){
   bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:#1a1a1a;padding:10px 16px;text-align:center;font-family:Cairo,sans-serif;font-weight:700;font-size:14px;display:flex;justify-content:center;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.2)';
   bar.innerHTML='<span>🔄 في تحديث جديد للسيستم متاح</span><button id="app-update-btn" style="background:#1a1a1a;color:#f59e0b;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-family:Cairo,sans-serif">تحميل التحديث الآن</button>';
   document.body.prepend(bar);
-  document.getElementById('app-update-btn').onclick=()=>{location.reload(true);};
+  document.getElementById('app-update-btn').onclick=()=>{
+    window.location.href=window.location.pathname+'?_fresh='+Date.now();
+  };
 }
 document.addEventListener('DOMContentLoaded',()=>{
   checkForContentUpdate();
