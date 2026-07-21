@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.20.2';
+const APP_VERSION='2026.07.20.3';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -2795,6 +2795,8 @@ function showPage(name){
   if(name==='purchase-orders') setTimeout(initPOBulk,50);
   if(name==='price-quotes') setTimeout(initPQBulk,50);
   if(name==='bulk-movement'&&CP?.role==='مدير') loadPendingPricingList();
+  if(name==='inventory') loadInventory();
+  if(name==='dashboard') loadDashboard();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
     const rg=document.getElementById('rep-group');if(rg&&rg.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rg.appendChild(o);});
