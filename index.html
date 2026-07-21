@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.20.1';
+const APP_VERSION='2026.07.20.2';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -1030,7 +1030,15 @@ async function loadDashboard(){
 
   let inv={}, usingView=true;
   {
-    const {data:balData,error:balErr}=await sb.from('item_balances').select('*');
+    let balData=[], fb=0, balErr=null;
+    while(true){
+      const {data:page,error}=await sb.from('item_balances').select('*').range(fb,fb+999);
+      if(error){balErr=error;break;}
+      if(!page||!page.length)break;
+      balData=[...balData,...page];
+      if(page.length<1000)break;
+      fb+=1000;
+    }
     if(balErr){
       usingView=false;
       console.warn('item_balances view not found, dashboard falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',balErr.message);
@@ -3177,10 +3185,18 @@ sb.auth.onAuthStateChange((event)=>{
   if(session?.user&&!inPasswordRecovery) await loadProfile(session.user);
 })();
 async function loadInventory(){
-  const {data,error}=await sb.from('item_balances').select('*');
-  if(error){
+  let data=[], fp=0, viewError=null;
+  while(true){
+    const {data:page,error}=await sb.from('item_balances').select('*').range(fp,fp+999);
+    if(error){viewError=error;break;}
+    if(!page||!page.length)break;
+    data=[...data,...page];
+    if(page.length<1000)break;
+    fp+=1000;
+  }
+  if(viewError){
     // Fallback to the old full-scan method if item_balances view isn't set up yet in Supabase
-    console.warn('item_balances view not found, falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',error.message);
+    console.warn('item_balances view not found, falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',viewError.message);
     return loadInventoryLegacy();
   }
   const groupMap={};
