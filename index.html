@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.21.1';
+const APP_VERSION='2026.07.21.2';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -1965,13 +1965,14 @@ async function loadMovements(){
   }
   allMovements=allData;filterMovements();
 }
+let movFiltered=[];
 function filterMovements(){
   const s=document.getElementById('mov-search').value.toLowerCase();
   const t=document.getElementById('mov-type-f').value;
   const p=document.getElementById('mov-proj-f').value;
   const f=document.getElementById('mov-from').value;
   const to=document.getElementById('mov-to').value;
-  let filtered=allMovements.filter(m=>{
+  movFiltered=allMovements.filter(m=>{
     if(s&&!(m.items?.name||'').toLowerCase().includes(s)&&!(m.doc_number||'').toLowerCase().includes(s))return false;
     if(t&&m.type!==t)return false;
     if(p&&String(m.project_id)!==p)return false;
@@ -1979,7 +1980,11 @@ function filterMovements(){
     if(to&&m.created_at>to+'T23:59:59')return false;
     return true;
   });
-  movPage=1;renderMovTable(filtered);
+  movPage=1;renderMovTable(movFiltered);
+}
+function goMovPage(delta){
+  movPage+=delta;
+  renderMovTable(movFiltered);
 }
 function renderMovTable(data){
   const total=data.length,pages=Math.ceil(total/PS)||1;
@@ -2015,7 +2020,7 @@ function renderMovTable(data){
   });
   h+='</tbody></table></div>';
   document.getElementById('mov-table').innerHTML=h;
-  document.getElementById('mov-pag').innerHTML=`<span>${total} حركة | صفحة ${movPage} من ${pages}</span><div class="page-btns"><button onclick="movPage--;filterMovements()" ${movPage<=1?'disabled':''}>السابق</button><button onclick="movPage++;filterMovements()" ${movPage>=pages?'disabled':''}>التالي</button></div>`;
+  document.getElementById('mov-pag').innerHTML=`<span>${total} حركة | صفحة ${movPage} من ${pages}</span><div class="page-btns"><button onclick="goMovPage(-1)" ${movPage<=1?'disabled':''}>السابق</button><button onclick="goMovPage(1)" ${movPage>=pages?'disabled':''}>التالي</button></div>`;
 }
 
 async function genReport(type){
@@ -2250,15 +2255,20 @@ async function loadItems(){
   if(lbl) lbl.textContent='الأصناف ('+allItems.length.toLocaleString('ar')+')';
   filterItems();
 }
+let itemsFiltered=[];
 function filterItems(){
   const s=document.getElementById('items-search')?.value?.toLowerCase()||'';
   const g=document.getElementById('items-grp-f')?.value||'';
-  let filtered=allItems.filter(i=>{
+  itemsFiltered=allItems.filter(i=>{
     if(s&&!i.name.toLowerCase().includes(s)&&!(i.code||'').includes(s))return false;
     if(g&&String(i.group_id)!==g)return false;
     return true;
   });
-  itemsPage=1;renderItemsTable(filtered);
+  itemsPage=1;renderItemsTable(itemsFiltered);
+}
+function goItemsPage(delta){
+  itemsPage+=delta;
+  renderItemsTable(itemsFiltered);
 }
 function renderItemsTable(data){
   const total=data.length,pages=Math.ceil(total/PS)||1;
@@ -2271,7 +2281,7 @@ function renderItemsTable(data){
   });
   h+='</tbody></table></div>';
   document.getElementById('items-table').innerHTML=h;
-  document.getElementById('items-pag').innerHTML=`<span>${total} صنف | صفحة ${itemsPage} من ${pages}</span><div class="page-btns"><button onclick="itemsPage--;filterItems()" ${itemsPage<=1?'disabled':''}>السابق</button><button onclick="itemsPage++;filterItems()" ${itemsPage>=pages?'disabled':''}>التالي</button></div>`;
+  document.getElementById('items-pag').innerHTML=`<span>${total} صنف | صفحة ${itemsPage} من ${pages}</span><div class="page-btns"><button onclick="goItemsPage(-1)" ${itemsPage<=1?'disabled':''}>السابق</button><button onclick="goItemsPage(1)" ${itemsPage>=pages?'disabled':''}>التالي</button></div>`;
 }
 function openItemModal(id=null){
   editItemId=id;
