@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.20.4';
+const APP_VERSION='2026.07.21.1';
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
@@ -3257,11 +3257,12 @@ async function loadInventoryLegacy(){
   filterInv();
 }
 
+let invFiltered=[];
 function filterInv(){
   const s=document.getElementById('inv-search')?.value?.toLowerCase()||'';
   const g=document.getElementById('inv-grp-f')?.value||'';
   const st=document.getElementById('inv-status-f')?.value||'';
-  let filtered=allInventory.filter(i=>{
+  invFiltered=allInventory.filter(i=>{
     if(s&&!i.name.toLowerCase().includes(s)&&!(i.code||'').toLowerCase().includes(s))return false;
     if(g&&String(i.group_id)!==g)return false;
     if(st==='ok'&&!(i.qty>(i.min_qty||0)))return false;
@@ -3269,7 +3270,11 @@ function filterInv(){
     if(st==='zero'&&!(i.qty<=0))return false;
     return true;
   });
-  invPage=1;renderInvTable(filtered);
+  invPage=1;renderInvTable(invFiltered);
+}
+function goInvPage(delta){
+  invPage+=delta;
+  renderInvTable(invFiltered);
 }
 
 function renderInvTable(data){
@@ -3306,7 +3311,7 @@ function renderInvTable(data){
   });
   h+='</tbody></table></div>';
   document.getElementById('inv-table').innerHTML=h;
-  document.getElementById('inv-pag').innerHTML=`<span>${total} صنف | صفحة ${invPage} من ${pages}</span><div class="page-btns"><button onclick="invPage--;filterInv()" ${invPage<=1?'disabled':''}>السابق</button><button onclick="invPage++;filterInv()" ${invPage>=pages?'disabled':''}>التالي</button></div>`;
+  document.getElementById('inv-pag').innerHTML=`<span>${total} صنف | صفحة ${invPage} من ${pages}</span><div class="page-btns"><button onclick="goInvPage(-1)" ${invPage<=1?'disabled':''}>السابق</button><button onclick="goInvPage(1)" ${invPage>=pages?'disabled':''}>التالي</button></div>`;
   const pt=document.getElementById('inv-page-total');
   if(pt)pt.innerHTML=`إجمالي هذه الصفحة — الكمية: <strong>${pageQty.toLocaleString('ar-EG')}</strong> | القيمة: <strong style="color:#10b981">${pageVal.toLocaleString('ar-EG',{minimumFractionDigits:0})} ج</strong>`;
 }
