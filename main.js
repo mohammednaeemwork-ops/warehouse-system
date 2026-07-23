@@ -21,8 +21,17 @@ function createWindow() {
     show: false,
   });
 
-  // Clear any cached HTTP responses before loading, then load with a cache-busting
-  // timestamp - belt-and-suspenders against Electron's persistent disk cache serving stale content.
+  // Force every response to be treated as non-cacheable, so Electron's disk cache
+  // never stores a copy to serve stale on the next launch (clearCache() alone only
+  // wipes PAST cache entries - it doesn't stop the page just loaded from being cached).
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    const headers = { ...details.responseHeaders };
+    headers['Cache-Control'] = ['no-store, no-cache, must-revalidate, max-age=0'];
+    delete headers['ETag']; delete headers['Etag'];
+    delete headers['Last-Modified'];
+    callback({ responseHeaders: headers });
+  });
+
   mainWindow.webContents.session.clearCache().then(() => {
     mainWindow.loadURL('https://mohammednaeemwork-ops.github.io/warehouse-system/?_launch=' + Date.now());
   });
@@ -30,11 +39,12 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.maximize();
-    // Show what URL is loaded
+    // Show what URL is loaded AND the installed app version - use this to verify
+    // you're actually running the latest build, not a stale cached page.
     dialog.showMessageBox({
       type: 'info',
       title: 'معلومات',
-      message: 'التطبيق بيحمل من:\n' + mainWindow.webContents.getURL(),
+      message: 'إصدار التطبيق: v' + app.getVersion() + '\nالتطبيق بيحمل من:\n' + mainWindow.webContents.getURL(),
       buttons: ['تمام'],
     });
   });
