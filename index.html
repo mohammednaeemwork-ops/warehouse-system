@@ -228,6 +228,7 @@ tr:hover td{background:#ffffff05;}
     <div class="sidebar-logo">
       <h2><img id="sidebar-logo-img" alt="" style="height:22px;width:22px;object-fit:contain;vertical-align:-4px;margin-left:4px"> العمار للتوسع العمراني</h2>
       <span>نظام المخازن</span>
+      <div id="sidebar-version-tag" style="font-size:9px;color:var(--text3);opacity:0.6;margin-top:4px;font-family:monospace"></div>
     </div>
     <div class="user-info">
       <div class="name" id="sb-name">-</div>
@@ -792,7 +793,11 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.21.2';
+const APP_VERSION='2026.07.23.1';
+document.addEventListener('DOMContentLoaded',()=>{
+  const vt=document.getElementById('sidebar-version-tag');
+  if(vt) vt.textContent='v'+APP_VERSION;
+});
 async function checkForContentUpdate(){
   try{
     const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
