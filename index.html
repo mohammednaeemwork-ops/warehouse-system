@@ -793,7 +793,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.23.1';
+const APP_VERSION='2026.07.23.2';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1039,7 +1039,7 @@ async function loadDashboard(){
   {
     let balData=[], fb=0, balErr=null;
     while(true){
-      const {data:page,error}=await sb.from('item_balances').select('*').range(fb,fb+999);
+      const {data:page,error}=await sb.from('item_balances').select('*').order('item_id',{ascending:true}).range(fb,fb+999);
       if(error){balErr=error;break;}
       if(!page||!page.length)break;
       balData=[...balData,...page];
@@ -1050,9 +1050,9 @@ async function loadDashboard(){
       usingView=false;
       console.warn('item_balances view not found, dashboard falling back to full scan. Run performance_upgrade.sql in Supabase to speed this up.',balErr.message);
       let items=[], fi=0;
-      while(true){const {data}=await sb.from('items').select('id,name,code,min_qty').range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
+      while(true){const {data}=await sb.from('items').select('id,name,code,min_qty').order('id',{ascending:true}).range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
       let movsAll=[], fm=0;
-      while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,projects(name)').range(fm,fm+999);if(!data||!data.length)break;movsAll=[...movsAll,...data];if(data.length<1000)break;fm+=1000;}
+      while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,projects(name)').order('id',{ascending:true}).range(fm,fm+999);if(!data||!data.length)break;movsAll=[...movsAll,...data];if(data.length<1000)break;fm+=1000;}
       items.forEach(i=>inv[i.id]={...i,qty:0,value:0,projects:new Set(),hasMoved:false});
       movsAll.forEach(m=>{
         if(!inv[m.item_id])return;
@@ -3206,7 +3206,7 @@ sb.auth.onAuthStateChange((event)=>{
 async function loadInventory(){
   let data=[], fp=0, viewError=null;
   while(true){
-    const {data:page,error}=await sb.from('item_balances').select('*').range(fp,fp+999);
+    const {data:page,error}=await sb.from('item_balances').select('*').order('item_id',{ascending:true}).range(fp,fp+999);
     if(error){viewError=error;break;}
     if(!page||!page.length)break;
     data=[...data,...page];
@@ -3243,9 +3243,9 @@ async function loadInventory(){
 // Legacy full-scan version - kept as an automatic fallback until performance_upgrade.sql is run in Supabase
 async function loadInventoryLegacy(){
   let items=[], fi=0;
-  while(true){const {data}=await sb.from('items').select('*,groups(name)').range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
+  while(true){const {data}=await sb.from('items').select('*,groups(name)').order('id',{ascending:true}).range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
   let movs=[], fm=0;
-  while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost').range(fm,fm+999);if(!data||!data.length)break;movs=[...movs,...data];if(data.length<1000)break;fm+=1000;}
+  while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost').order('id',{ascending:true}).range(fm,fm+999);if(!data||!data.length)break;movs=[...movs,...data];if(data.length<1000)break;fm+=1000;}
   const inv={};
   items.forEach(i=>inv[i.id]={...i,qty_in:0,qty_out:0,qty_ret:0,qty_trans:0,qty:0,fifo_value:0,group_name:i.groups?.name||'-'});
   movs.forEach(m=>{
