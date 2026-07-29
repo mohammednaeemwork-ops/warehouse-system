@@ -331,7 +331,9 @@ tr:hover td{background:#ffffff05;}
       <div class="card" style="margin-bottom:16px">
         <div class="bulk-toolbar">
           <select id="po-bulk-project"><option value="">اختر المشروع</option></select>
-          <input type="text" id="po-bulk-docnum" placeholder="رقم المستند/العقد" style="width:160px">
+          <input type="text" id="po-bulk-docnum" placeholder="رقم المستند/العقد" style="width:160px" oninput="loadPODocLinkPreview()">
+          <input type="text" id="po-doc-drive-link" placeholder="لينك PDF/الدرايف الخاص بالطلب..." style="width:220px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          <button class="btn btn-ghost btn-sm" onclick="savePODocLink()">💾 حفظ اللينك</button>
           <button class="btn btn-success" onclick="saveBulkPOs()">💾 حفظ الكل</button>
           <button class="btn btn-ghost" onclick="clearPORows()">🗑️ مسح</button>
         </div>
@@ -379,8 +381,10 @@ tr:hover td{background:#ffffff05;}
         <div class="card-header"><h3>➕ إدخال عروض جديدة</h3></div>
         <div class="bulk-toolbar">
           <select id="pq-project"><option value="">اختر المشروع</option></select>
-          <input type="text" id="pq-docnum" placeholder="رقم طلب العروض" style="width:160px">
+          <input type="text" id="pq-docnum" placeholder="رقم طلب العروض" style="width:160px" oninput="loadPQDocLinkPreview()">
           <input type="date" id="pq-date" style="width:150px">
+          <input type="text" id="pq-doc-drive-link" placeholder="لينك PDF/الدرايف الخاص بالعروض..." style="width:220px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          <button class="btn btn-ghost btn-sm" onclick="savePQDocLink()">💾 حفظ اللينك</button>
           <button class="btn btn-success" onclick="savePriceQuotes()">💾 حفظ</button>
           <button class="btn btn-ghost" onclick="clearPQRows()">🗑️ مسح</button>
         </div>
@@ -793,7 +797,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.23.2';
+const APP_VERSION='2026.07.23.3';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1548,6 +1552,26 @@ async function saveDocLink(){
   const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
   if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
   toast('✅ تم حفظ لينك الدرايف للمستند','success');
+}
+
+// PURCHASE ORDERS - document/PDF link (same document_links table, keyed by doc_number/batchRef which POs already share)
+async function loadPODocLinkPreview(){
+  const docNum=document.getElementById('po-bulk-docnum')?.value.trim();
+  const linkInput=document.getElementById('po-doc-drive-link');
+  if(!linkInput)return;
+  if(!docNum){linkInput.value='';return;}
+  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  if(error){console.error('loadPODocLinkPreview error:',error);return;}
+  linkInput.value=data?.drive_link||'';
+}
+async function savePODocLink(){
+  const docNum=document.getElementById('po-bulk-docnum')?.value.trim();
+  const link=document.getElementById('po-doc-drive-link')?.value.trim();
+  if(!docNum){toast('اكتب رقم المستند/العقد أولاً','error');return;}
+  if(!link){toast('الصق لينك الملف أولاً','error');return;}
+  const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
+  if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
+  toast('✅ تم حفظ لينك المستند لطلب التوريد','success');
 }
 
 async function printByDocNumber(){
@@ -2642,6 +2666,7 @@ async function saveBulkPOs(){
   toast('✅ تم حفظ '+toInsert.length+' طلب توريد','success');
   clearPORows();
   document.getElementById('po-bulk-docnum').value='';
+  const poLinkEl=document.getElementById('po-doc-drive-link');if(poLinkEl)poLinkEl.value='';
   await loadPOs();
 }
 
@@ -2826,7 +2851,7 @@ function toast(msg,type='success'){
   const el=document.createElement('div');el.className='toast-item '+type;el.textContent=msg;
   document.getElementById('toast').appendChild(el);setTimeout(()=>el.remove(),3500);
 }
-function printPO(id){
+async function printPO(id){
   const p=allPOs.find(x=>x.id===id);
   if(!p)return;
   // Group all POs that share the same doc_number (same batch/document)
@@ -2835,6 +2860,8 @@ function printPO(id){
   const project=group[0]?.projects?.name||'-';
   const vendor=group[0]?.vendors?.name||'-';
   const dateStr=new Date(group[0]?.created_at).toLocaleDateString('ar-EG');
+  const {data:linkRow}=await sb.from('document_links').select('drive_link').eq('doc_number',groupKey).maybeSingle();
+  const docLink=linkRow?.drive_link||'';
 
   let rowsHtml='';
   group.forEach((row,i)=>{
@@ -2854,6 +2881,7 @@ function printPO(id){
     +'<div style="text-align:left"><div style="font-size:18px;font-weight:bold;color:#1e40af">'+groupKey+'</div>'
     +'<div style="font-size:12px;color:#666">'+dateStr+'</div></div></div>'
     +'<div class="meta"><div>المشروع: '+project+'</div><div>المورد: '+vendor+'</div></div>'
+    +(docLink?'<div style="font-size:12px;margin-bottom:10px">📎 مرفقات الطلب: <a href="'+docLink+'" target="_blank">'+docLink+'</a></div>':'')
     +'<table><thead><tr><th>#</th><th>الصنف</th><th>الكود</th><th>المطلوب</th><th>الواصل</th><th>الباقي</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
     +'<div class="sigs"><div class="sig-line">توقيع مقدم الطلب</div><div class="sig-line">توقيع المدير</div><div class="sig-line">توقيع المورد</div></div>'
     +'<button class="no-print" onclick="window.print()" style="margin-top:30px;padding:10px 30px;background:#1e40af;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer">🖨️ طباعة</button>'
@@ -3129,18 +3157,41 @@ async function savePriceQuotes(){
   const project_id=parseInt(document.getElementById('pq-project')?.value)||null;
   if(!project_id){toast('اختر المشروع أولاً','error');return;}
   const pq_date=document.getElementById('pq-date')?.value;
+  const ref_number=document.getElementById('pq-docnum')?.value.trim()||null;
   const toInsert=[];
   pqRows.forEach(row=>{
     if(!row.item_id||!row.qty)return;
     [[row.v1_id,row.v1_price],[row.v2_id,row.v2_price],[row.v3_id,row.v3_price],[row.v4_id,row.v4_price]].forEach(([vid,vp])=>{
-      if(vid&&vp){const rec={item_id:parseInt(row.item_id),project_id,vendor_id:parseInt(vid),qty:parseFloat(row.qty),unit_price:parseFloat(vp),notes:row.notes||null,created_by:CU.id};if(pq_date)rec.created_at=new Date(pq_date).toISOString();toInsert.push(rec);}
+      if(vid&&vp){const rec={item_id:parseInt(row.item_id),project_id,vendor_id:parseInt(vid),qty:parseFloat(row.qty),unit_price:parseFloat(vp),notes:row.notes||null,ref_number,created_by:CU.id};if(pq_date)rec.created_at=new Date(pq_date).toISOString();toInsert.push(rec);}
     });
   });
   if(!toInsert.length){toast('أضف أصناف وأسعار أولاً','error');return;}
   const {error}=await sb.from('price_quotes').insert(toInsert);
   if(error){toast('خطأ: '+error.message,'error');return;}
   toast('✅ تم حفظ '+toInsert.length+' عرض سعر','success');
-  clearPQRows();await loadPriceQuotes();
+  clearPQRows();
+  document.getElementById('pq-docnum').value='';
+  const pqLinkEl=document.getElementById('pq-doc-drive-link');if(pqLinkEl)pqLinkEl.value='';
+  await loadPriceQuotes();
+}
+// PRICE QUOTES - document/PDF link (same document_links table, keyed by the "رقم طلب العروض" reference)
+async function loadPQDocLinkPreview(){
+  const docNum=document.getElementById('pq-docnum')?.value.trim();
+  const linkInput=document.getElementById('pq-doc-drive-link');
+  if(!linkInput)return;
+  if(!docNum){linkInput.value='';return;}
+  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  if(error){console.error('loadPQDocLinkPreview error:',error);return;}
+  linkInput.value=data?.drive_link||'';
+}
+async function savePQDocLink(){
+  const docNum=document.getElementById('pq-docnum')?.value.trim();
+  const link=document.getElementById('pq-doc-drive-link')?.value.trim();
+  if(!docNum){toast('اكتب رقم طلب العروض أولاً','error');return;}
+  if(!link){toast('الصق لينك الملف أولاً','error');return;}
+  const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
+  if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
+  toast('✅ تم حفظ لينك عروض الأسعار','success');
 }
 function printPriceComparison(){
   const groups={};
