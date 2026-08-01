@@ -813,7 +813,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.2';
+const APP_VERSION='2026.07.31.3';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1897,7 +1897,7 @@ async function saveBulkMovements(){
         unit_price:parseFloat(row.price)||unit_price_calc,
         fifo_cost:fifo_cost||null,
         supplier:(isOutType||isRetType||type==='وارد')?(row.supplier||null):null,
-        max_qty:parseFloat(row.max_qty)||0,
+        max_qty:type==='وارد'?(parseFloat(row.max_qty)||0):0,
         doc_number:doc_number||null,
         notes:row.notes||(general_notes||null),
         project_id,
