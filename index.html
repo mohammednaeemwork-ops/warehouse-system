@@ -67,6 +67,9 @@ nav{flex:1;padding:6px 0;}
 /* CARDS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;}
+.rep-group{margin-bottom:20px;}
+.rep-group-title{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px;padding-right:2px;}
+.rep-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
 .stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
 .stat-card h3{font-size:22px;font-weight:900;}
 .stat-card p{font-size:12px;color:var(--text2);}
@@ -623,28 +626,41 @@ tr:hover td{background:#ffffff05;}
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ الـ Snapshot</label><input type="date" id="rep-snapshot-date" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px">
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('top')"><div class="stat-icon" style="background:#3b82f620">🏆</div><div><h3 style="font-size:14px">أكثر الأصناف حركة</h3><p style="font-size:11px">وارد وصادر</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('item-movement')"><div class="stat-icon" style="background:#6366f120">🔍</div><div><h3 style="font-size:14px">حركة صنف معين</h3><p style="font-size:11px">كل حركات الصنف</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('zero')"><div class="stat-icon" style="background:#ef444420">⚠️</div><div><h3 style="font-size:14px">الأصناف الصفرية</h3><p style="font-size:11px">رصيد صفر</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('monthly')"><div class="stat-icon" style="background:#f59e0b20">📅</div><div><h3 style="font-size:14px">تقرير شهري</h3><p style="font-size:11px">حركات الشهر</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('by-project')"><div class="stat-icon" style="background:#10b98120"><img class="company-logo-icon" style="width:22px;height:22px;object-fit:contain"></div><div><h3 style="font-size:14px">تقرير بالمشاريع</h3><p style="font-size:11px">مفلتر بالمشروع</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('cost-centers')"><div class="stat-icon" style="background:#6366f120">🏢</div><div><h3 style="font-size:14px">مراكز التكلفة</h3><p style="font-size:11px">عمارة ← شقة</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('cost-type')"><div class="stat-icon" style="background:#f59e0b20">💰</div><div><h3 style="font-size:14px">اسم التكلفة</h3><p style="font-size:11px">صرف حسب التكلفة</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('inventory-value')"><div class="stat-icon" style="background:#10b98120">💎</div><div><h3 style="font-size:14px">قيمة المخزون</h3><p style="font-size:11px">إجمالي القيمة</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('snapshot')"><div class="stat-icon" style="background:#3b82f620">📸</div><div><h3 style="font-size:14px">Snapshot المخزون</h3><p style="font-size:11px">الرصيد في تاريخ</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 style="font-size:14px">طلبات التوريد</h3><p style="font-size:11px">مقارنة المطلوب</p></div></div>
+      <div style="margin-bottom:12px"><input type="text" id="rep-card-search" placeholder="🔍 ابحث عن نوع التقرير..." oninput="filterReportCards()" style="width:100%;max-width:320px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+      <div id="report-cards-grid">
+        <div class="rep-group">
+          <h4 class="rep-group-title">📦 تقارير الحركة</h4>
+          <div class="rep-group-grid">
+            <div class="stat-card rep-card" data-label="أكثر الأصناف حركة وارد وصادر" style="cursor:pointer" onclick="genReport('top')"><div class="stat-icon" style="background:#3b82f620">🏆</div><div><h3 style="font-size:14px">أكثر الأصناف حركة</h3><p style="font-size:11px">وارد وصادر</p></div></div>
+            <div class="stat-card rep-card" data-label="حركة صنف معين كل حركات الصنف" style="cursor:pointer" onclick="genReport('item-movement')"><div class="stat-icon" style="background:#6366f120">🔍</div><div><h3 style="font-size:14px">حركة صنف معين</h3><p style="font-size:11px">كل حركات الصنف</p></div></div>
+            <div class="stat-card rep-card" data-label="تقرير شهري حركات الشهر" style="cursor:pointer" onclick="genReport('monthly')"><div class="stat-icon" style="background:#f59e0b20">📅</div><div><h3 style="font-size:14px">تقرير شهري</h3><p style="font-size:11px">حركات الشهر</p></div></div>
+            <div class="stat-card rep-card" data-label="تقرير بالمشاريع مفلتر بالمشروع" style="cursor:pointer" onclick="genReport('by-project')"><div class="stat-icon" style="background:#10b98120"><img class="company-logo-icon" style="width:22px;height:22px;object-fit:contain"></div><div><h3 style="font-size:14px">تقرير بالمشاريع</h3><p style="font-size:11px">مفلتر بالمشروع</p></div></div>
+          </div>
+        </div>
+        <div class="rep-group">
+          <h4 class="rep-group-title">🏬 تقارير المخزون</h4>
+          <div class="rep-group-grid">
+            <div class="stat-card rep-card" data-label="الأصناف الصفرية رصيد صفر" style="cursor:pointer" onclick="genReport('zero')"><div class="stat-icon" style="background:#ef444420">⚠️</div><div><h3 style="font-size:14px">الأصناف الصفرية</h3><p style="font-size:11px">رصيد صفر</p></div></div>
+            <div class="stat-card rep-card" data-label="قيمة المخزون إجمالي القيمة" style="cursor:pointer" onclick="genReport('inventory-value')"><div class="stat-icon" style="background:#10b98120">💎</div><div><h3 style="font-size:14px">قيمة المخزون</h3><p style="font-size:11px">إجمالي القيمة</p></div></div>
+            <div class="stat-card rep-card" data-label="Snapshot المخزون الرصيد في تاريخ" style="cursor:pointer" onclick="genReport('snapshot')"><div class="stat-icon" style="background:#3b82f620">📸</div><div><h3 style="font-size:14px">Snapshot المخزون</h3><p style="font-size:11px">الرصيد في تاريخ</p></div></div>
+          </div>
+        </div>
+        <div class="rep-group">
+          <h4 class="rep-group-title">💰 تقارير التكلفة</h4>
+          <div class="rep-group-grid">
+            <div class="stat-card rep-card" data-label="مراكز التكلفة عمارة شقة" style="cursor:pointer" onclick="genReport('cost-centers')"><div class="stat-icon" style="background:#6366f120">🏢</div><div><h3 style="font-size:14px">مراكز التكلفة</h3><p style="font-size:11px">عمارة ← شقة</p></div></div>
+            <div class="stat-card rep-card" data-label="اسم التكلفة صرف حسب التكلفة" style="cursor:pointer" onclick="genReport('cost-type')"><div class="stat-icon" style="background:#f59e0b20">💰</div><div><h3 style="font-size:14px">اسم التكلفة</h3><p style="font-size:11px">صرف حسب التكلفة</p></div></div>
+          </div>
+        </div>
+        <div class="rep-group">
+          <h4 class="rep-group-title">🛒 تقارير التوريد</h4>
+          <div class="rep-group-grid">
+            <div class="stat-card rep-card" data-label="طلبات التوريد مقارنة المطلوب" style="cursor:pointer" onclick="genReport('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 style="font-size:14px">طلبات التوريد</h3><p style="font-size:11px">مقارنة المطلوب</p></div></div>
+          </div>
+        </div>
       </div>
+      <div id="rep-card-noresults" style="display:none;text-align:center;color:var(--text3);padding:20px;font-size:13px">مفيش تقرير بالاسم ده</div>
       <div id="report-out-placeholder" style="display:none"></div>
-      <div class="stats-grid" style="display:none">
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('top')"><div class="stat-icon" style="background:#3b82f620">🏆</div><div><h3 style="font-size:15px">أكثر الأصناف حركة</h3></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('zero')"><div class="stat-icon" style="background:#ef444420">⚠️</div><div><h3 style="font-size:15px">الأصناف الصفرية</h3></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('monthly')"><div class="stat-icon" style="background:#f59e0b20">📅</div><div><h3 style="font-size:15px">تقرير شهري</h3></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('by-project')"><div class="stat-icon" style="background:#10b98120"><img class="company-logo-icon" style="width:22px;height:22px;object-fit:contain"></div><div><h3 style="font-size:15px">تقرير بالمشاريع</h3></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('cost-centers')"><div class="stat-icon" style="background:#6366f120">🏢</div><div><h3 style="font-size:15px">تقرير مراكز التكلفة</h3><p style="font-size:11px;color:var(--text2)">عمارة ← شقة ← أصناف</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('cost-type')"><div class="stat-icon" style="background:#f59e0b20">💰</div><div><h3 style="font-size:15px">تقرير اسم التكلفة</h3><p style="font-size:11px;color:var(--text2)">صرف حسب نوع التكلفة</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="genReport('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 style="font-size:15px">تقرير طلبات التوريد</h3><p style="font-size:11px;color:var(--text2)">مقارنة المطلوب بالواصل</p></div></div>
-      </div>
       <div id="report-out"></div>
     </div>
   </div>
@@ -797,7 +813,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.23.3';
+const APP_VERSION='2026.07.31.2';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -2052,6 +2068,21 @@ function renderMovTable(data){
   document.getElementById('mov-pag').innerHTML=`<span>${total} حركة | صفحة ${movPage} من ${pages}</span><div class="page-btns"><button onclick="goMovPage(-1)" ${movPage<=1?'disabled':''}>السابق</button><button onclick="goMovPage(1)" ${movPage>=pages?'disabled':''}>التالي</button></div>`;
 }
 
+function filterReportCards(){
+  const q=document.getElementById('rep-card-search')?.value.trim().toLowerCase()||'';
+  let visibleCount=0;
+  document.querySelectorAll('.rep-group').forEach(group=>{
+    let groupVisible=0;
+    group.querySelectorAll('.rep-card').forEach(c=>{
+      const match=!q||(c.dataset.label||'').toLowerCase().includes(q);
+      c.style.display=match?'':'none';
+      if(match){groupVisible++;visibleCount++;}
+    });
+    group.style.display=groupVisible>0?'':'none';
+  });
+  const noRes=document.getElementById('rep-card-noresults');
+  if(noRes) noRes.style.display=visibleCount===0?'block':'none';
+}
 async function genReport(type){
   document.getElementById('report-out').innerHTML='<div class="loading"><div class="spinner"></div><br>جاري التوليد...</div>';
 
@@ -2223,10 +2254,17 @@ async function genReport(type){
 }
 
 function renderReport(title,headers,rows){
-  let h=`<div class="card"><div class="card-header"><h3>📊 ${title}</h3><button class="btn btn-ghost btn-sm" onclick="exportReport('${title}')">📥 Excel</button></div><div class="tbl-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+  const cleanTitle=title.replace(/<[^>]*>/g,'').replace(/'/g,"\\'");
+  let h=`<div class="card"><div class="card-header"><h3>📊 ${title}</h3><button class="btn btn-ghost btn-sm" onclick="exportReport('${cleanTitle}')">📥 Excel</button></div><div class="tbl-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
   rows.forEach(r=>{h+=`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`;});
   h+='</tbody></table></div></div>';
   document.getElementById('report-out').innerHTML=h;
+}
+function exportReport(title){
+  const table=document.querySelector('#report-out table');if(!table)return;
+  const wb=XLSX.utils.table_to_book(table);
+  const safeTitle=title.replace(/<[^>]*>/g,'').replace(/[\\/:*?"<>|]/g,'-').slice(0,60);
+  XLSX.writeFile(wb,safeTitle+'.xlsx');
 }
 
 // GROUPS
