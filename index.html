@@ -298,9 +298,17 @@ tr:hover td{background:#ffffff05;}
       <div class="card" id="alerts-card" style="display:none;border-color:#ef444440">
         <div class="card-header" style="background:#ef444410">
           <h3 style="color:var(--danger)">⚠️ تنبيهات الرقابة المخزنية (أصناف منخفضة / رصيد صفر)</h3>
-          <button class="btn btn-ghost btn-sm" onclick="markAllAlertsSeen()">تعليم الكل كمقروء</button>
         </div>
         <div id="alerts-list"></div>
+      </div>
+
+      <!-- تنبيهات تجاوز حد الصرف (من جدول التنبيهات المحفوظ) -->
+      <div class="card" id="qty-alerts-card" style="display:none;border-color:#ef444440">
+        <div class="card-header" style="background:#ef444410">
+          <h3 style="color:#ef4444">🚨 تنبيهات تجاوز حد الصرف الجديدة</h3>
+          <button class="btn btn-ghost btn-sm" onclick="markAllAlertsSeen()">تعليم الكل كمقروء</button>
+        </div>
+        <div id="qty-alerts-list"></div>
       </div>
 
       <!-- آخر 5 طلبات توريد مفتوحة -->
@@ -813,7 +821,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.3';
+const APP_VERSION='2026.07.31.4';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1189,20 +1197,26 @@ async function loadAlerts(){
 }
 function renderAlerts(){
   const unseen=allAlerts.filter(a=>!a.seen);
-  if(!allAlerts.length){document.getElementById('alerts-list').innerHTML='<div class="empty"><div class="ico">✅</div><p>لا توجد تنبيهات</p></div>';return;}
+  const card=document.getElementById('qty-alerts-card');
+  if(!unseen.length){
+    if(card) card.style.display='none';
+    document.getElementById('qty-alerts-list').innerHTML='';
+    return;
+  }
+  if(card) card.style.display='block';
   let h='';
-  allAlerts.forEach(a=>{
-    h+=`<div class="alert-item${a.seen?' seen':''}">
+  unseen.forEach(a=>{
+    h+=`<div class="alert-item">
       <div class="alert-icon">⚠️</div>
       <div class="alert-body">
         <h4>تجاوز حد الصرف</h4>
         <p>${a.message}</p>
         <div class="alert-time">${fmtDate(a.created_at)}</div>
       </div>
-      ${!a.seen?`<button class="btn btn-ghost btn-sm" onclick="markAlertSeen(${a.id})">✓</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="markAlertSeen(${a.id})">✓</button>
     </div>`;
   });
-  document.getElementById('alerts-list').innerHTML=h;
+  document.getElementById('qty-alerts-list').innerHTML=h;
 }
 async function markAlertSeen(id){
   await sb.from('alerts').update({seen:true}).eq('id',id);
