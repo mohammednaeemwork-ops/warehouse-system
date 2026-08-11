@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.5';
+const APP_VERSION='2026.07.31.6';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1683,9 +1683,8 @@ async function printByDocNumber(){
     let extraCols='';
     if(isIn){
       extraCols=`<td>${price.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td>
-                 <td style="font-weight:700;color:#10b981">${val.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td>
-                 <td>${m.supplier||'-'}</td>`;
-    } else if(type==='صادر'||type==='مرتجع'){
+                 <td style="font-weight:700;color:#10b981">${val.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td>`;
+    } else if(type==='صادر'||type==='مرتجع') {
       extraCols=`<td>${m.supplier||'-'}</td>
                  <td>${m.cost_centers?.name||'-'}</td>
                  <td>${m.cost_centers2?.name||'-'}</td>
@@ -1706,7 +1705,7 @@ async function printByDocNumber(){
   });
 
   let extraHeaders='';
-  if(isIn) extraHeaders='<th>سعر الوحدة</th><th>الإجمالي</th><th>المورد</th>';
+  if(isIn) extraHeaders='<th>سعر الوحدة</th><th>الإجمالي</th>';
   else if(type==='صادر'||type==='مرتجع') extraHeaders='<th>المقاول</th><th>م.تكلفة 1</th><th>م.تكلفة 2</th><th>تكلفة FIFO</th>';
   else if(type==='تحويل') extraHeaders='<th>من مخزن</th><th>إلى مخزن</th>';
 
@@ -1735,6 +1734,7 @@ async function printByDocNumber(){
   </div>
   <div style="text-align:left">
     <div style="font-size:20px;font-weight:bold;color:#1e40af">${docNum}</div>
+    ${isIn?'<div style="font-size:13px;color:#666">المورد: '+(movs[0]?.supplier||'-')+'</div>':''}
     <div style="font-size:13px;color:#666">التاريخ: ${dateStr}</div>
     <div style="font-size:13px;color:#666">عدد الأصناف: ${movs.length}</div>
   </div>
@@ -1784,7 +1784,7 @@ function printBulkMovements(){
     const val=qty*price;
     totalValue+=val;
     let extra='';
-    if(isIn) extra='<td>'+(row.price||'-')+'</td><td>'+(val?val.toLocaleString('ar-EG',{minimumFractionDigits:2}):'-')+'</td><td>'+(row.supplier||'-')+'</td>';
+    if(isIn) extra='<td>'+(row.price||'-')+'</td><td>'+(val?val.toLocaleString('ar-EG',{minimumFractionDigits:2}):'-')+'</td>';
     else if(type==='صادر'){
       const cc1=allCostCenters.find(c=>c.id===parseInt(row.cost_center_id))?.name||'-';
       const cc2=allCostCenters.find(c=>c.id===parseInt(row.cost_center2_id))?.name||'-';
@@ -1802,7 +1802,7 @@ function printBulkMovements(){
   });
 
   let extraHeaders='';
-  if(isIn) extraHeaders='<th>السعر</th><th>القيمة</th><th>المورد</th>';
+  if(isIn) extraHeaders='<th>السعر</th><th>القيمة</th>';
   else if(type==='صادر'||type==='مرتجع') extraHeaders='<th>'+(type==='صادر'?'المقاول':'اسم المقاول')+'</th><th>م.تكلفة 1</th><th>م.تكلفة 2</th>';
   else if(isTrans) extraHeaders='<th>من مخزن</th><th>إلى مخزن</th>';
 
@@ -1825,6 +1825,7 @@ function printBulkMovements(){
     +'<div class="header"><div><h1><img src="'+COMPANY_LOGO+'" style="height:38px;vertical-align:-10px;margin-left:8px">شركة العمار للتوسع العمراني</h1><h2>'+typeLabel+'</h2></div>'
     +'<div style="text-align:left"><div style="font-size:13px;color:#666">التاريخ: '+dateStr+'</div>'
     +(docNum?'<div style="font-size:13px;color:#666">رقم المستند: '+docNum+'</div>':'')
+    +(isIn?'<div style="font-size:13px;color:#666">المورد: '+(validRows[0]?.supplier||'-')+'</div>':'')
     +'</div></div>'
     +(project&&!isTrans?'<div class="meta"><div>المشروع: '+project.name+'</div><div>المخزن: '+(project.warehouse_name||'-')+'</div></div>':'')
     +'<table><thead><tr><th>#</th><th>اسم الصنف</th><th>الكود</th><th>الكمية</th><th>الوحدة</th>'+extraHeaders+'<th>البيان</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
