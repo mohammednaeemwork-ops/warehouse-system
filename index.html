@@ -420,6 +420,13 @@ tr:hover td{background:#ffffff05;}
         <div><h2>سجل الحركات</h2><p>جميع حركات المخزون</p></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="text" id="print-doc-num" placeholder="رقم المستند للطباعة..." oninput="loadDocLinkPreview()" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:200px">
+          <select id="doc-type-filter" onchange="loadDocLinkPreview()" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+            <option value="">كل الأنواع</option>
+            <option value="وارد">⬇️ وارد</option>
+            <option value="صادر">⬆️ صادر</option>
+            <option value="مرتجع">↩️ مرتجع</option>
+            <option value="تحويل">🔀 تحويل</option>
+          </select>
           <input type="text" id="doc-drive-link" placeholder="لينك الدرايف الخاص بالمستند..." style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:260px">
           <button class="btn btn-ghost btn-sm" onclick="saveDocLink()">💾 حفظ اللينك</button>
           <button class="btn btn-ghost" onclick="printByDocNumber()">🖨️ طباعة بالمستند</button>
@@ -862,7 +869,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.6';
+const APP_VERSION='2026.07.31.7';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1605,24 +1612,27 @@ function calcFIFOCost(consumed){
   return consumed.reduce((sum,c)=>sum+(c.qty*c.unit_price),0);
 }
 
-// DOCUMENT DRIVE LINKS (one link per doc_number)
+// DOCUMENT DRIVE LINKS (one link per doc_number + type, since the same doc_number can exist for both وارد and صادر)
 async function loadDocLinkPreview(){
   const docNum=document.getElementById('print-doc-num')?.value.trim();
+  const docType=document.getElementById('doc-type-filter')?.value||'';
   const linkInput=document.getElementById('doc-drive-link');
   if(!linkInput)return;
   if(!docNum){linkInput.value='';return;}
-  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).eq('doc_type',docType).maybeSingle();
   if(error){console.error('loadDocLinkPreview error:',error);return;}
   linkInput.value=data?.drive_link||'';
 }
 async function saveDocLink(){
   const docNum=document.getElementById('print-doc-num')?.value.trim();
+  const docType=document.getElementById('doc-type-filter')?.value||'';
   const link=document.getElementById('doc-drive-link')?.value.trim();
   if(!docNum){toast('اكتب رقم المستند أولاً','error');return;}
+  if(!docType){toast('حدد النوع (وارد/صادر/مرتجع/تحويل) قبل الحفظ، عشان اللينك ميتحطش على النوع الغلط لو نفس الرقم مستخدم في أكتر من نوع','error');return;}
   if(!link){toast('الصق لينك الدرايف أولاً','error');return;}
-  const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
+  const {error}=await sb.from('document_links').upsert({doc_number:docNum,doc_type:docType,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number,doc_type'});
   if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
-  toast('✅ تم حفظ لينك الدرايف للمستند','success');
+  toast('✅ تم حفظ لينك الدرايف لمستند ('+docType+') رقم '+docNum,'success');
 }
 
 // PURCHASE ORDERS - document/PDF link (same document_links table, keyed by doc_number/batchRef which POs already share)
@@ -1631,7 +1641,7 @@ async function loadPODocLinkPreview(){
   const linkInput=document.getElementById('po-doc-drive-link');
   if(!linkInput)return;
   if(!docNum){linkInput.value='';return;}
-  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).eq('doc_type','po').maybeSingle();
   if(error){console.error('loadPODocLinkPreview error:',error);return;}
   linkInput.value=data?.drive_link||'';
 }
@@ -1640,27 +1650,38 @@ async function savePODocLink(){
   const link=document.getElementById('po-doc-drive-link')?.value.trim();
   if(!docNum){toast('اكتب رقم المستند/العقد أولاً','error');return;}
   if(!link){toast('الصق لينك الملف أولاً','error');return;}
-  const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
+  const {error}=await sb.from('document_links').upsert({doc_number:docNum,doc_type:'po',drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number,doc_type'});
   if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
   toast('✅ تم حفظ لينك المستند لطلب التوريد','success');
 }
 
 async function printByDocNumber(){
   const docNum=document.getElementById('print-doc-num')?.value.trim();
+  const docType=document.getElementById('doc-type-filter')?.value||'';
   if(!docNum){toast('أدخل رقم المستند أولاً','error');return;}
 
   // Fetch this document's drive link (if any) to show on the printed sheet
-  const {data:linkRow}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  const {data:linkRow}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).eq('doc_type',docType).maybeSingle();
   const driveLink=linkRow?.drive_link||document.getElementById('doc-drive-link')?.value.trim()||'';
 
-  // Fetch all movements with this doc number
-  const {data:movs,error}=await sb.from('movements')
+  // Fetch movements with this doc number - filtered by type too if selected, so the same
+  // doc_number shared between وارد and صادر doesn't print both mixed together in one sheet
+  let movQuery=sb.from('movements')
     .select('*,items(name,code,unit,groups(name)),projects(name),cost_centers:cost_center_id(name),cost_centers2:cost_center2_id(name)')
-    .eq('doc_number',docNum)
-    .order('created_at',{ascending:true});
+    .eq('doc_number',docNum);
+  if(docType) movQuery=movQuery.eq('type',docType);
+  const {data:movs,error}=await movQuery.order('created_at',{ascending:true});
 
   if(error||!movs?.length){
     toast('لا توجد حركات برقم المستند: '+docNum,'error');
+    return;
+  }
+
+  // Safeguard: if no specific type was picked and this doc_number is shared across multiple
+  // types (e.g. a وارد voucher and a صادر voucher both using "000"), don't silently mix them
+  const distinctTypes=[...new Set(movs.map(m=>m.type))];
+  if(!docType&&distinctTypes.length>1){
+    toast('⚠️ رقم المستند ده مستخدم في أكتر من نوع حركة ('+distinctTypes.join('، ')+'). حدد النوع من القائمة المنسدلة قبل الطباعة.','error');
     return;
   }
 
@@ -3122,7 +3143,7 @@ async function printPO(id){
   const project=group[0]?.projects?.name||'-';
   const vendor=group[0]?.vendors?.name||'-';
   const dateStr=new Date(group[0]?.created_at).toLocaleDateString('ar-EG');
-  const {data:linkRow}=await sb.from('document_links').select('drive_link').eq('doc_number',groupKey).maybeSingle();
+  const {data:linkRow}=await sb.from('document_links').select('drive_link').eq('doc_number',groupKey).eq('doc_type','po').maybeSingle();
   const docLink=linkRow?.drive_link||'';
 
   let rowsHtml='';
@@ -3442,7 +3463,7 @@ async function loadPQDocLinkPreview(){
   const linkInput=document.getElementById('pq-doc-drive-link');
   if(!linkInput)return;
   if(!docNum){linkInput.value='';return;}
-  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).maybeSingle();
+  const {data,error}=await sb.from('document_links').select('drive_link').eq('doc_number',docNum).eq('doc_type','pq').maybeSingle();
   if(error){console.error('loadPQDocLinkPreview error:',error);return;}
   linkInput.value=data?.drive_link||'';
 }
@@ -3451,7 +3472,7 @@ async function savePQDocLink(){
   const link=document.getElementById('pq-doc-drive-link')?.value.trim();
   if(!docNum){toast('اكتب رقم طلب العروض أولاً','error');return;}
   if(!link){toast('الصق لينك الملف أولاً','error');return;}
-  const {error}=await sb.from('document_links').upsert({doc_number:docNum,drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number'});
+  const {error}=await sb.from('document_links').upsert({doc_number:docNum,doc_type:'pq',drive_link:link,updated_by:CU?.id||null,updated_at:new Date().toISOString()},{onConflict:'doc_number,doc_type'});
   if(error){toast('خطأ في حفظ اللينك: '+error.message,'error');return;}
   toast('✅ تم حفظ لينك عروض الأسعار','success');
 }
