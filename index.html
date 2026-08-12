@@ -473,6 +473,8 @@ tr:hover td{background:#ffffff05;}
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم المستند</label><div style="display:flex;gap:6px"><input type="text" id="bulk-doc" placeholder="INV-001" style="flex:1;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><button class="btn btn-ghost btn-sm" onclick="autoGenDocNum()" title="توليد تلقائي">🔢</button></div></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ الحركة</label><input type="date" id="bulk-date" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">ملاحظة عامة</label><input type="text" id="bulk-general-notes" placeholder="ملاحظة على كل الإذن..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+          <div id="bulk-supplier-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المورد *</label><select id="bulk-supplier" onchange="onBulkSupplierChange()" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">اختر المورد</option><option value="__other__">أخرى...</option></select></div>
+          <div id="bulk-supplier-other-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">اسم المورد</label><input type="text" id="bulk-supplier-other" placeholder="اكتب اسم المورد..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
           <div id="bulk-preview" style="font-size:13px;color:var(--text2)">أضف أصناف لتظهر الملخص</div>
@@ -869,7 +871,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.7';
+const APP_VERSION='2026.07.31.8';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1092,7 +1094,18 @@ function populateSelects(){
     const cc1Opts=allCostCenters.filter(c=>c.level===1||!c.level).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
     bulkCC.innerHTML='<option value="">مركز التكلفة (عام)</option>'+cc1Opts;
   }
+  // Populate the single document-level supplier dropdown for وارد
+  const bulkSup=document.getElementById('bulk-supplier');
+  if(bulkSup){
+    const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+    bulkSup.innerHTML='<option value="">اختر المورد</option>'+supOpts+'<option value="__other__">أخرى...</option>';
+  }
   updateBulkType();
+}
+function onBulkSupplierChange(){
+  const val=document.getElementById('bulk-supplier')?.value;
+  const otherWrap=document.getElementById('bulk-supplier-other-wrap');
+  if(otherWrap) otherWrap.style.display=val==='__other__'?'block':'none';
 }
 
 // DASHBOARD
@@ -1403,10 +1416,16 @@ function updateBulkType(){
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
   const hidePrice=isIn&&CP?.role==='أمين مخزن';
+  const supWrap=document.getElementById('bulk-supplier-wrap');
+  if(supWrap) supWrap.style.display=isIn?'block':'none';
+  if(!isIn){
+    const otherWrap=document.getElementById('bulk-supplier-other-wrap');
+    if(otherWrap) otherWrap.style.display='none';
+  }
   let headers='<tr><th style="width:30px">#</th><th style="min-width:180px">اسم الصنف</th><th style="width:110px;color:#f59e0b">كود الصنف</th><th style="width:90px">الكمية</th>';
   if(isIn){
     if(!hidePrice) headers+='<th style="width:100px">السعر</th><th style="width:110px;color:#10b981">القيمة</th>';
-    headers+='<th style="width:100px">الوحدة</th><th style="width:160px">المورد</th><th style="width:110px">حد الصرف</th><th style="width:180px">طلب التوريد</th>';
+    headers+='<th style="width:100px">الوحدة</th><th style="width:110px">حد الصرف</th><th style="width:180px">طلب التوريد</th>';
   }
   if(isOut) headers+='<th style="width:160px">المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
   if(isRet) headers+='<th style="width:160px">اسم المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
@@ -1454,7 +1473,6 @@ function renderBulkRows(){
       <td><span id="bulk-item-code-${i}" style="font-family:monospace;font-size:12px;color:#f59e0b;font-weight:700">${row.item_code||''}</span></td>
       <td><input type="number" value="${row.qty||''}" min="0.01" step="0.01" placeholder="0" oninput="bulkRows[${i}].qty=this.value;updateRowValue(${i})" id="bulk-qty-${i}"></td>`;
     if(isIn){
-      const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
       const itemUnit=allItems.find(x=>x.id===parseInt(row.item_id))?.unit||'وحدة';
       const lineValue=((parseFloat(row.qty)||0)*(parseFloat(row.price)||0)).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
       const hidePrice=CP?.role==='أمين مخزن';
@@ -1462,10 +1480,6 @@ function renderBulkRows(){
       ${hidePrice?'':`<td><input type="number" value="${row.price||''}" min="0" step="0.01" placeholder="0" oninput="bulkRows[${i}].price=this.value;updateRowValue(${i})" id="bulk-price-${i}"></td>
       <td><span id="bulk-value-${i}" style="font-weight:700;color:#10b981">${lineValue}</span></td>`}
       <td><span style="font-weight:600;color:#f59e0b">${row.unit||itemUnit}</span></td>
-      <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
-        <option value="">اختر المورد</option>${supOpts}
-        <option value="__other__">أخرى...</option>
-      </select></td>
       <td><input type="number" value="${row.max_qty||''}" min="0" step="0.01" placeholder="بدون حد" oninput="bulkRows[${i}].max_qty=this.value"></td>
       <td><select id="bulk-po-${i}" onchange="bulkRows[${i}].po_id=this.value" style="width:100%;display:${row.item_id?'block':'none'}">
         <option value="">-- بدون ربط --</option>
@@ -1868,6 +1882,13 @@ async function saveBulkMovements(){
   const isOutType=type==='صادر';
   const isRetType=type==='مرتجع';
   const isTransType=type==='تحويل';
+  const isInType=type==='وارد';
+  let docSupplier=null;
+  if(isInType){
+    const supSel=document.getElementById('bulk-supplier')?.value||'';
+    docSupplier=supSel==='__other__'?(document.getElementById('bulk-supplier-other')?.value.trim()||''):supSel;
+    if(!docSupplier){toast('اختر المورد أولاً (فوق، جنب رقم المستند)','error');return;}
+  }
   const validRows=bulkRows.filter(r=>r.item_id&&r.qty>0);
   if(!validRows.length){toast('أضف أصناف أولاً','error');return;}
 
@@ -1891,7 +1912,7 @@ async function saveBulkMovements(){
       const {error}=await sb.from('movements').update({
         unit_price:price,
         qty,
-        supplier:row.supplier||null,
+        supplier:docSupplier,
         max_qty:parseFloat(row.max_qty)||0,
         notes:row.notes||general_notes||null,
         po_id:parseInt(row.po_id)||null
@@ -1910,6 +1931,9 @@ async function saveBulkMovements(){
     document.getElementById('bulk-doc').value='';
     document.getElementById('bulk-date').value='';
     if(document.getElementById('bulk-general-notes'))document.getElementById('bulk-general-notes').value='';
+    if(document.getElementById('bulk-supplier'))document.getElementById('bulk-supplier').value='';
+    if(document.getElementById('bulk-supplier-other'))document.getElementById('bulk-supplier-other').value='';
+    const supOtherWrap2=document.getElementById('bulk-supplier-other-wrap');if(supOtherWrap2)supOtherWrap2.style.display='none';
     updateBulkSummary();
     await Promise.all([loadMovements(),loadInventory(),loadDashboard(),loadAlerts()]);
     if(CP?.role==='مدير') loadPendingPricingList();
@@ -1973,7 +1997,7 @@ async function saveBulkMovements(){
         type, qty,
         unit_price:parseFloat(row.price)||unit_price_calc,
         fifo_cost:fifo_cost||null,
-        supplier:(isOutType||isRetType||type==='وارد')?(row.supplier||null):null,
+        supplier:isInType?docSupplier:((isOutType||isRetType)?(row.supplier||null):null),
         max_qty:type==='وارد'?(parseFloat(row.max_qty)||0):0,
         doc_number:doc_number||null,
         notes:row.notes||(general_notes||null),
@@ -2058,6 +2082,9 @@ async function saveBulkMovements(){
   document.getElementById('bulk-doc').value='';
   document.getElementById('bulk-date').value='';
   if(document.getElementById('bulk-general-notes'))document.getElementById('bulk-general-notes').value='';
+  if(document.getElementById('bulk-supplier'))document.getElementById('bulk-supplier').value='';
+  if(document.getElementById('bulk-supplier-other'))document.getElementById('bulk-supplier-other').value='';
+  const supOtherWrap=document.getElementById('bulk-supplier-other-wrap');if(supOtherWrap)supOtherWrap.style.display='none';
   localStorage.removeItem('bulk_draft');updateBulkSummary();
   await Promise.all([loadMovements(),loadInventory(),loadDashboard(),loadAlerts()]);
   if(CP?.role==='مدير') loadPendingPricingList();
@@ -3207,7 +3234,7 @@ function updateBulkSummary(){
 
 // Draft save/load
 function saveDraft(){
-  const draft={type:document.getElementById('bulk-type')?.value,project:document.getElementById('bulk-project')?.value,doc:document.getElementById('bulk-doc')?.value,date:document.getElementById('bulk-date')?.value,notes:document.getElementById('bulk-general-notes')?.value,rows:bulkRows};
+  const draft={type:document.getElementById('bulk-type')?.value,project:document.getElementById('bulk-project')?.value,doc:document.getElementById('bulk-doc')?.value,date:document.getElementById('bulk-date')?.value,notes:document.getElementById('bulk-general-notes')?.value,supplier:document.getElementById('bulk-supplier')?.value,supplierOther:document.getElementById('bulk-supplier-other')?.value,rows:bulkRows};
   localStorage.setItem('bulk_draft',JSON.stringify(draft));
   toast('✅ تم حفظ المسودة','success');
 }
@@ -3222,6 +3249,9 @@ function loadDraft(){
     if(document.getElementById('bulk-date')) document.getElementById('bulk-date').value=d.date||'';
     if(document.getElementById('bulk-general-notes')) document.getElementById('bulk-general-notes').value=d.notes||'';
     bulkRows=d.rows||[];updateBulkType();
+    if(document.getElementById('bulk-supplier')) document.getElementById('bulk-supplier').value=d.supplier||'';
+    onBulkSupplierChange();
+    if(document.getElementById('bulk-supplier-other')) document.getElementById('bulk-supplier-other').value=d.supplierOther||'';
     toast('✅ تم استرداد المسودة ('+bulkRows.length+' صف)','success');
   }catch(e){toast('خطأ في قراءة المسودة','error');}
 }
@@ -3246,6 +3276,14 @@ async function loadDocForEdit(explicitDocNum){
   }));
   editDocMode=true;editDocNumber=docNum;
   updateBulkType();
+  // Populate the single document-level supplier field from the loaded record
+  const loadedSupplier=data[0].supplier||'';
+  const supSel=document.getElementById('bulk-supplier');
+  if(supSel){
+    const known=[...supSel.options].some(o=>o.value===loadedSupplier);
+    if(known){supSel.value=loadedSupplier;}
+    else if(loadedSupplier){supSel.value='__other__';onBulkSupplierChange();const otherInput=document.getElementById('bulk-supplier-other');if(otherInput)otherInput.value=loadedSupplier;}
+  }
   const banner=document.getElementById('bulk-edit-banner');
   const bannerText=document.getElementById('bulk-edit-banner-text');
   if(banner&&bannerText){banner.style.display='flex';bannerText.textContent='📝 وضع تعديل — بتعدّل على إذن رقم '+docNum+' (لن يتم تكرار الحركة، هيتحدّث نفس الإذن عند الحفظ)';}
