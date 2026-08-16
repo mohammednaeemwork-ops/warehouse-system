@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.9';
+const APP_VERSION='2026.07.31.10';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1446,6 +1446,17 @@ function addBulkRow(){
   bulkRows.push({item_id:'',item_name:'',qty:'',price:'',supplier:'',max_qty:'',cost_center_id:''});
   renderBulkRows();
 }
+// Filters the level-2 cost center dropdown to only show children of the chosen level-1 cost center.
+// If the row's previously-selected cc2 no longer belongs to the new cc1, it's cleared.
+function filterCC2(i,cc1Value){
+  const cc2El=document.getElementById(`bulk-cc2-${i}`);
+  if(!cc2El)return;
+  const cc2List=allCostCenters.filter(x=>(x.level||1)===2&&(!cc1Value||String(x.parent_id)===String(cc1Value)));
+  const currentCC2=bulkRows[i]?.cost_center2_id;
+  const stillValid=cc2List.some(c=>String(c.id)===String(currentCC2));
+  if(!stillValid&&bulkRows[i]) bulkRows[i].cost_center2_id='';
+  cc2El.innerHTML='<option value="">م.تكلفة 2</option>'+cc2List.map(c=>`<option value="${c.id}"${stillValid&&String(c.id)===String(currentCC2)?' selected':''}>${c.name}</option>`).join('');
+}
 function clearBulkRows(){bulkRows=[];renderBulkRows();addBulkRow();}
 function renderBulkRows(){
   const type=document.getElementById('bulk-type').value;
@@ -1453,8 +1464,15 @@ function renderBulkRows(){
   const isOut=type==='صادر';
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
-  const cc1Opts=allCostCenters.filter(x=>(x.level||1)===1).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  const cc2Opts=allCostCenters.filter(x=>(x.level||1)===2).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const cc1List=allCostCenters.filter(x=>(x.level||1)===1);
+  const cc2List=allCostCenters.filter(x=>(x.level||1)===2);
+  function mkCC1Options(selectedId){
+    return cc1List.map(c=>`<option value="${c.id}"${String(c.id)===String(selectedId)?' selected':''}>${c.name}</option>`).join('');
+  }
+  function mkCC2Options(selectedId,parentId){
+    const list=parentId?cc2List.filter(c=>String(c.parent_id)===String(parentId)):cc2List;
+    return list.map(c=>`<option value="${c.id}"${String(c.id)===String(selectedId)?' selected':''}>${c.name}</option>`).join('');
+  }
   const projOpts=allProjects.map(p=>`<option value="${p.id}">${p.name} - ${p.warehouse_name||''}</option>`).join('');
   let h='';
   bulkRows.forEach((row,i)=>{
@@ -1493,19 +1511,19 @@ function renderBulkRows(){
         <option value="__other__">أخرى...</option>
       </select></td>
       <td><select onchange="bulkRows[${i}].cost_center_id=this.value;filterCC2(${i},this.value)" id="bulk-cc1-${i}">
-        <option value="">م.تكلفة 1</option>${cc1Opts}
+        <option value="">م.تكلفة 1</option>${mkCC1Options(row.cost_center_id)}
       </select></td>
       <td><select onchange="bulkRows[${i}].cost_center2_id=this.value" id="bulk-cc2-${i}">
-        <option value="">م.تكلفة 2</option>${cc2Opts}
+        <option value="">م.تكلفة 2</option>${mkCC2Options(row.cost_center2_id,row.cost_center_id)}
       </select></td>`;
     }
     if(isRet) h+=`
       <td><input type="text" value="${row.supplier||''}" placeholder="اسم المقاول" oninput="bulkRows[${i}].supplier=this.value"></td>
       <td><select onchange="bulkRows[${i}].cost_center_id=this.value;filterCC2(${i},this.value)" id="bulk-cc1-${i}">
-        <option value="">م.تكلفة 1</option>${cc1Opts}
+        <option value="">م.تكلفة 1</option>${mkCC1Options(row.cost_center_id)}
       </select></td>
       <td><select onchange="bulkRows[${i}].cost_center2_id=this.value" id="bulk-cc2-${i}">
-        <option value="">م.تكلفة 2</option>${cc2Opts}
+        <option value="">م.تكلفة 2</option>${mkCC2Options(row.cost_center2_id,row.cost_center_id)}
       </select></td>`;
     if(isTrans) h+=`
       <td><select onchange="bulkRows[${i}].from_project_id=this.value">
