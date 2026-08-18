@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.10';
+const APP_VERSION='2026.07.31.11';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -3090,11 +3090,12 @@ function importFromExcel(e){
         row.max_qty=r[colOffset+6]||'';
         row.notes=r[colOffset+7]||'';
       } else if(type==='صادر'){
-        const cc1=allCostCenters.find(c=>(c.level||1)===1&&c.name===String(r[colOffset+3]||'').trim());
-        const cc2=allCostCenters.find(c=>(c.level||1)===2&&c.name===String(r[colOffset+4]||'').trim());
+        row.supplier=r[colOffset+3]||'';
+        const cc1=allCostCenters.find(c=>(c.level||1)===1&&c.name===String(r[colOffset+4]||'').trim());
+        const cc2=allCostCenters.find(c=>(c.level||1)===2&&c.name===String(r[colOffset+5]||'').trim());
         row.cost_center_id=cc1?.id||'';
         row.cost_center2_id=cc2?.id||'';
-        row.notes=r[colOffset+5]||'';
+        row.notes=r[colOffset+6]||'';
       } else if(type==='مرتجع'){
         row.supplier=r[colOffset+3]||'';
         const cc1=allCostCenters.find(c=>(c.level||1)===1&&c.name===String(r[colOffset+4]||'').trim());
@@ -3137,8 +3138,8 @@ function downloadBulkTemplate(){
     headers=['التاريخ','رقم المستند','المشروع','كود الصنف','اسم الصنف','الكمية','السعر','الوحدة','المورد','حد الصرف','البيان'];
     sampleRow=[dateSample,'INV-001','اسم المشروع','30100100000001','رملة حرشة','10','150','طن','اسم المورد','100','بيان الحركة'];
   } else if(type==='صادر'){
-    headers=['التاريخ','رقم المستند','المشروع','كود الصنف','اسم الصنف','الكمية','مركز تكلفة 1','مركز تكلفة 2','البيان'];
-    sampleRow=[dateSample,'OUT-001','اسم المشروع','30100100000001','رملة حرشة','5','عمارة 1','شقة 101','بيان الصرف'];
+    headers=['التاريخ','رقم المستند','المشروع','كود الصنف','اسم الصنف','الكمية','المقاول','مركز تكلفة 1','مركز تكلفة 2','البيان'];
+    sampleRow=[dateSample,'OUT-001','اسم المشروع','30100100000001','رملة حرشة','5','اسم المقاول','عمارة 1','شقة 101','بيان الصرف'];
   } else if(type==='مرتجع'){
     headers=['التاريخ','رقم المستند','المشروع','كود الصنف','اسم الصنف','الكمية','اسم المقاول','مركز تكلفة 1','مركز تكلفة 2','البيان'];
     sampleRow=[dateSample,'RET-001','اسم المشروع','30100100000001','رملة حرشة','2','اسم المقاول','عمارة 1','شقة 101','سبب الإرجاع'];
