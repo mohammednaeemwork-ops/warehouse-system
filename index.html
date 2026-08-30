@@ -262,6 +262,9 @@ tr:hover td{background:#ffffff05;}
       <div class="nav-section">التقارير</div>
       <div class="nav-item" data-page="reports" onclick="showPage('reports')"><span class="ico">📈</span> التقارير</div>
       <div class="nav-item" data-page="analytics" onclick="showPage('analytics')"><span class="ico">📊</span> التحليلات البيانية</div>
+      <div class="nav-section">نظام التكاليف</div>
+      <div class="nav-item" data-page="coa" onclick="showPage('coa')"><span class="ico">🌳</span> شجرة الحسابات</div>
+      <div class="nav-item" data-page="custody" onclick="showPage('custody')"><span class="ico">💵</span> العهد النقدية</div>
     </nav>
     <button class="btn-logout" onclick="doLogout()">🚪 تسجيل الخروج</button>
   </div>
@@ -721,6 +724,70 @@ tr:hover td{background:#ffffff05;}
         </div>
       </div>
     </div>
+
+    <!-- CHART OF ACCOUNTS -->
+    <div class="page" id="page-coa">
+      <div class="page-header"><div><h2>شجرة الحسابات</h2><p>هيكل الحسابات الكامل لنظام التكاليف (742 حساب)</p></div></div>
+      <div class="card">
+        <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)">
+          <input type="text" id="coa-search" placeholder="🔍 ابحث برقم الحساب أو الاسم..." oninput="filterCOA()" style="flex:1;min-width:220px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          <select id="coa-level-filter" onchange="filterCOA()" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px">
+            <option value="">كل المستويات</option>
+            <option value="1">مستوى 1</option>
+            <option value="2">مستوى 2</option>
+            <option value="3">مستوى 3</option>
+            <option value="4">مستوى 4</option>
+            <option value="5">مستوى 5</option>
+            <option value="6">مستوى 6</option>
+          </select>
+          <span id="coa-count" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div id="coa-tree" style="max-height:70vh;overflow-y:auto"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CUSTODY (العهد النقدية) -->
+    <div class="page" id="page-custody">
+      <div class="page-header"><div><h2>العهد النقدية</h2><p>متابعة عهد الموظفين والمشرفين - صرف وتسوية</p></div></div>
+
+      <div class="card">
+        <div class="card-header"><h3>📋 أرصدة العهد الحالية</h3></div>
+        <div id="custody-summary"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>➕ إضافة معاملة عهدة</h3></div>
+        <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end">
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">صاحب العهدة *</label>
+            <select id="custody-person" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">اختر...</option></select>
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">النوع *</label>
+            <select id="custody-type" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px">
+              <option value="صرف">⬆️ صرف عهدة (استلم فلوس)</option>
+              <option value="تسوية">⬇️ تسوية عهدة (رد فلوس/فواتير)</option>
+            </select>
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المبلغ *</label>
+            <input type="number" id="custody-amount" min="0.01" step="0.01" placeholder="0" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المشروع (اختياري)</label>
+            <select id="custody-project" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">بدون مشروع</option></select>
+          </div>
+          <div style="grid-column:span 2"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">البيان</label>
+            <input type="text" id="custody-notes" placeholder="بيان المعاملة..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          </div>
+          <div style="grid-column:span 2"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">لينك الفاتورة/الإيصال (اختياري)</label>
+            <input type="text" id="custody-receipt" placeholder="لينك جوجل درايف..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          </div>
+          <button class="btn btn-success" onclick="saveCustodyTransaction()">💾 حفظ المعاملة</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>📜 آخر المعاملات</h3></div>
+        <div id="custody-log"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -871,7 +938,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.07.31.11';
+const APP_VERSION='2026.08.27.2';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -2210,6 +2277,130 @@ function filterReportCards(){
 let analyticsCharts={};
 function destroyChart(id){if(analyticsCharts[id]){analyticsCharts[id].destroy();delete analyticsCharts[id];}}
 
+// CUSTODY (العهد النقدية) - custody holders are pulled from chart_of_accounts under 120502000000,
+// reusing the existing named list instead of duplicating a separate employees table
+let custodyAccounts=[], custodyTx=[];
+async function loadCustody(){
+  const {data:accData,error:accErr}=await sb.from('chart_of_accounts').select('*').eq('parent_code','120502000000').order('account_name');
+  if(accErr){
+    document.getElementById('custody-summary').innerHTML='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL شجرة الحسابات والعهد في Supabase</p></div>';
+    document.getElementById('custody-log').innerHTML='';
+    return;
+  }
+  custodyAccounts=accData||[];
+
+  const personSel=document.getElementById('custody-person');
+  if(personSel) personSel.innerHTML='<option value="">اختر...</option>'+custodyAccounts.map(a=>`<option value="${a.account_code}">${a.account_name.replace(/^عهد[ةه]?\s*-?\s*/,'')}</option>`).join('');
+
+  const projSel=document.getElementById('custody-project');
+  if(projSel&&projSel.options.length<=1) allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;projSel.appendChild(o);});
+
+  let tx=[], from=0;
+  while(true){
+    const {data:page,error}=await sb.from('custody_transactions').select('*,projects(name)').order('id',{ascending:false}).range(from,from+999);
+    if(error)break;
+    if(!page||!page.length)break;
+    tx=[...tx,...page];
+    if(page.length<1000)break;
+    from+=1000;
+  }
+  custodyTx=tx;
+  renderCustodySummary();
+  renderCustodyLog();
+}
+function renderCustodySummary(){
+  const el=document.getElementById('custody-summary');
+  const balances={};
+  custodyAccounts.forEach(a=>balances[a.account_code]={name:a.account_name,balance:0});
+  custodyTx.forEach(t=>{
+    if(!balances[t.account_code])return;
+    balances[t.account_code].balance += t.type==='صرف' ? t.amount : -t.amount;
+  });
+  const rows=Object.values(balances).filter(b=>b.balance!==0).sort((a,b)=>b.balance-a.balance);
+  if(!rows.length){el.innerHTML='<div class="empty"><div class="ico">✅</div><p>مفيش عهد مفتوحة حاليًا</p></div>';return;}
+  let h='<div class="tbl-wrap"><table><thead><tr><th>صاحب العهدة</th><th>الرصيد الحالي (ج)</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    h+=`<tr><td style="font-weight:600">${r.name.replace(/^عهد[ةه]?\s*-?\s*/,'')}</td><td style="font-weight:700;color:${r.balance>0?'#f59e0b':'#10b981'}">${r.balance.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderCustodyLog(){
+  const el=document.getElementById('custody-log');
+  if(!custodyTx.length){el.innerHTML='<div class="empty"><div class="ico">📭</div><p>لا توجد معاملات بعد</p></div>';return;}
+  const nameMap={};
+  custodyAccounts.forEach(a=>nameMap[a.account_code]=a.account_name.replace(/^عهد[ةه]?\s*-?\s*/,''));
+  let h='<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>صاحب العهدة</th><th>النوع</th><th>المبلغ</th><th>المشروع</th><th>البيان</th><th>الفاتورة</th></tr></thead><tbody>';
+  custodyTx.slice(0,100).forEach(t=>{
+    h+=`<tr><td style="font-size:12px">${fmtDate(t.created_at)}</td><td>${nameMap[t.account_code]||t.account_code}</td>
+      <td><span class="badge ${t.type==='صرف'?'badge-out':'badge-in'}">${t.type==='صرف'?'⬆️ صرف':'⬇️ تسوية'}</span></td>
+      <td style="font-weight:700">${t.amount.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td>
+      <td>${t.projects?.name||'-'}</td><td>${t.description||'-'}</td>
+      <td>${t.receipt_link?`<a href="${t.receipt_link}" target="_blank">📎 عرض</a>`:'-'}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+async function saveCustodyTransaction(){
+  const account_code=document.getElementById('custody-person')?.value;
+  const type=document.getElementById('custody-type')?.value;
+  const amount=parseFloat(document.getElementById('custody-amount')?.value);
+  const project_id=parseInt(document.getElementById('custody-project')?.value)||null;
+  const description=document.getElementById('custody-notes')?.value.trim()||null;
+  const receipt_link=document.getElementById('custody-receipt')?.value.trim()||null;
+  if(!account_code){toast('اختر صاحب العهدة أولاً','error');return;}
+  if(!amount||amount<=0){toast('اكتب مبلغ صحيح أكبر من صفر','error');return;}
+  const {error}=await sb.from('custody_transactions').insert({account_code,type,amount,project_id,description,receipt_link,created_by:CU?.id||null});
+  if(error){toast('خطأ: '+error.message,'error');return;}
+  toast('✅ تم حفظ معاملة العهدة','success');
+  document.getElementById('custody-amount').value='';
+  document.getElementById('custody-notes').value='';
+  document.getElementById('custody-receipt').value='';
+  await loadCustody();
+}
+
+let allCOA=[];
+async function loadCOA(){
+  let data=[], from=0;
+  while(true){
+    const {data:page,error}=await sb.from('chart_of_accounts').select('*').order('account_code',{ascending:true}).range(from,from+999);
+    if(error){
+      document.getElementById('coa-tree').innerHTML='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL شجرة الحسابات في Supabase</p></div>';
+      return;
+    }
+    if(!page||!page.length)break;
+    data=[...data,...page];
+    if(page.length<1000)break;
+    from+=1000;
+  }
+  allCOA=data;
+  filterCOA();
+}
+function filterCOA(){
+  const q=document.getElementById('coa-search')?.value.trim().toLowerCase()||'';
+  const levelF=document.getElementById('coa-level-filter')?.value||'';
+  const filtered=allCOA.filter(a=>{
+    if(levelF&&String(a.level)!==levelF)return false;
+    if(q&&!a.account_name.toLowerCase().includes(q)&&!a.account_code.includes(q))return false;
+    return true;
+  });
+  document.getElementById('coa-count').textContent=filtered.length.toLocaleString('ar-EG')+' حساب';
+  renderCOATree(filtered);
+}
+function renderCOATree(rows){
+  const el=document.getElementById('coa-tree');
+  if(!rows.length){el.innerHTML='<div class="empty"><div class="ico">🔍</div><p>مفيش نتائج</p></div>';return;}
+  let h='<div class="tbl-wrap"><table><thead><tr><th style="width:130px">رقم الحساب</th><th>اسم الحساب</th><th style="width:80px">المستوى</th></tr></thead><tbody>';
+  rows.forEach(a=>{
+    const indent=(a.level-1)*18;
+    const weight=a.level<=2?700:a.level===3?600:400;
+    const size=a.level<=2?'13.5px':'13px';
+    h+=`<tr><td style="font-family:monospace;font-size:11px;color:#f59e0b">${a.account_code}</td><td style="padding-right:${indent}px;font-weight:${weight};font-size:${size}">${a.account_name}</td><td style="text-align:center;color:var(--text3)">${a.level}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+
 async function loadAnalytics(){
   Chart.defaults.color='#94a3b8';
   Chart.defaults.borderColor='#2a3248';
@@ -3169,6 +3360,8 @@ function showPage(name){
   if(name==='bulk-movement'&&CP?.role==='مدير') loadPendingPricingList();
   if(name==='inventory') loadInventory();
   if(name==='analytics') loadAnalytics();
+  if(name==='coa') loadCOA();
+  if(name==='custody') loadCustody();
   if(name==='dashboard') loadDashboard();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
