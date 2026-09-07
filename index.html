@@ -68,6 +68,27 @@ nav{flex:1;padding:6px 0;}
 /* CARDS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;}
+.hub-header{text-align:center;padding:20px 0 30px;}
+.hub-logo{width:90px;height:90px;object-fit:contain;margin-bottom:10px;}
+.hub-header h1{font-size:22px;font-weight:900;color:var(--text);margin:0;}
+.hub-header p{font-size:13px;color:var(--text2);margin-top:4px;}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;max-width:1100px;margin:0 auto;}
+.hub-tile{position:relative;cursor:pointer;border-radius:16px;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff;font-weight:800;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s ease,box-shadow .15s ease;border:1px solid rgba(255,255,255,.12);}
+.hub-tile:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.35);}
+.hub-tile-icon{font-size:34px;line-height:1;}
+.hub-tile-title{font-size:15px;}
+.hub-tile-badge{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.25);font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;}
+.hub-soon{opacity:.85;}
+.hub-blue{background:linear-gradient(145deg,#3b82f6,#1d4ed8);}
+.hub-teal{background:linear-gradient(145deg,#14b8a6,#0d9488);}
+.hub-indigo{background:linear-gradient(145deg,#6366f1,#4338ca);}
+.hub-amber{background:linear-gradient(145deg,#f59e0b,#b45309);}
+.hub-rose{background:linear-gradient(145deg,#f43f5e,#be123c);}
+.hub-violet{background:linear-gradient(145deg,#a855f7,#7e22ce);}
+.hub-green{background:linear-gradient(145deg,#10b981,#047857);}
+.hub-cyan{background:linear-gradient(145deg,#06b6d4,#0e7490);}
+.hub-orange{background:linear-gradient(145deg,#f97316,#c2410c);}
+.hub-slate{background:linear-gradient(145deg,#64748b,#334155);}
 .rep-group{margin-bottom:20px;}
 .rep-group-title{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px;padding-right:2px;}
 .rep-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
@@ -244,6 +265,7 @@ tr:hover td{background:#ffffff05;}
     </div>
     <nav>
       <div class="nav-section">الرئيسية</div>
+      <div class="nav-item" data-page="hub" onclick="showPage('hub')"><span class="ico">🏠</span> الصفحة الرئيسية</div>
       <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="ico">📊</span> لوحة التحكم <span id="alert-nav-badge" class="nav-alert-badge" style="display:none">0</span></div>
       <div class="nav-section">المخزون</div>
       <div class="nav-item" data-page="purchase-orders" onclick="showPage('purchase-orders')"><span class="ico">🛒</span> طلبات التوريد</div>
@@ -271,7 +293,60 @@ tr:hover td{background:#ffffff05;}
 
   <div class="main">
     <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
+    <!-- HUB - الصفحة الرئيسية -->
+    <div class="page active" id="page-hub">
+      <div class="hub-header">
+        <img id="hub-logo-img" alt="شعار الشركة" class="hub-logo">
+        <h1>شركة العمار للتوسع العمراني</h1>
+        <p>نظام إدارة المخازن والتكاليف</p>
+      </div>
+      <div class="hub-grid">
+        <div class="hub-tile hub-blue" onclick="showPage('dashboard')">
+          <div class="hub-tile-icon">📊</div>
+          <div class="hub-tile-title">لوحة التحكم</div>
+        </div>
+        <div class="hub-tile hub-teal" onclick="showPage('inventory')">
+          <div class="hub-tile-icon">📦</div>
+          <div class="hub-tile-title">المخزون</div>
+        </div>
+        <div class="hub-tile hub-indigo" onclick="showPage('coa')">
+          <div class="hub-tile-icon">🌳</div>
+          <div class="hub-tile-title">شجرة الحسابات</div>
+        </div>
+        <div class="hub-tile hub-amber" onclick="showPage('custody')">
+          <div class="hub-tile-icon">💵</div>
+          <div class="hub-tile-title">العهد النقدية</div>
+        </div>
+        <div class="hub-tile hub-rose hub-soon" onclick="toast('🚧 قسم المصروفات جاري العمل عليه، هيتفعل قريبًا','info')">
+          <div class="hub-tile-icon">🧾</div>
+          <div class="hub-tile-title">المصروفات</div>
+          <div class="hub-tile-badge">قريبًا</div>
+        </div>
+        <div class="hub-tile hub-violet hub-soon" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا','info')">
+          <div class="hub-tile-icon">📋</div>
+          <div class="hub-tile-title">المستخلصات</div>
+          <div class="hub-tile-badge">قريبًا</div>
+        </div>
+        <div class="hub-tile hub-green" onclick="showPage('purchase-orders')">
+          <div class="hub-tile-icon">🛒</div>
+          <div class="hub-tile-title">المشتريات</div>
+        </div>
+        <div class="hub-tile hub-cyan" onclick="showPage('vendors')">
+          <div class="hub-tile-icon">🤝</div>
+          <div class="hub-tile-title">الموردين والمقاولين</div>
+        </div>
+        <div class="hub-tile hub-orange" onclick="showPage('analytics')">
+          <div class="hub-tile-icon">📈</div>
+          <div class="hub-tile-title">التحليلات البيانية</div>
+        </div>
+        <div class="hub-tile hub-slate" onclick="showPage('reports')">
+          <div class="hub-tile-icon">📋</div>
+          <div class="hub-tile-title">التقارير</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-dashboard">
       <div class="page-header"><div><h2>لوحة التحكم والمراقبة</h2><p>شركة العمار للتوسع العمراني - شاشة الرقابة الحية</p></div>
         <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">🔄 تحديث</button>
       </div>
@@ -932,13 +1007,15 @@ function applyCompanyLogo(){
   if(el2) el2.src=COMPANY_LOGO;
   const el3=document.getElementById('reset-logo-img');
   if(el3) el3.src=COMPANY_LOGO;
+  const el4=document.getElementById('hub-logo-img');
+  if(el4) el4.src=COMPANY_LOGO;
   document.querySelectorAll('.company-logo-icon').forEach(img=>{img.src=COMPANY_LOGO;});
 }
 document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.2';
+const APP_VERSION='2026.08.27.3';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1097,7 +1174,7 @@ async function showApp(){
   const rb=document.getElementById('sb-role');
   rb.textContent=CP.role;rb.className='role-badge '+CP.role;
   applyRoles();
-  showPage('dashboard');
+  showPage('hub');
   await loadAll();
 }
 function applyRoles(){
