@@ -57,6 +57,10 @@ nav{flex:1;padding:6px 0;}
 .nav-item.active{background:var(--bg3);color:var(--accent);border-right-color:var(--accent);font-weight:600;}
 .nav-item .ico{font-size:16px;width:20px;text-align:center;}
 .nav-alert-badge{background:var(--danger);color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:auto;}
+.nav-arrow{margin-right:auto;font-size:10px;color:var(--text3);}
+.nav-item[data-module]:hover .nav-arrow{color:var(--accent);}
+.nav-item.nav-back{color:var(--accent);font-weight:700;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.nav-item.nav-back:hover{background:var(--bg3);}
 .btn-logout{margin:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;transition:.2s;}
 .btn-logout:hover{background:#ef444420;color:#ef4444;border-color:#ef444440;}
 .main{margin-right:230px;padding:20px;min-height:100vh;}
@@ -263,31 +267,7 @@ tr:hover td{background:#ffffff05;}
       <div class="name" id="sb-name">-</div>
       <span class="role-badge" id="sb-role">-</span>
     </div>
-    <nav>
-      <div class="nav-section">الرئيسية</div>
-      <div class="nav-item" data-page="hub" onclick="showPage('hub')"><span class="ico">🏠</span> الصفحة الرئيسية</div>
-      <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="ico">📊</span> لوحة التحكم <span id="alert-nav-badge" class="nav-alert-badge" style="display:none">0</span></div>
-      <div class="nav-section">المخزون</div>
-      <div class="nav-item" data-page="purchase-orders" onclick="showPage('purchase-orders')"><span class="ico">🛒</span> طلبات التوريد</div>
-      <div class="nav-item" data-page="price-quotes" onclick="showPage('price-quotes')"><span class="ico">💹</span> عروض الأسعار</div>
-      <div class="nav-item" data-page="bulk-movement" onclick="showPage('bulk-movement')"><span class="ico">📋</span> تسجيل الحركات</div>
-      <div class="nav-item" data-page="movements" onclick="showPage('movements')"><span class="ico">🔄</span> سجل الحركات</div>
-      <div class="nav-item" data-page="inventory" onclick="showPage('inventory')"><span class="ico">📦</span> أرصدة المخزون</div>
-      <div class="nav-section">التكويد</div>
-      <div class="nav-item" data-page="projects" onclick="showPage('projects')" id="nav-projects"><span class="ico"><img class="company-logo-icon" style="width:16px;height:16px;object-fit:contain;vertical-align:-3px"></span> المشاريع والمخازن</div>
-      <div class="nav-item" data-page="cost-centers" onclick="showPage('cost-centers')" id="nav-cc"><span class="ico">💼</span> مراكز التكلفة</div>
-      <div class="nav-item" data-page="vendors" onclick="showPage('vendors')" id="nav-vendors"><span class="ico">🤝</span> الموردين والمقاولين</div>
-      <div class="nav-section">الإدارة</div>
-      <div class="nav-item" data-page="items" onclick="showPage('items')" id="nav-items"><span class="ico">🗂️</span> الأصناف</div>
-      <div class="nav-item" data-page="groups" onclick="showPage('groups')" id="nav-groups"><span class="ico">📁</span> المجموعات</div>
-      <div class="nav-item" data-page="users" onclick="showPage('users')" id="nav-users"><span class="ico">👥</span> المستخدمين</div>
-      <div class="nav-section">التقارير</div>
-      <div class="nav-item" data-page="reports" onclick="showPage('reports')"><span class="ico">📈</span> التقارير</div>
-      <div class="nav-item" data-page="analytics" onclick="showPage('analytics')"><span class="ico">📊</span> التحليلات البيانية</div>
-      <div class="nav-section">نظام التكاليف</div>
-      <div class="nav-item" data-page="coa" onclick="showPage('coa')"><span class="ico">🌳</span> شجرة الحسابات</div>
-      <div class="nav-item" data-page="custody" onclick="showPage('custody')"><span class="ico">💵</span> العهد النقدية</div>
-    </nav>
+    <nav id="main-nav"></nav>
     <button class="btn-logout" onclick="doLogout()">🚪 تسجيل الخروج</button>
   </div>
 
@@ -305,7 +285,7 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">📊</div>
           <div class="hub-tile-title">لوحة التحكم</div>
         </div>
-        <div class="hub-tile hub-teal" onclick="showPage('inventory')">
+        <div class="hub-tile hub-teal" onclick="enterModule('inventory')">
           <div class="hub-tile-icon">📦</div>
           <div class="hub-tile-title">المخزون</div>
         </div>
@@ -1015,7 +995,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.3';
+const APP_VERSION='2026.08.27.5';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1177,32 +1157,88 @@ async function showApp(){
   showPage('hub');
   await loadAll();
 }
+function canSeePage(pageKey){
+  const adminOnly=['users','items','groups','projects','cost-centers','vendors'];
+  if(adminOnly.includes(pageKey)) return CP?.role==='مدير';
+  if(pageKey==='bulk-movement') return CP?.role!=='مشرف'&&CP?.role!=='محاسب';
+  return true;
+}
+
+// وصف الأقسام: عناصر مستقلة (standalone) تظهر مباشرة في القائمة العليا،
+// وموديولات (modules) تظهر كقسم واحد في القائمة العليا، وتفتح قائمة فرعية خاصة بيها لما تتفتح
+const NAV_STRUCTURE=[
+  {type:'standalone', page:'hub', icon:'🏠', label:'الصفحة الرئيسية'},
+  {type:'standalone', page:'dashboard', icon:'📊', label:'لوحة التحكم', badge:'alert-nav-badge'},
+  {type:'module', key:'inventory', icon:'📦', label:'المخزون', children:[
+    {page:'purchase-orders', icon:'🛒', label:'طلبات التوريد'},
+    {page:'price-quotes', icon:'💹', label:'عروض الأسعار'},
+    {page:'bulk-movement', icon:'📋', label:'تسجيل الحركات'},
+    {page:'movements', icon:'🔄', label:'سجل الحركات'},
+    {page:'inventory', icon:'📦', label:'أرصدة المخزون'},
+  ]},
+  {type:'module', key:'setup', icon:'🏗️', label:'التكويد', children:[
+    {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
+    {page:'cost-centers', icon:'💼', label:'مراكز التكلفة'},
+    {page:'vendors', icon:'🤝', label:'الموردين والمقاولين'},
+    {page:'items', icon:'🗂️', label:'الأصناف'},
+    {page:'groups', icon:'📁', label:'المجموعات'},
+  ]},
+  {type:'module', key:'admin', icon:'👥', label:'الإدارة', children:[
+    {page:'users', icon:'👥', label:'المستخدمين'},
+  ]},
+  {type:'module', key:'reports', icon:'📈', label:'التقارير', children:[
+    {page:'reports', icon:'📈', label:'التقارير'},
+    {page:'analytics', icon:'📊', label:'التحليلات البيانية'},
+  ]},
+  {type:'module', key:'costs', icon:'🌳', label:'نظام التكاليف', children:[
+    {page:'coa', icon:'🌳', label:'شجرة الحسابات'},
+    {page:'custody', icon:'💵', label:'العهد النقدية'},
+  ]},
+];
+let currentModuleKey=null;
+
+function findModule(key){ return NAV_STRUCTURE.find(m=>m.type==='module'&&m.key===key); }
+function findModuleByPage(page){ return NAV_STRUCTURE.find(m=>m.type==='module'&&m.children.some(c=>c.page===page)); }
+
+function renderTopNav(){
+  currentModuleKey=null;
+  const nav=document.getElementById('main-nav');
+  if(!nav)return;
+  let h='';
+  NAV_STRUCTURE.forEach(entry=>{
+    if(entry.type==='standalone'){
+      if(!canSeePage(entry.page))return;
+      const badgeHtml=entry.badge?`<span id="${entry.badge}" class="nav-alert-badge" style="display:none">0</span>`:'';
+      h+=`<div class="nav-item" data-page="${entry.page}" onclick="showPage('${entry.page}')"><span class="ico">${entry.icon}</span> ${entry.label} ${badgeHtml}</div>`;
+    } else {
+      const visibleChildren=entry.children.filter(c=>canSeePage(c.page));
+      if(!visibleChildren.length)return;
+      h+=`<div class="nav-item" data-module="${entry.key}" onclick="enterModule('${entry.key}')"><span class="ico">${entry.icon}</span> ${entry.label} <span class="nav-arrow">◀</span></div>`;
+    }
+  });
+  nav.innerHTML=h;
+}
+function enterModule(key){
+  const mod=findModule(key);
+  if(!mod)return;
+  currentModuleKey=key;
+  const nav=document.getElementById('main-nav');
+  if(!nav)return;
+  const visibleChildren=mod.children.filter(c=>canSeePage(c.page));
+  let h=`<div class="nav-item nav-back" onclick="renderTopNav();showPage('hub')"><span class="ico">▶</span> رجوع لكل الأقسام</div>
+    <div class="nav-section">${mod.icon} ${mod.label}</div>`;
+  visibleChildren.forEach(c=>{
+    h+=`<div class="nav-item" data-page="${c.page}" onclick="showPage('${c.page}')"><span class="ico">${c.icon}</span> ${c.label}</div>`;
+  });
+  nav.innerHTML=h;
+  if(visibleChildren.length) showPage(visibleChildren[0].page);
+}
+
 function applyRoles(){
   const r=CP.role;
   const isAdmin=r==='مدير';
-  const isStorekeeper=r==='أمين مخزن';
-  const isViewer=r==='مشرف'||r==='محاسب';
 
-  // مستخدمين — مدير فقط
-  if(!isAdmin){
-    document.getElementById('nav-users').style.display='none';
-  }
-
-  // تكويد — مدير فقط
-  // أمين مخزن + مشرف + محاسب لا يكودون
-  if(!isAdmin){
-    document.getElementById('nav-items').style.display='none';
-    document.getElementById('nav-groups').style.display='none';
-    document.getElementById('nav-projects').style.display='none';
-    document.getElementById('nav-cc').style.display='none';
-    document.getElementById('nav-vendors').style.display='none';
-  }
-
-  // تسجيل حركات — مدير + أمين مخزن فقط
-  if(isViewer){
-    const bulkNav=document.querySelector('[data-page="bulk-movement"]');
-    if(bulkNav) bulkNav.style.display='none';
-  }
+  renderTopNav();
 
   // تحميل إذن للتعديل (إضافة سعر) — مدير فقط
   const loadEditBtn=document.getElementById('bulk-load-edit-btn');
@@ -3428,6 +3464,23 @@ function showPage(name){
   if(name==='bulk-movement'&&(CP?.role==='مشرف'||CP?.role==='محاسب')){toast('ليس لديك صلاحية تسجيل الحركات','error');return;}
   if(codingPages.includes(name)&&CP?.role!=='مدير'){toast('ليس لديك صلاحية التكويد','error');return;}
   if(name==='users'&&CP?.role!=='مدير'){toast('ليس لديك صلاحية إدارة المستخدمين','error');return;}
+  // لو الصفحة دي تابعة لموديول مش هو الموديول المفتوح دلوقتي في القائمة، افتح الموديول الصح الأول
+  const targetModule=findModuleByPage(name);
+  if(targetModule&&targetModule.key!==currentModuleKey){
+    currentModuleKey=targetModule.key;
+    const nav=document.getElementById('main-nav');
+    if(nav){
+      const visibleChildren=targetModule.children.filter(c=>canSeePage(c.page));
+      let h=`<div class="nav-item nav-back" onclick="renderTopNav();showPage('hub')"><span class="ico">▶</span> رجوع لكل الأقسام</div>
+        <div class="nav-section">${targetModule.icon} ${targetModule.label}</div>`;
+      visibleChildren.forEach(c=>{
+        h+=`<div class="nav-item" data-page="${c.page}" onclick="showPage('${c.page}')"><span class="ico">${c.icon}</span> ${c.label}</div>`;
+      });
+      nav.innerHTML=h;
+    }
+  } else if(!targetModule&&currentModuleKey){
+    renderTopNav();
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
