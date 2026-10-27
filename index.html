@@ -313,7 +313,7 @@ tr:hover td{background:#ffffff05;}
         </div>
         <div class="hub-tile hub-cyan" onclick="showPage('vendors')">
           <div class="hub-tile-icon">🤝</div>
-          <div class="hub-tile-title">الموردين والمقاولين</div>
+          <div class="hub-tile-title">الأطراف والجهات</div>
         </div>
         <div class="hub-tile hub-orange" onclick="showPage('analytics')">
           <div class="hub-tile-icon">📈</div>
@@ -327,10 +327,22 @@ tr:hover td{background:#ffffff05;}
     </div>
 
     <div class="page" id="page-dashboard">
-      <div class="page-header"><div><h2>لوحة التحكم والمراقبة</h2><p>شركة العمار للتوسع العمراني - شاشة الرقابة الحية</p></div>
+      <div class="page-header"><div><h2>لوحة التحكم والمراقبة</h2><p>شركة العمار للتوسع العمراني - ملخص شامل لكل الموديولات</p></div>
         <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">🔄 تحديث</button>
       </div>
 
+      <!-- ملخص الموديولات -->
+      <div style="margin-bottom:6px"><h4 style="font-size:13px;color:var(--text2)">📋 ملخص الموديولات</h4></div>
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('inventory')"><div class="stat-icon" style="background:#3b82f620">📦</div><div><h3 id="mod-inventory-value" style="font-size:16px">-</h3><p>قيمة المخزون (ج)</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 id="mod-po-open" style="font-size:16px">-</h3><p>طلبات توريد مفتوحة</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('custody')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد المفتوحة (ج)</p></div></div>
+        <div class="stat-card hub-soon" style="cursor:pointer;opacity:.7" onclick="toast('🚧 قسم المصروفات جاري العمل عليه','info')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 style="font-size:16px">-</h3><p>المصروفات (قريبًا)</p></div></div>
+        <div class="stat-card hub-soon" style="cursor:pointer;opacity:.7" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه','info')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 style="font-size:16px">-</h3><p>المستخلصات (قريبًا)</p></div></div>
+      </div>
+
+      <!-- تفاصيل المخزون -->
+      <div style="margin-bottom:6px"><h4 style="font-size:13px;color:var(--text2)">📦 تفاصيل المخزون</h4></div>
       <!-- العدادات الستة -->
       <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
         <div class="stat-card"><div class="stat-icon" style="background:#3b82f620">📦</div><div><h3 id="st-items">-</h3><p>إجمالي الأصناف</p></div></div>
@@ -614,7 +626,7 @@ tr:hover td{background:#ffffff05;}
 
     <!-- VENDORS -->
     <div class="page" id="page-vendors">
-      <div class="page-header"><div><h2>الموردين والمقاولين</h2><p>تكويد الموردين والمقاولين</p></div>
+      <div class="page-header"><div><h2>الأطراف والجهات</h2><p>تكويد أي طرف له علاقة بالسيستم (موردين، مقاولين، وأنواع تانية لاحقًا)</p></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ مورد جديد</button>
           <button class="btn btn-success" onclick="openVendorModal('مقاول')">➕ مقاول جديد</button>
@@ -798,6 +810,11 @@ tr:hover td{background:#ffffff05;}
           <span id="coa-count" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div id="coa-tree" style="max-height:70vh;overflow-y:auto"><div class="loading"><div class="spinner"></div></div></div>
+        <p style="font-size:11px;color:var(--text3);padding:10px 14px">💡 دوس على أي حساب في القائمة عشان تشوف كشف موحّد بكل اللي اتسجل عليه من كل الموديولات (مخزون، عهد، وغيرها لاحقًا)</p>
+      </div>
+      <div class="card" id="coa-statement-card" style="display:none">
+        <div class="card-header"><h3 id="coa-statement-title">📊 كشف الحساب</h3><button class="btn btn-ghost btn-sm" onclick="document.getElementById('coa-statement-card').style.display='none'">✖ إغلاق</button></div>
+        <div id="coa-statement-body"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
 
@@ -962,6 +979,10 @@ tr:hover td{background:#ffffff05;}
     <div class="modal-body">
       <div class="form-group"><label>كود المجموعة</label><input type="text" id="gm-code"></div>
       <div class="form-group"><label>اسم المجموعة *</label><input type="text" id="gm-name"></div>
+      <div class="form-group"><label>الحساب المرتبط في شجرة الحسابات</label>
+        <select id="gm-account"><option value="">بدون ربط</option></select>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px">أي صرف من أصناف المجموعة دي هيتحسب على الحساب ده في التقارير الموحدة</p>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('group-modal')">إلغاء</button>
@@ -995,7 +1016,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.5';
+const APP_VERSION='2026.08.27.6';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1179,7 +1200,7 @@ const NAV_STRUCTURE=[
   {type:'module', key:'setup', icon:'🏗️', label:'التكويد', children:[
     {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
     {page:'cost-centers', icon:'💼', label:'مراكز التكلفة'},
-    {page:'vendors', icon:'🤝', label:'الموردين والمقاولين'},
+    {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
     {page:'items', icon:'🗂️', label:'الأصناف'},
     {page:'groups', icon:'📁', label:'المجموعات'},
   ]},
@@ -1303,6 +1324,18 @@ async function loadDashboard(){
   document.getElementById('st-projects').textContent=(pc||0).toLocaleString('ar-EG');
   const stPO=document.getElementById('st-open-po');
   if(stPO) stPO.textContent=(openPOc||0).toLocaleString('ar-EG');
+  const modPO=document.getElementById('mod-po-open');
+  if(modPO) modPO.textContent=(openPOc||0).toLocaleString('ar-EG');
+
+  // إجمالي العهد المفتوحة (من موديول العهد النقدية)
+  (async()=>{
+    const modCustody=document.getElementById('mod-custody-total');
+    if(!modCustody)return;
+    const {data:custTx,error}=await sb.from('custody_transactions').select('amount,type');
+    if(error){modCustody.textContent='-';return;}
+    const total=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0);
+    modCustody.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
+  })();
 
   let inv={}, usingView=true;
   {
@@ -1337,6 +1370,8 @@ async function loadDashboard(){
   const totalValue=Object.values(inv).reduce((s,i)=>s+Math.max(0,i.value),0);
   const stVal=document.getElementById('st-value');
   if(stVal) stVal.textContent=totalValue.toLocaleString('ar-EG',{minimumFractionDigits:0})+' ج';
+  const modInvVal=document.getElementById('mod-inventory-value');
+  if(modInvVal) modInvVal.textContent=totalValue.toLocaleString('ar-EG',{minimumFractionDigits:0});
 
   const ok=Object.values(inv).filter(i=>i.qty>(i.min_qty||0)).length;
   const low=Object.values(inv).filter(i=>i.qty>0&&i.min_qty>0&&i.qty<=i.min_qty).length;
@@ -2508,10 +2543,84 @@ function renderCOATree(rows){
     const indent=(a.level-1)*18;
     const weight=a.level<=2?700:a.level===3?600:400;
     const size=a.level<=2?'13.5px':'13px';
-    h+=`<tr><td style="font-family:monospace;font-size:11px;color:#f59e0b">${a.account_code}</td><td style="padding-right:${indent}px;font-weight:${weight};font-size:${size}">${a.account_name}</td><td style="text-align:center;color:var(--text3)">${a.level}</td></tr>`;
+    h+=`<tr style="cursor:pointer" onclick="showAccountStatement('${a.account_code}')"><td style="font-family:monospace;font-size:11px;color:#f59e0b">${a.account_code}</td><td style="padding-right:${indent}px;font-weight:${weight};font-size:${size}">${a.account_name}</td><td style="text-align:center;color:var(--text3)">${a.level}</td></tr>`;
   });
   h+='</tbody></table></div>';
   el.innerHTML=h;
+}
+
+// يحسب كل الحسابات التابعة لحساب معيّن (هو نفسه + كل الفروع تحته) بناءً على نمط الترقيم الهرمي
+function getDescendantCodes(accountCode){
+  const acc=allCOA.find(a=>a.account_code===accountCode);
+  if(!acc) return [accountCode];
+  const LEVEL_PREFIX_LEN={1:1,2:2,3:3,4:6,5:9,6:12};
+  const plen=LEVEL_PREFIX_LEN[acc.level]||12;
+  const prefix=accountCode.substring(0,plen);
+  return allCOA.filter(a=>a.account_code.substring(0,plen)===prefix).map(a=>a.account_code);
+}
+
+// الكشف الموحّد: يجمع كل اللي اتسجل على حساب معيّن (وفروعه) من كل الموديولات مع بعض
+async function showAccountStatement(accountCode){
+  const acc=allCOA.find(a=>a.account_code===accountCode);
+  const card=document.getElementById('coa-statement-card');
+  const body=document.getElementById('coa-statement-body');
+  document.getElementById('coa-statement-title').textContent='📊 كشف الحساب: '+(acc?.account_name||accountCode)+' ('+accountCode+')';
+  card.style.display='block';
+  body.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  const codes=getDescendantCodes(accountCode);
+
+  // 1) العهد النقدية - مربوطة مباشرة بالحساب
+  const {data:custTx}=await sb.from('custody_transactions').select('amount,type').in('account_code',codes);
+  const custodyTotal=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0);
+  const custodyCount=(custTx||[]).length;
+
+  // 2) المخزون - عن طريق مجموعات الأصناف المربوطة بالحساب ده
+  const {data:linkedGroups}=await sb.from('groups').select('id,name').in('account_code',codes);
+  let warehouseTotal=0, warehouseCount=0, groupBreakdown=[];
+  if(linkedGroups&&linkedGroups.length){
+    const groupIds=linkedGroups.map(g=>g.id);
+    const {data:items}=await sb.from('items').select('id,group_id').in('group_id',groupIds);
+    const itemIds=(items||[]).map(i=>i.id);
+    if(itemIds.length){
+      let movs=[], from=0;
+      while(true){
+        const {data:page,error}=await sb.from('movements').select('qty,unit_price,fifo_cost,item_id').eq('type','صادر').in('item_id',itemIds).order('id',{ascending:true}).range(from,from+999);
+        if(error||!page||!page.length)break;
+        movs=[...movs,...page];
+        if(page.length<1000)break;
+        from+=1000;
+      }
+      const itemToGroup={};
+      (items||[]).forEach(i=>itemToGroup[i.id]=i.group_id);
+      const byGroup={};
+      movs.forEach(m=>{
+        const val=m.fifo_cost||(m.qty*(m.unit_price||0));
+        warehouseTotal+=val;
+        const gid=itemToGroup[m.item_id];
+        byGroup[gid]=(byGroup[gid]||0)+val;
+      });
+      warehouseCount=movs.length;
+      groupBreakdown=linkedGroups.map(g=>({name:g.name,total:byGroup[g.id]||0})).filter(g=>g.total!==0);
+    }
+  }
+
+  const grandTotal=custodyTotal+warehouseTotal;
+  let h=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+    <div class="stat-card"><div class="stat-icon" style="background:#3b82f620">💰</div><div><h3 style="font-size:16px">${grandTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>الإجمالي الموحّد (ج)</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#f59e0b20">📦</div><div><h3 style="font-size:16px">${warehouseTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المخزون (${warehouseCount} حركة)</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#10b98120">💵</div><div><h3 style="font-size:16px">${custodyTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من العهد (${custodyCount} معاملة)</p></div></div>
+  </div>`;
+  if(groupBreakdown.length){
+    h+='<h4 style="font-size:13px;color:var(--text2);margin-bottom:8px">تفصيل المخزون حسب المجموعة</h4><div class="tbl-wrap"><table><thead><tr><th>المجموعة</th><th>القيمة (ج)</th></tr></thead><tbody>';
+    groupBreakdown.forEach(g=>{h+=`<tr><td>${g.name}</td><td style="font-weight:700">${g.total.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td></tr>`;});
+    h+='</tbody></table></div>';
+  }
+  if(!custodyCount&&!warehouseCount){
+    h+='<div class="empty"><div class="ico">📭</div><p>مفيش حركات متسجلة على الحساب ده لحد دلوقتي من أي موديول</p></div>';
+  }
+  body.innerHTML=h;
 }
 
 async function loadAnalytics(){
@@ -2871,25 +2980,42 @@ async function loadGroups(){
 function renderGroupsTable(){
   if(!allGroups.length){document.getElementById('groups-table').innerHTML='<div class="empty"><div class="ico">📁</div><p>لا توجد مجموعات</p></div>';return;}
   const canEdit=CP.role==='مدير';
-  let h='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
+  let h='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>الحساب المرتبط</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
   allGroups.forEach(g=>{
-    h+=`<tr><td style="font-family:monospace">${g.code||'-'}</td><td>${g.name}</td>${canEdit?`<td><button class="btn btn-ghost btn-sm" onclick="openGroupModal(${g.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteGroup(${g.id})">🗑️</button></td>`:''}</tr>`;
+    const accBadge=g.account_code?`<span class="badge badge-in">✓ مرتبطة</span>`:`<span class="badge badge-out">⚠️ بدون ربط</span>`;
+    h+=`<tr><td style="font-family:monospace">${g.code||'-'}</td><td>${g.name}</td><td>${accBadge}</td>${canEdit?`<td><button class="btn btn-ghost btn-sm" onclick="openGroupModal(${g.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteGroup(${g.id})">🗑️</button></td>`:''}</tr>`;
   });
   h+='</tbody></table></div>';
   document.getElementById('groups-table').innerHTML=h;
 }
-function openGroupModal(id=null){
+async function openGroupModal(id=null){
   editGroupId=id;
   document.getElementById('gm-title').textContent=id?'تعديل مجموعة':'إضافة مجموعة';
-  if(id){const g=allGroups.find(x=>x.id===id);document.getElementById('gm-code').value=g?.code||'';document.getElementById('gm-name').value=g?.name||'';}
-  else{document.getElementById('gm-code').value='';document.getElementById('gm-name').value='';}
+  const accSel=document.getElementById('gm-account');
+  if(accSel&&accSel.options.length<=1){
+    const {data:accs,error}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
+    if(!error&&accs){
+      accSel.innerHTML='<option value="">بدون ربط</option>'+accs.map(a=>`<option value="${a.account_code}">${'— '.repeat(a.level-1)}${a.account_name} (${a.account_code})</option>`).join('');
+    }
+  }
+  if(id){
+    const g=allGroups.find(x=>x.id===id);
+    document.getElementById('gm-code').value=g?.code||'';
+    document.getElementById('gm-name').value=g?.name||'';
+    if(accSel) accSel.value=g?.account_code||'';
+  } else {
+    document.getElementById('gm-code').value='';
+    document.getElementById('gm-name').value='';
+    if(accSel) accSel.value='';
+  }
   openModal('group-modal');
 }
 async function saveGroup(){
   const code=document.getElementById('gm-code').value.trim();
   const name=document.getElementById('gm-name').value.trim();
+  const account_code=document.getElementById('gm-account')?.value||null;
   if(!name){toast('أدخل اسم المجموعة','error');return;}
-  const {error}=editGroupId?await sb.from('groups').update({code,name}).eq('id',editGroupId):await sb.from('groups').insert({code,name});
+  const {error}=editGroupId?await sb.from('groups').update({code,name,account_code}).eq('id',editGroupId):await sb.from('groups').insert({code,name,account_code});
   if(error){toast('خطأ: '+error.message,'error');return;}
   toast('تم الحفظ ✅','success');closeModal('group-modal');await loadGroups();populateSelects();
 }
