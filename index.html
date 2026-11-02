@@ -281,6 +281,10 @@ tr:hover td{background:#ffffff05;}
         <p>نظام إدارة المخازن والتكاليف</p>
       </div>
       <div class="hub-grid">
+        <div class="hub-tile hub-indigo" onclick="showPage('coa')">
+          <div class="hub-tile-icon">🌳</div>
+          <div class="hub-tile-title">شجرة الحسابات</div>
+        </div>
         <div class="hub-tile hub-blue" onclick="showPage('dashboard')">
           <div class="hub-tile-icon">📊</div>
           <div class="hub-tile-title">لوحة التحكم</div>
@@ -289,9 +293,10 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">📦</div>
           <div class="hub-tile-title">المخزون</div>
         </div>
-        <div class="hub-tile hub-indigo" onclick="showPage('coa')">
-          <div class="hub-tile-icon">🌳</div>
-          <div class="hub-tile-title">شجرة الحسابات</div>
+        <div class="hub-tile hub-violet hub-soon" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا','info')">
+          <div class="hub-tile-icon">📋</div>
+          <div class="hub-tile-title">المستخلصات</div>
+          <div class="hub-tile-badge">قريبًا</div>
         </div>
         <div class="hub-tile hub-amber" onclick="showPage('custody')">
           <div class="hub-tile-icon">💵</div>
@@ -302,26 +307,17 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-title">المصروفات</div>
           <div class="hub-tile-badge">قريبًا</div>
         </div>
-        <div class="hub-tile hub-violet hub-soon" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا','info')">
-          <div class="hub-tile-icon">📋</div>
-          <div class="hub-tile-title">المستخلصات</div>
-          <div class="hub-tile-badge">قريبًا</div>
-        </div>
-        <div class="hub-tile hub-green" onclick="showPage('purchase-orders')">
-          <div class="hub-tile-icon">🛒</div>
-          <div class="hub-tile-title">المشتريات</div>
-        </div>
         <div class="hub-tile hub-cyan" onclick="showPage('vendors')">
           <div class="hub-tile-icon">🤝</div>
           <div class="hub-tile-title">الأطراف والجهات</div>
         </div>
+        <div class="hub-tile hub-slate" onclick="showPage('reports')">
+          <div class="hub-tile-icon">📑</div>
+          <div class="hub-tile-title">التقارير</div>
+        </div>
         <div class="hub-tile hub-orange" onclick="showPage('analytics')">
           <div class="hub-tile-icon">📈</div>
           <div class="hub-tile-title">التحليلات البيانية</div>
-        </div>
-        <div class="hub-tile hub-slate" onclick="showPage('reports')">
-          <div class="hub-tile-icon">📋</div>
-          <div class="hub-tile-title">التقارير</div>
         </div>
       </div>
     </div>
@@ -1045,7 +1041,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.8';
+const APP_VERSION='2026.08.27.9';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1218,6 +1214,10 @@ function canSeePage(pageKey){
 // وموديولات (modules) تظهر كقسم واحد في القائمة العليا، وتفتح قائمة فرعية خاصة بيها لما تتفتح
 const NAV_STRUCTURE=[
   {type:'standalone', page:'hub', icon:'🏠', label:'الصفحة الرئيسية'},
+  {type:'module', key:'coa-module', icon:'🌳', label:'شجرة الحسابات', children:[
+    {page:'coa', icon:'🌳', label:'الشجرة'},
+    {page:'coa-statement', icon:'📊', label:'كشف حساب موحد'},
+  ]},
   {type:'standalone', page:'dashboard', icon:'📊', label:'لوحة التحكم', badge:'alert-nav-badge'},
   {type:'module', key:'inventory', icon:'📦', label:'المخزون', children:[
     {page:'purchase-orders', icon:'🛒', label:'طلبات التوريد'},
@@ -1226,30 +1226,29 @@ const NAV_STRUCTURE=[
     {page:'movements', icon:'🔄', label:'سجل الحركات'},
     {page:'inventory', icon:'📦', label:'أرصدة المخزون'},
   ]},
-  {type:'module', key:'setup', icon:'🏗️', label:'التكويد', children:[
-    {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
-    {page:'cost-centers', icon:'💼', label:'مراكز التكلفة'},
-    {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
-    {page:'items', icon:'🗂️', label:'الأصناف'},
-    {page:'groups', icon:'📁', label:'المجموعات'},
-  ]},
-  {type:'module', key:'admin', icon:'👥', label:'الإدارة', children:[
-    {page:'users', icon:'👥', label:'المستخدمين'},
-  ]},
-  {type:'module', key:'reports', icon:'📈', label:'التقارير', children:[
-    {page:'reports', icon:'📈', label:'التقارير'},
-    {page:'analytics', icon:'📊', label:'التحليلات البيانية'},
-  ]},
-  {type:'module', key:'coa-module', icon:'🌳', label:'شجرة الحسابات', children:[
-    {page:'coa', icon:'🌳', label:'الشجرة'},
-    {page:'coa-statement', icon:'📊', label:'كشف حساب موحد'},
-  ]},
+  {type:'soon', icon:'📋', label:'المستخلصات', msg:'🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا'},
   {type:'module', key:'custody-module', icon:'💵', label:'العهد النقدية', children:[
     {page:'custody', icon:'📋', label:'أرصدة العهد'},
     {page:'custody-entry', icon:'➕', label:'تسجيل عهدة'},
     {page:'custody-log', icon:'📜', label:'سجل المعاملات'},
   ]},
+  {type:'soon', icon:'🧾', label:'المصروفات', msg:'🚧 قسم المصروفات جاري العمل عليه، هيتفعل قريبًا'},
+  {type:'module', key:'setup', icon:'🤝', label:'الأطراف والتكويد', children:[
+    {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
+    {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
+    {page:'cost-centers', icon:'💼', label:'مراكز التكلفة'},
+    {page:'items', icon:'🗂️', label:'الأصناف'},
+    {page:'groups', icon:'📁', label:'المجموعات'},
+  ]},
+  {type:'module', key:'reports', icon:'📑', label:'التقارير', children:[
+    {page:'reports', icon:'📑', label:'التقارير'},
+    {page:'analytics', icon:'📈', label:'التحليلات البيانية'},
+  ]},
+  {type:'module', key:'admin', icon:'👥', label:'الإدارة', children:[
+    {page:'users', icon:'👥', label:'المستخدمين'},
+  ]},
 ];
+
 let currentModuleKey=null;
 
 function findModule(key){ return NAV_STRUCTURE.find(m=>m.type==='module'&&m.key===key); }
@@ -1265,6 +1264,8 @@ function renderTopNav(){
       if(!canSeePage(entry.page))return;
       const badgeHtml=entry.badge?`<span id="${entry.badge}" class="nav-alert-badge" style="display:none">0</span>`:'';
       h+=`<div class="nav-item" data-page="${entry.page}" onclick="showPage('${entry.page}')"><span class="ico">${entry.icon}</span> ${entry.label} ${badgeHtml}</div>`;
+    } else if(entry.type==='soon'){
+      h+=`<div class="nav-item" style="opacity:.65" onclick="toast('${entry.msg}','info')"><span class="ico">${entry.icon}</span> ${entry.label} <span class="nav-alert-badge" style="background:var(--bg3);color:var(--text3)">قريبًا</span></div>`;
     } else {
       const visibleChildren=entry.children.filter(c=>canSeePage(c.page));
       if(!visibleChildren.length)return;
@@ -2685,9 +2686,13 @@ async function showAccountStatement(accountCode){
   const codes=getDescendantCodes(accountCode);
 
   // 1) العهد النقدية - مربوطة مباشرة بالحساب
+  // (أ) حركات العهد على حساب الشخص نفسه: صرف - تسوية
   const {data:custTx}=await sb.from('custody_transactions').select('amount,type').in('account_code',codes);
-  const custodyTotal=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0);
-  const custodyCount=(custTx||[]).length;
+  // (ب) تسويات العهد اللي اترمت على الحساب ده كمصروف (حساب المصروف)
+  const {data:custExp}=await sb.from('custody_transactions').select('amount').eq('type','تسوية').in('expense_account_code',codes);
+  const custodyTotal=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0)
+    +(custExp||[]).reduce((s,t)=>s+t.amount,0);
+  const custodyCount=(custTx||[]).length+(custExp||[]).length;
 
   // 2) المخزون - عن طريق مجموعات الأصناف المربوطة بالحساب ده
   const {data:linkedGroups}=await sb.from('groups').select('id,name').in('account_code',codes);
