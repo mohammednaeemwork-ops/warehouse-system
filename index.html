@@ -839,6 +839,23 @@ tr:hover td{background:#ffffff05;}
     <div class="page" id="page-custody-entry">
       <div class="page-header"><div><h2>تسجيل عهدة</h2><p>صرف عهدة أو تسوية - سجل أكتر من صف في نفس القيد</p></div></div>
       <div class="card">
+        <div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost" onclick="downloadCustodyTemplate()">📥 تحميل Template Excel</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('custody-import-file').click()">📤 رفع ملف Excel</button>
+          <input type="file" id="custody-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleCustodyImport(this)">
+          <span style="font-size:11px;color:var(--text3)">سجّل كذا قيد في الملف (كل صف ليه رقم القيد بتاعه) وارفعه، وهتراجع النتيجة قبل الحفظ</span>
+        </div>
+      </div>
+      <div class="card" id="custody-import-preview" style="display:none">
+        <div class="card-header"><h3>🔎 مراجعة الملف قبل الحفظ</h3></div>
+        <div id="custody-import-summary" style="padding:12px 14px;font-size:13px"></div>
+        <div id="custody-import-table"></div>
+        <div style="padding:10px;display:flex;gap:8px">
+          <button class="btn btn-success" id="custody-import-save" onclick="saveCustodyImport()">💾 حفظ الصفوف السليمة</button>
+          <button class="btn btn-ghost" onclick="cancelCustodyImport()">✖ إلغاء</button>
+        </div>
+      </div>
+      <div class="card">
         <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border);margin-bottom:10px">
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم القيد *</label>
             <input type="text" id="custody-entry-number" placeholder="رقم القيد..." style="width:160px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
@@ -1041,7 +1058,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.9';
+const APP_VERSION='2026.08.27.10';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -2601,6 +2618,195 @@ async function saveCustodyBatch(){
   custodyRows=[{}];
   const en=document.getElementById('custody-entry-number'); if(en) en.value='';
   const el=document.getElementById('custody-entry-link'); if(el) el.value='';
+  await loadCustody();
+}
+
+// ===== CUSTODY EXCEL: template download + import =====
+function normAr(x){return String(x==null?'':x).replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim().toLowerCase();}
+function stripCustodyPrefix(n){return String(n||'').replace(/^عهد[ةه]?\s*-?\s*/,'');}
+function escHtml(x){return String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function parseCustodyDate(v){
+  if(v===''||v==null) return null;
+  if(v instanceof Date){ if(isNaN(v)) return undefined; return new Date(v.getFullYear(),v.getMonth(),v.getDate(),12).toISOString(); }
+  if(typeof v==='number'){ const d=new Date(Date.UTC(1899,11,30+Math.floor(v),12)); return isNaN(d)?undefined:d.toISOString(); }
+  const t=String(v).trim(); let m;
+  let y,mo,d;
+  if((m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))){y=+m[1];mo=+m[2];d=+m[3];}
+  else if((m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/))){d=+m[1];mo=+m[2];y=+m[3];}
+  else return undefined;
+  const dt=new Date(Date.UTC(y,mo-1,d,12));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d) return undefined;
+  return dt.toISOString();
+}
+// validation as a pure function (no DOM) so it can be tested separately
+function validateCustodyImportRows(rawRows,ctx){
+  const out=[];
+  rawRows.forEach((r0,idx)=>{
+    const r={}; Object.keys(r0).forEach(k=>{r[String(k).trim()]=r0[k];});
+    const g=n=>(r[n]==null?'':r[n]);
+    const allEmpty=Object.values(r).every(v=>String(v).trim()==='');
+    if(allEmpty) return;
+    const errs=[];
+    const entry=String(g('رقم القيد')).trim();
+    if(!entry) errs.push('رقم القيد ناقص');
+
+    const tRaw=String(g('النوع')).trim();
+    let type=null;
+    if(tRaw.includes('تسوية')) type='تسوية'; else if(tRaw.includes('صرف')) type='صرف';
+    else errs.push('النوع لازم يكون صرف أو تسوية');
+
+    // صاحب العهدة
+    const pRaw=String(g('صاحب العهدة')).trim();
+    let person=null;
+    if(!pRaw) errs.push('صاحب العهدة ناقص');
+    else if(/^\d{12}$/.test(pRaw)){
+      person=ctx.custodyAccounts.find(a=>a.account_code===pRaw)||null;
+      if(!person) errs.push('رقم حساب العهدة مش موجود');
+    } else {
+      const n=normAr(stripCustodyPrefix(pRaw));
+      let m=ctx.custodyAccounts.filter(a=>normAr(stripCustodyPrefix(a.account_name))===n);
+      if(m.length===0&&n.length>=3){
+        const words=n.split(' ').filter(w=>w.length>=2);
+        m=ctx.custodyAccounts.filter(a=>{const nm=normAr(stripCustodyPrefix(a.account_name));return words.length&&words.every(w=>nm.includes(w));});
+      }
+      if(m.length===1) person=m[0];
+      else if(m.length===0) errs.push('مفيش صاحب عهدة بالاسم ده');
+      else errs.push('الاسم ده مشترك بين أكتر من شخص، اكتب الاسم كامل');
+    }
+
+    // المبلغ
+    const amount=parseFloat(String(g('المبلغ')).replace(/,/g,''));
+    if(!(amount>0)) errs.push('المبلغ لازم يكون رقم أكبر من صفر');
+
+    // حساب المصروف (مطلوب في التسوية)
+    const eRaw=String(g('حساب المصروف')).trim();
+    let exp=null;
+    if(type==='تسوية'){
+      if(!eRaw) errs.push('حساب المصروف مطلوب في التسوية');
+      else {
+        const cm=eRaw.match(/^(\d{12})/);
+        if(cm){
+          exp=ctx.expenseAccounts.find(a=>a.account_code===cm[1])||null;
+          if(!exp) errs.push('رقم حساب المصروف مش موجود في الشجرة');
+        } else {
+          const n=normAr(eRaw);
+          const m=ctx.expenseAccounts.filter(a=>normAr(a.account_name)===n);
+          if(m.length===1) exp=m[0];
+          else if(m.length===0) errs.push('حساب المصروف مش مطابق لأي حساب في الشجرة');
+          else errs.push('اسم حساب المصروف مكرر، اكتب رقم الحساب');
+        }
+      }
+    }
+
+    // المشروع (اختياري)
+    const prRaw=String(g('المشروع')).trim();
+    let project=null;
+    if(prRaw){
+      const n=normAr(prRaw);
+      project=ctx.projects.find(p=>normAr(p.name)===n)||null;
+      if(!project) errs.push('المشروع مش موجود');
+    }
+
+    // التاريخ (اختياري)
+    const created_at=parseCustodyDate(g('التاريخ'));
+    if(created_at===undefined) errs.push('التاريخ مش مفهوم (اكتبه yyyy-mm-dd أو dd/mm/yyyy)');
+
+    out.push({
+      row:idx+2, errors:errs, ok:errs.length===0,
+      entry_number:entry, type, amount,
+      account_code:person?person.account_code:null, person_name:person?stripCustodyPrefix(person.account_name):pRaw,
+      expense_account_code:exp?exp.account_code:null, expense_name:exp?exp.account_name:eRaw,
+      project_id:project?project.id:null, project_name:project?project.name:prRaw,
+      description:String(g('البيان')).trim()||null,
+      receipt_link:String(g('لينك القيد')).trim()||null,
+      created_at:created_at||null
+    });
+  });
+  return out;
+}
+async function downloadCustodyTemplate(){
+  if(!custodyAccounts.length||!expenseAccounts.length) await loadCustody();
+  const headers=['رقم القيد','التاريخ','النوع','صاحب العهدة','المبلغ','حساب المصروف','المشروع','البيان','لينك القيد'];
+  const holder=custodyAccounts.length?stripCustodyPrefix(custodyAccounts[0].account_name):'اسم صاحب العهدة';
+  const exp=expenseAccounts.find(a=>a.account_code==='120203002000');
+  const expLabel=exp?exp.account_code+' - '+exp.account_name:'';
+  const proj=allProjects.length?allProjects[0].name:'';
+  const rows=[headers,
+    ['1001','2026-08-27','صرف',holder,5000,'','','عهدة مصاريف الموقع',''],
+    ['1002','2026-08-28','تسوية',holder,1200,expLabel,proj,'فاتورة أسمنت','']];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:14},{wch:10},{wch:32},{wch:12},{wch:44},{wch:24},{wch:30},{wch:30}];
+  const holders=custodyAccounts.map(a=>stripCustodyPrefix(a.account_name));
+  const projects=allProjects.map(p=>p.name);
+  const accounts=expenseAccounts.filter(a=>a.level>=4).map(a=>a.account_code+' - '+a.account_name);
+  const n=Math.max(holders.length,projects.length,accounts.length);
+  const ref=[['أصحاب العهد','المشاريع','حسابات المصروف (انسخ منها)']];
+  for(let i=0;i<n;i++) ref.push([holders[i]||'',projects[i]||'',accounts[i]||'']);
+  const ws2=XLSX.utils.aoa_to_sheet(ref);
+  ws2['!cols']=[{wch:34},{wch:28},{wch:60}];
+  const wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'العهد');
+  XLSX.utils.book_append_sheet(wb,ws2,'قوائم للمراجعة');
+  XLSX.writeFile(wb,'custody_template.xlsx');
+}
+let custodyImportRows=[];
+async function handleCustodyImport(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  try{
+    if(!custodyAccounts.length||!expenseAccounts.length) await loadCustody();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+    custodyImportRows=validateCustodyImportRows(raw,{custodyAccounts,expenseAccounts,projects:allProjects});
+    renderCustodyImportPreview();
+  }catch(e){
+    toast('مقدرتش أقرا الملف: '+e.message,'error');
+  }
+  input.value='';
+}
+function renderCustodyImportPreview(){
+  const card=document.getElementById('custody-import-preview');
+  const rows=custodyImportRows;
+  if(!rows.length){ card.style.display='none'; toast('الملف فاضي أو ملقتش فيه صفوف','error'); return; }
+  const ok=rows.filter(r=>r.ok).length, bad=rows.length-ok;
+  document.getElementById('custody-import-summary').innerHTML=
+    `<span style="color:#10b981;font-weight:700">✓ ${ok} صف سليم</span> &nbsp;|&nbsp; <span style="color:${bad?'#ef4444':'var(--text3)'};font-weight:700">✗ ${bad} صف فيه أخطاء</span>`+
+    (bad?'<div style="font-size:11px;color:var(--text3);margin-top:6px">الصفوف الغلط مش هتتحفظ. بعد ما تحفظ السليمة، صلّح الغلط في ملف جديد (من غير الصفوف اللي اتحفظت) وارفعه، عشان متتكررش.</div>':'');
+  let h='<div class="tbl-wrap"><table><thead><tr><th>سطر</th><th>الحالة</th><th>رقم القيد</th><th>النوع</th><th>صاحب العهدة</th><th>المبلغ</th><th>حساب المصروف</th><th>المشروع</th><th>الأخطاء</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    h+=`<tr style="background:${r.ok?'transparent':'#ef444410'}"><td>${r.row}</td><td>${r.ok?'✅':'❌'}</td><td>${escHtml(r.entry_number)}</td><td>${escHtml(r.type||'-')}</td><td>${escHtml(r.person_name)}</td><td style="font-weight:700">${isNaN(r.amount)?'-':r.amount.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td style="font-size:12px">${escHtml(r.expense_name||'-')}</td><td>${escHtml(r.project_name||'-')}</td><td style="color:#ef4444;font-size:12px">${escHtml(r.errors.join('، '))}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  document.getElementById('custody-import-table').innerHTML=h;
+  const btn=document.getElementById('custody-import-save');
+  btn.disabled=ok===0; btn.textContent=`💾 حفظ ${ok} صف سليم`;
+  card.style.display='block';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function cancelCustodyImport(){
+  custodyImportRows=[];
+  document.getElementById('custody-import-preview').style.display='none';
+}
+async function saveCustodyImport(){
+  const good=custodyImportRows.filter(r=>r.ok);
+  if(!good.length){toast('مفيش صفوف سليمة تتحفظ','error');return;}
+  const nowIso=new Date().toISOString();
+  const payload=good.map(r=>({
+    account_code:r.account_code, type:r.type, amount:r.amount,
+    expense_account_code:r.type==='تسوية'?r.expense_account_code:null,
+    project_id:r.project_id, description:r.description, receipt_link:r.receipt_link,
+    entry_number:r.entry_number, created_at:r.created_at||nowIso, created_by:CU?.id||null
+  }));
+  const btn=document.getElementById('custody-import-save'); btn.disabled=true;
+  for(let i=0;i<payload.length;i+=500){
+    const {error}=await sb.from('custody_transactions').insert(payload.slice(i,i+500));
+    if(error){ toast('خطأ في الحفظ: '+error.message,'error'); btn.disabled=false; return; }
+  }
+  toast(`✅ تم حفظ ${payload.length} صف من الملف`,'success');
+  cancelCustodyImport();
   await loadCustody();
 }
 
