@@ -302,10 +302,9 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">💵</div>
           <div class="hub-tile-title">العهد النقدية</div>
         </div>
-        <div class="hub-tile hub-rose hub-soon" onclick="toast('🚧 قسم المصروفات جاري العمل عليه، هيتفعل قريبًا','info')">
+        <div class="hub-tile hub-rose" onclick="showPage('expenses')">
           <div class="hub-tile-icon">🧾</div>
           <div class="hub-tile-title">المصروفات</div>
-          <div class="hub-tile-badge">قريبًا</div>
         </div>
         <div class="hub-tile hub-cyan" onclick="showPage('vendors')">
           <div class="hub-tile-icon">🤝</div>
@@ -333,7 +332,7 @@ tr:hover td{background:#ffffff05;}
         <div class="stat-card" style="cursor:pointer" onclick="showPage('inventory')"><div class="stat-icon" style="background:#3b82f620">📦</div><div><h3 id="mod-inventory-value" style="font-size:16px">-</h3><p>قيمة المخزون (ج)</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 id="mod-po-open" style="font-size:16px">-</h3><p>طلبات توريد مفتوحة</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('custody')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد المفتوحة (ج)</p></div></div>
-        <div class="stat-card hub-soon" style="cursor:pointer;opacity:.7" onclick="toast('🚧 قسم المصروفات جاري العمل عليه','info')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 style="font-size:16px">-</h3><p>المصروفات (قريبًا)</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('expenses')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 id="mod-expenses-total" style="font-size:16px">-</h3><p>إجمالي المصروفات (ج)</p></div></div>
         <div class="stat-card hub-soon" style="cursor:pointer;opacity:.7" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه','info')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 style="font-size:16px">-</h3><p>المستخلصات (قريبًا)</p></div></div>
       </div>
 
@@ -902,6 +901,83 @@ tr:hover td{background:#ffffff05;}
         <div id="custody-log"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
+
+    <!-- EXPENSES: أرصدة الخزن -->
+    <div class="page" id="page-expenses">
+      <div class="page-header"><div><h2>أرصدة الخزن</h2><p>التغذية والمصروفات والرصيد لكل خزينة</p></div></div>
+      <div class="card">
+        <div class="card-header"><h3>🏦 أرصدة الخزن الحالية</h3></div>
+        <div id="xp-summary"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES: تسجيل مصروف -->
+    <div class="page" id="page-expenses-entry">
+      <div class="page-header"><div><h2>تسجيل مصروف</h2><p>مصروف من خزينة أو تغذية خزينة - سجل أكتر من صف في نفس القيد</p></div></div>
+      <div class="card">
+        <div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost" onclick="downloadXpTemplate()">📥 تحميل Template Excel</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('xp-import-file').click()">📤 رفع ملف Excel</button>
+          <input type="file" id="xp-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleXpImport(this)">
+          <span style="font-size:11px;color:var(--text3)">سجّل كذا قيد في الملف (كل صف ليه رقم القيد بتاعه) وارفعه، وهتراجع النتيجة قبل الحفظ</span>
+        </div>
+      </div>
+      <div class="card" id="xp-import-preview" style="display:none">
+        <div class="card-header"><h3>🔎 مراجعة الملف قبل الحفظ</h3></div>
+        <div id="xp-import-summary" style="padding:12px 14px;font-size:13px"></div>
+        <div id="xp-import-table"></div>
+        <div style="padding:10px;display:flex;gap:8px">
+          <button class="btn btn-success" id="xp-import-save" onclick="saveXpImport()">💾 حفظ الصفوف السليمة</button>
+          <button class="btn btn-ghost" onclick="cancelXpImport()">✖ إلغاء</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border);margin-bottom:10px">
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم القيد *</label>
+            <input type="text" id="xp-entry-number" placeholder="رقم القيد..." style="width:160px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">لينك القيد (اختياري)</label>
+            <input type="text" id="xp-entry-link" placeholder="لينك جوجل درايف..." style="width:240px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">الخزينة *</label>
+            <select id="xp-treasury" style="width:260px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر...</option></select>
+          </div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">النوع *</label>
+            <select id="xp-type" onchange="renderXpRows()" style="width:230px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
+              <option value="مصروف">⬇️ مصروف (دفع من الخزينة)</option>
+              <option value="تغذية">⬆️ تغذية الخزينة (فلوس دخلت)</option>
+            </select>
+          </div>
+        </div>
+        <datalist id="xp-acc-list"></datalist>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:30px">#</th>
+              <th style="width:120px">المبلغ *</th>
+              <th id="xp-acc-header" style="width:300px">حساب المصروف (اكتب واختار)</th>
+              <th style="width:160px">المشروع</th>
+              <th>البيان</th>
+              <th style="width:40px"></th>
+            </tr></thead>
+            <tbody id="xp-rows-body"></tbody>
+          </table>
+        </div>
+        <div style="padding:10px;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="addXpRow()">➕ صف جديد</button>
+          <button class="btn btn-success" onclick="saveXpBatch()">💾 حفظ القيد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPENSES: سجل المصروفات -->
+    <div class="page" id="page-expenses-log">
+      <div class="page-header"><div><h2>سجل المصروفات</h2><p>كل حركات الخزن: مصروفات وتغذية</p></div></div>
+      <div class="card">
+        <div class="card-header"><h3>📜 آخر المعاملات</h3></div>
+        <div id="xp-log"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1058,7 +1134,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.10';
+const APP_VERSION='2026.08.27.11';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1249,7 +1325,11 @@ const NAV_STRUCTURE=[
     {page:'custody-entry', icon:'➕', label:'تسجيل عهدة'},
     {page:'custody-log', icon:'📜', label:'سجل المعاملات'},
   ]},
-  {type:'soon', icon:'🧾', label:'المصروفات', msg:'🚧 قسم المصروفات جاري العمل عليه، هيتفعل قريبًا'},
+  {type:'module', key:'expenses-module', icon:'🧾', label:'المصروفات', children:[
+    {page:'expenses', icon:'🏦', label:'أرصدة الخزن'},
+    {page:'expenses-entry', icon:'➕', label:'تسجيل مصروف'},
+    {page:'expenses-log', icon:'📜', label:'سجل المصروفات'},
+  ]},
   {type:'module', key:'setup', icon:'🤝', label:'الأطراف والتكويد', children:[
     {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
     {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
@@ -1387,6 +1467,16 @@ async function loadDashboard(){
     if(error){modCustody.textContent='-';return;}
     const total=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0);
     modCustody.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
+  })();
+
+  // إجمالي المصروفات (من موديول المصروفات)
+  (async()=>{
+    const modExp=document.getElementById('mod-expenses-total');
+    if(!modExp)return;
+    const {data:xp,error}=await sb.from('expense_transactions').select('amount').eq('type','مصروف');
+    if(error){modExp.textContent='-';return;}
+    const total=(xp||[]).reduce((s,t)=>s+t.amount,0);
+    modExp.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
   })();
 
   let inv={}, usingView=true;
@@ -2810,6 +2900,312 @@ async function saveCustodyImport(){
   await loadCustody();
 }
 
+// ===== EXPENSES (المصروفات): treasuries come from chart_of_accounts under 1207 (النقدية بالخزينة) =====
+let treasuryAccounts=[], xpTx=[], xpRows=[], xpImportRows=[];
+async function loadExpenses(){
+  const {data:accData,error:accErr}=await sb.from('chart_of_accounts').select('*').like('account_code','1207%').eq('level',5).order('account_code');
+  if(accErr){
+    document.getElementById('xp-summary').innerHTML='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL شجرة الحسابات في Supabase</p></div>';
+    document.getElementById('xp-log').innerHTML='';
+    return;
+  }
+  treasuryAccounts=accData||[];
+  const sel=document.getElementById('xp-treasury');
+  if(sel){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">اختر...</option>'+treasuryAccounts.map(a=>`<option value="${a.account_code}">${escHtml(a.account_name)}</option>`).join('');
+    sel.value=cur;
+  }
+  if(!expenseAccounts.length){
+    const {data:allAcc}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
+    expenseAccounts=allAcc||[];
+  }
+  const dl=document.getElementById('xp-acc-list');
+  if(dl) dl.innerHTML=expenseAccounts.filter(a=>a.level>=4).map(a=>`<option value="${a.account_code} - ${escHtml(a.account_name)}"></option>`).join('');
+
+  let tx=[], from=0;
+  while(true){
+    const {data:page,error}=await sb.from('expense_transactions').select('*,projects(name)').order('id',{ascending:false}).range(from,from+999);
+    if(error){
+      document.getElementById('xp-summary').innerHTML='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL المصروفات (expenses_setup.sql) في Supabase</p></div>';
+      document.getElementById('xp-log').innerHTML='';
+      return;
+    }
+    if(!page||!page.length)break;
+    tx=[...tx,...page];
+    if(page.length<1000)break;
+    from+=1000;
+  }
+  xpTx=tx;
+  renderXpSummary();
+  renderXpLog();
+  if(!xpRows.length) xpRows=[{}];
+  renderXpRows();
+}
+function addXpRow(){ xpRows.push({}); renderXpRows(); }
+function removeXpRow(i){ xpRows.splice(i,1); if(!xpRows.length) xpRows.push({}); renderXpRows(); }
+function onXpAccInput(i,el){
+  const v=el.value.trim();
+  xpRows[i].acc_label=el.value;
+  const m=expenseAccounts.find(a=>(a.account_code+' - '+a.account_name)===v)||expenseAccounts.find(a=>a.account_code===v);
+  xpRows[i].expense_account=m?m.account_code:'';
+  el.style.borderColor=(!v||m)?'':'#ef4444';
+}
+function renderXpRows(){
+  const isExp=(document.getElementById('xp-type')?.value||'مصروف')==='مصروف';
+  const hdr=document.getElementById('xp-acc-header');
+  if(hdr) hdr.style.display=isExp?'':'none';
+  const tbody=document.getElementById('xp-rows-body');
+  if(!tbody) return;
+  let h='';
+  xpRows.forEach((row,i)=>{
+    const projOpts=allProjects.map(p=>`<option value="${p.id}"${String(p.id)===String(row.project_id)?' selected':''}>${escHtml(p.name)}</option>`).join('');
+    h+=`<tr>
+      <td>${i+1}</td>
+      <td><input type="number" min="0.01" step="0.01" value="${row.amount||''}" placeholder="0" oninput="xpRows[${i}].amount=this.value"></td>
+      <td style="display:${isExp?'':'none'}"><input type="text" list="xp-acc-list" value="${escHtml(row.acc_label||'')}" placeholder="اكتب اسم أو رقم الحساب..." style="width:100%" oninput="onXpAccInput(${i},this)"></td>
+      <td><select onchange="xpRows[${i}].project_id=this.value"><option value="">بدون مشروع</option>${projOpts}</select></td>
+      <td><input type="text" value="${escHtml(row.notes||'')}" placeholder="البيان..." oninput="xpRows[${i}].notes=this.value"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="removeXpRow(${i})">🗑️</button></td>
+    </tr>`;
+  });
+  tbody.innerHTML=h;
+}
+function renderXpSummary(){
+  const el=document.getElementById('xp-summary');
+  const b={};
+  treasuryAccounts.forEach(a=>b[a.account_code]={name:a.account_name,fund:0,exp:0});
+  xpTx.forEach(t=>{
+    if(!b[t.treasury_code]) return;
+    if(t.type==='تغذية') b[t.treasury_code].fund+=t.amount; else b[t.treasury_code].exp+=t.amount;
+  });
+  const rows=Object.values(b).filter(x=>x.fund||x.exp);
+  if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">🏦</div><p>مفيش حركات على الخزن لسه</p></div>'; return; }
+  const f=n=>n.toLocaleString('ar-EG',{minimumFractionDigits:2});
+  let h='<div class="tbl-wrap"><table><thead><tr><th>الخزينة</th><th>إجمالي التغذية (ج)</th><th>إجمالي المصروفات (ج)</th><th>الرصيد (ج)</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const bal=r.fund-r.exp;
+    h+=`<tr><td style="font-weight:600">${escHtml(r.name)}</td><td style="color:#10b981">${f(r.fund)}</td><td style="color:#f59e0b">${f(r.exp)}</td><td style="font-weight:700;color:${bal<0?'#ef4444':'#10b981'}">${f(bal)}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderXpLog(){
+  const el=document.getElementById('xp-log');
+  if(!xpTx.length){ el.innerHTML='<div class="empty"><div class="ico">📭</div><p>لا توجد معاملات بعد</p></div>'; return; }
+  const tMap={}; treasuryAccounts.forEach(a=>tMap[a.account_code]=a.account_name);
+  const eMap={}; expenseAccounts.forEach(a=>eMap[a.account_code]=a.account_name);
+  let h='<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الخزينة</th><th>النوع</th><th>المبلغ</th><th>حساب المصروف</th><th>المشروع</th><th>البيان</th><th>رقم القيد</th><th></th></tr></thead><tbody>';
+  xpTx.slice(0,100).forEach(t=>{
+    const entry=t.entry_number?(t.receipt_link?`<a href="${escHtml(t.receipt_link)}" target="_blank">📎 ${escHtml(t.entry_number)}</a>`:escHtml(t.entry_number)):(t.receipt_link?`<a href="${escHtml(t.receipt_link)}" target="_blank">📎 عرض</a>`:'-');
+    h+=`<tr><td style="font-size:12px">${fmtDate(t.created_at)}</td><td>${escHtml(tMap[t.treasury_code]||t.treasury_code)}</td>
+      <td><span class="badge ${t.type==='مصروف'?'badge-out':'badge-in'}">${t.type==='مصروف'?'⬇️ مصروف':'⬆️ تغذية'}</span></td>
+      <td style="font-weight:700">${t.amount.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td>
+      <td style="font-size:12px">${t.expense_account_code?escHtml(eMap[t.expense_account_code]||t.expense_account_code):'-'}</td>
+      <td>${escHtml(t.projects?.name||'-')}</td><td>${escHtml(t.description||'-')}</td><td>${entry}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteXpTransaction(${t.id})">🗑️</button></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+async function deleteXpTransaction(id){
+  if(!confirm('متأكد إنك عايز تمسح المعاملة دي؟ الإجراء ده مش هينفع يترجع.')) return;
+  const {error}=await sb.from('expense_transactions').delete().eq('id',id);
+  if(error){ toast('خطأ في الحذف: '+error.message,'error'); return; }
+  toast('✅ اتمسحت المعاملة','success');
+  await loadExpenses();
+}
+async function saveXpBatch(){
+  const treasury_code=document.getElementById('xp-treasury')?.value;
+  const type=document.getElementById('xp-type')?.value;
+  const entry_number=document.getElementById('xp-entry-number')?.value.trim();
+  const receipt_link=document.getElementById('xp-entry-link')?.value.trim()||null;
+  if(!entry_number){ toast('اكتب رقم القيد','error'); return; }
+  if(!treasury_code){ toast('اختر الخزينة','error'); return; }
+  const valid=xpRows.map((r,i)=>({r,i})).filter(x=>x.r.amount&&parseFloat(x.r.amount)>0);
+  if(!valid.length){ toast('اكتب مبلغ صحيح في صف واحد على الأقل','error'); return; }
+  if(type==='مصروف'){
+    const bad=valid.find(x=>!x.r.expense_account);
+    if(bad){ toast(`حساب المصروف في الصف رقم ${bad.i+1} ناقص أو مش مطابق لأي حساب في الشجرة، اختاره من القائمة`,'error'); return; }
+  }
+  const toInsert=valid.map(({r})=>({
+    treasury_code, type, amount:parseFloat(r.amount),
+    expense_account_code:type==='مصروف'?r.expense_account:null,
+    project_id:parseInt(r.project_id)||null,
+    entry_number, description:r.notes||null, receipt_link,
+    created_by:CU?.id||null
+  }));
+  const {error}=await sb.from('expense_transactions').insert(toInsert);
+  if(error){ toast('خطأ: '+error.message,'error'); return; }
+  toast(`✅ تم حفظ القيد ${entry_number} (${toInsert.length} صف)`,'success');
+  xpRows=[{}];
+  document.getElementById('xp-entry-number').value='';
+  document.getElementById('xp-entry-link').value='';
+  await loadExpenses();
+}
+
+// ----- Excel: template + import (validation is a pure function) -----
+function validateXpImportRows(rawRows,ctx){
+  const out=[];
+  rawRows.forEach((r0,idx)=>{
+    const r={}; Object.keys(r0).forEach(k=>{r[String(k).trim()]=r0[k];});
+    const g=n=>(r[n]==null?'':r[n]);
+    if(Object.values(r).every(v=>String(v).trim()==='')) return;
+    const errs=[];
+    const entry=String(g('رقم القيد')).trim();
+    if(!entry) errs.push('رقم القيد ناقص');
+
+    const tRaw=String(g('النوع')).trim();
+    let type=null;
+    if(tRaw.includes('تغذية')) type='تغذية'; else if(tRaw.includes('مصروف')) type='مصروف';
+    else errs.push('النوع لازم يكون مصروف أو تغذية');
+
+    const tzRaw=String(g('الخزينة')).trim();
+    let tz=null;
+    if(!tzRaw) errs.push('الخزينة ناقصة');
+    else if(/^\d{12}$/.test(tzRaw)){
+      tz=ctx.treasuryAccounts.find(a=>a.account_code===tzRaw)||null;
+      if(!tz) errs.push('رقم حساب الخزينة مش موجود');
+    } else {
+      const n=normAr(tzRaw);
+      let m=ctx.treasuryAccounts.filter(a=>normAr(a.account_name)===n);
+      if(m.length===0){
+        const words=n.split(' ').filter(w=>w.length>=2);
+        if(words.length) m=ctx.treasuryAccounts.filter(a=>{const nm=normAr(a.account_name);return words.every(w=>nm.includes(w));});
+      }
+      if(m.length===1) tz=m[0];
+      else if(m.length===0) errs.push('مفيش خزينة بالاسم ده');
+      else errs.push('الاسم ده بيطابق أكتر من خزينة، اكتب الاسم كامل أو الرقم');
+    }
+
+    const amount=parseFloat(String(g('المبلغ')).replace(/,/g,''));
+    if(!(amount>0)) errs.push('المبلغ لازم يكون رقم أكبر من صفر');
+
+    const eRaw=String(g('حساب المصروف')).trim();
+    let exp=null;
+    if(type==='مصروف'){
+      if(!eRaw) errs.push('حساب المصروف مطلوب في المصروف');
+      else {
+        const cm=eRaw.match(/^(\d{12})/);
+        if(cm){
+          exp=ctx.expenseAccounts.find(a=>a.account_code===cm[1])||null;
+          if(!exp) errs.push('رقم حساب المصروف مش موجود في الشجرة');
+        } else {
+          const n=normAr(eRaw);
+          const m=ctx.expenseAccounts.filter(a=>normAr(a.account_name)===n);
+          if(m.length===1) exp=m[0];
+          else if(m.length===0) errs.push('حساب المصروف مش مطابق لأي حساب في الشجرة');
+          else errs.push('اسم حساب المصروف مكرر، اكتب رقم الحساب');
+        }
+      }
+    }
+
+    const prRaw=String(g('المشروع')).trim();
+    let project=null;
+    if(prRaw){
+      const n=normAr(prRaw);
+      project=ctx.projects.find(p=>normAr(p.name)===n)||null;
+      if(!project) errs.push('المشروع مش موجود');
+    }
+
+    const created_at=parseCustodyDate(g('التاريخ'));
+    if(created_at===undefined) errs.push('التاريخ مش مفهوم (اكتبه yyyy-mm-dd أو dd/mm/yyyy)');
+
+    out.push({
+      row:idx+2, errors:errs, ok:errs.length===0,
+      entry_number:entry, type, amount,
+      treasury_code:tz?tz.account_code:null, treasury_name:tz?tz.account_name:tzRaw,
+      expense_account_code:exp?exp.account_code:null, expense_name:exp?exp.account_name:eRaw,
+      project_id:project?project.id:null, project_name:project?project.name:prRaw,
+      description:String(g('البيان')).trim()||null,
+      receipt_link:String(g('لينك القيد')).trim()||null,
+      created_at:created_at||null
+    });
+  });
+  return out;
+}
+async function downloadXpTemplate(){
+  if(!treasuryAccounts.length||!expenseAccounts.length) await loadExpenses();
+  const headers=['رقم القيد','التاريخ','النوع','الخزينة','المبلغ','حساب المصروف','المشروع','البيان','لينك القيد'];
+  const tz=treasuryAccounts.length?treasuryAccounts[0].account_name:'اسم الخزينة';
+  const exp=expenseAccounts.find(a=>a.account_code==='120203002000');
+  const expLabel=exp?exp.account_code+' - '+exp.account_name:'';
+  const proj=allProjects.length?allProjects[0].name:'';
+  const ws=XLSX.utils.aoa_to_sheet([headers,
+    ['2001','2026-08-27','تغذية',tz,20000,'','','تغذية الخزينة',''],
+    ['2002','2026-08-28','مصروف',tz,1500,expLabel,proj,'مصروف موقع','']]);
+  ws['!cols']=[{wch:12},{wch:14},{wch:10},{wch:34},{wch:12},{wch:44},{wch:24},{wch:30},{wch:30}];
+  const treasuries=treasuryAccounts.map(a=>a.account_code+' - '+a.account_name);
+  const projects=allProjects.map(p=>p.name);
+  const accounts=expenseAccounts.filter(a=>a.level>=4).map(a=>a.account_code+' - '+a.account_name);
+  const n=Math.max(treasuries.length,projects.length,accounts.length);
+  const ref=[['الخزن','المشاريع','حسابات المصروف (انسخ منها)']];
+  for(let i=0;i<n;i++) ref.push([treasuries[i]||'',projects[i]||'',accounts[i]||'']);
+  const ws2=XLSX.utils.aoa_to_sheet(ref);
+  ws2['!cols']=[{wch:44},{wch:28},{wch:60}];
+  const wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'المصروفات');
+  XLSX.utils.book_append_sheet(wb,ws2,'قوائم للمراجعة');
+  XLSX.writeFile(wb,'expenses_template.xlsx');
+}
+async function handleXpImport(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  try{
+    if(!treasuryAccounts.length||!expenseAccounts.length) await loadExpenses();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:true});
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    xpImportRows=validateXpImportRows(raw,{treasuryAccounts,expenseAccounts,projects:allProjects});
+    renderXpImportPreview();
+  }catch(e){ toast('مقدرتش أقرا الملف: '+e.message,'error'); }
+  input.value='';
+}
+function renderXpImportPreview(){
+  const card=document.getElementById('xp-import-preview');
+  const rows=xpImportRows;
+  if(!rows.length){ card.style.display='none'; toast('الملف فاضي أو ملقتش فيه صفوف','error'); return; }
+  const ok=rows.filter(r=>r.ok).length, bad=rows.length-ok;
+  document.getElementById('xp-import-summary').innerHTML=
+    `<span style="color:#10b981;font-weight:700">✓ ${ok} صف سليم</span> &nbsp;|&nbsp; <span style="color:${bad?'#ef4444':'var(--text3)'};font-weight:700">✗ ${bad} صف فيه أخطاء</span>`+
+    (bad?'<div style="font-size:11px;color:var(--text3);margin-top:6px">الصفوف الغلط مش هتتحفظ. بعد ما تحفظ السليمة، صلّح الغلط في ملف جديد (من غير الصفوف اللي اتحفظت) وارفعه، عشان متتكررش.</div>':'');
+  let h='<div class="tbl-wrap"><table><thead><tr><th>سطر</th><th>الحالة</th><th>رقم القيد</th><th>النوع</th><th>الخزينة</th><th>المبلغ</th><th>حساب المصروف</th><th>المشروع</th><th>الأخطاء</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    h+=`<tr style="background:${r.ok?'transparent':'#ef444410'}"><td>${r.row}</td><td>${r.ok?'✅':'❌'}</td><td>${escHtml(r.entry_number)}</td><td>${escHtml(r.type||'-')}</td><td>${escHtml(r.treasury_name)}</td><td style="font-weight:700">${isNaN(r.amount)?'-':r.amount.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td style="font-size:12px">${escHtml(r.expense_name||'-')}</td><td>${escHtml(r.project_name||'-')}</td><td style="color:#ef4444;font-size:12px">${escHtml(r.errors.join('، '))}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  document.getElementById('xp-import-table').innerHTML=h;
+  const btn=document.getElementById('xp-import-save');
+  btn.disabled=ok===0; btn.textContent=`💾 حفظ ${ok} صف سليم`;
+  card.style.display='block';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function cancelXpImport(){
+  xpImportRows=[];
+  document.getElementById('xp-import-preview').style.display='none';
+}
+async function saveXpImport(){
+  const good=xpImportRows.filter(r=>r.ok);
+  if(!good.length){ toast('مفيش صفوف سليمة تتحفظ','error'); return; }
+  const nowIso=new Date().toISOString();
+  const payload=good.map(r=>({
+    treasury_code:r.treasury_code, type:r.type, amount:r.amount,
+    expense_account_code:r.type==='مصروف'?r.expense_account_code:null,
+    project_id:r.project_id, entry_number:r.entry_number,
+    description:r.description, receipt_link:r.receipt_link,
+    created_at:r.created_at||nowIso, created_by:CU?.id||null
+  }));
+  const btn=document.getElementById('xp-import-save'); btn.disabled=true;
+  for(let i=0;i<payload.length;i+=500){
+    const {error}=await sb.from('expense_transactions').insert(payload.slice(i,i+500));
+    if(error){ toast('خطأ في الحفظ: '+error.message,'error'); btn.disabled=false; return; }
+  }
+  toast(`✅ تم حفظ ${payload.length} صف من الملف`,'success');
+  cancelXpImport();
+  await loadExpenses();
+}
+
 let allCOA=[];
 async function loadCOA(){
   let data=[], from=0;
@@ -2900,6 +3296,13 @@ async function showAccountStatement(accountCode){
     +(custExp||[]).reduce((s,t)=>s+t.amount,0);
   const custodyCount=(custTx||[]).length+(custExp||[]).length;
 
+  // (ج) المصروفات: رصيد الخزينة (تغذية - مصروف) لو الحساب خزينة، + المصروفات اللي اترمت على الحساب ده
+  const {data:xpTre}=await sb.from('expense_transactions').select('amount,type').in('treasury_code',codes);
+  const {data:xpExp}=await sb.from('expense_transactions').select('amount').eq('type','مصروف').in('expense_account_code',codes);
+  const expensesTotal=(xpTre||[]).reduce((s,t)=>s+(t.type==='تغذية'?t.amount:-t.amount),0)
+    +(xpExp||[]).reduce((s,t)=>s+t.amount,0);
+  const expensesCount=(xpTre||[]).length+(xpExp||[]).length;
+
   // 2) المخزون - عن طريق مجموعات الأصناف المربوطة بالحساب ده
   const {data:linkedGroups}=await sb.from('groups').select('id,name').in('account_code',codes);
   let warehouseTotal=0, warehouseCount=0, groupBreakdown=[];
@@ -2930,18 +3333,19 @@ async function showAccountStatement(accountCode){
     }
   }
 
-  const grandTotal=custodyTotal+warehouseTotal;
+  const grandTotal=custodyTotal+warehouseTotal+expensesTotal;
   let h=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
     <div class="stat-card"><div class="stat-icon" style="background:#3b82f620">💰</div><div><h3 style="font-size:16px">${grandTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>الإجمالي الموحّد (ج)</p></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#f59e0b20">📦</div><div><h3 style="font-size:16px">${warehouseTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المخزون (${warehouseCount} حركة)</p></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#10b98120">💵</div><div><h3 style="font-size:16px">${custodyTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من العهد (${custodyCount} معاملة)</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 style="font-size:16px">${expensesTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المصروفات (${expensesCount} معاملة)</p></div></div>
   </div>`;
   if(groupBreakdown.length){
     h+='<h4 style="font-size:13px;color:var(--text2);margin-bottom:8px">تفصيل المخزون حسب المجموعة</h4><div class="tbl-wrap"><table><thead><tr><th>المجموعة</th><th>القيمة (ج)</th></tr></thead><tbody>';
     groupBreakdown.forEach(g=>{h+=`<tr><td>${g.name}</td><td style="font-weight:700">${g.total.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td></tr>`;});
     h+='</tbody></table></div>';
   }
-  if(!custodyCount&&!warehouseCount){
+  if(!custodyCount&&!warehouseCount&&!expensesCount){
     h+='<div class="empty"><div class="ico">📭</div><p>مفيش حركات متسجلة على الحساب ده لحد دلوقتي من أي موديول</p></div>';
   }
   body.innerHTML=h;
@@ -3942,6 +4346,7 @@ function showPage(name){
   if(name==='analytics') loadAnalytics();
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
   if(name==='custody'||name==='custody-entry'||name==='custody-log') loadCustody();
+  if(name==='expenses'||name==='expenses-entry'||name==='expenses-log') loadExpenses();
   if(name==='dashboard') loadDashboard();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
