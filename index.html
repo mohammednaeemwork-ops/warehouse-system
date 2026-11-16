@@ -93,6 +93,22 @@ nav{flex:1;padding:6px 0;}
 .hub-cyan{background:linear-gradient(145deg,#06b6d4,#0e7490);}
 .hub-orange{background:linear-gradient(145deg,#f97316,#c2410c);}
 .hub-slate{background:linear-gradient(145deg,#64748b,#334155);}
+.xs-t{border-collapse:collapse;width:100%;font-size:12px}
+.xs-t th,.xs-t td{border:1px solid var(--border);padding:7px 5px;text-align:center;font-variant-numeric:tabular-nums}
+.xs-t td.l{text-align:right}
+.xs-t th{font-weight:700;background:var(--bg3);color:var(--text2)}
+.xs-c1{background:#6366f114}.xs-c2{background:#10b98114}.xs-c3{background:#3b82f614}.xs-c4{background:#f59e0b14}.xs-c5{background:#f9731620;font-weight:700}
+.xs-t th.xs-h1{background:#6366f13d;color:#c7d2fe}.xs-t th.xs-h2{background:#10b9813d;color:#6ee7b7}.xs-t th.xs-h3{background:#3b82f63d;color:#93c5fd}.xs-t th.xs-h4{background:#f59e0b3d;color:#fcd34d}.xs-t th.xs-h5{background:#f973163d;color:#fdba74}
+.xs-tot td{background:var(--bg3);font-weight:800}
+.xs-t td.xs-y{background:#f59e0b2e;color:#fbbf24;font-weight:800}
+.xs-net td{font-weight:800}
+.xs-hb{width:360px;overflow:hidden;background:var(--bg2);border:1px solid var(--border);border-radius:10px}
+.xs-hr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+.xs-hr:last-child{border:0}.xs-hr b{color:var(--text);font-weight:600}
+.xs-sec{padding:9px 12px;font-weight:800;font-size:14px}
+.xs-sg{flex:1;text-align:center;font-size:12px;color:var(--text2);border-top:1px solid var(--border);padding-top:8px;margin:0 14px}
+.xs-in{background:var(--bg);color:var(--text);border:1px solid #3b82f6;border-radius:5px;padding:4px;font-family:Cairo,sans-serif;font-size:12px;text-align:center}
+.xs-in:disabled{border-color:transparent;opacity:.85}
 .rep-group{margin-bottom:20px;}
 .rep-group-title{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px;padding-right:2px;}
 .rep-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
@@ -293,10 +309,9 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">📦</div>
           <div class="hub-tile-title">المخزون</div>
         </div>
-        <div class="hub-tile hub-violet hub-soon" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا','info')">
+        <div class="hub-tile hub-violet" onclick="showPage('extracts')">
           <div class="hub-tile-icon">📋</div>
           <div class="hub-tile-title">المستخلصات</div>
-          <div class="hub-tile-badge">قريبًا</div>
         </div>
         <div class="hub-tile hub-amber" onclick="showPage('custody')">
           <div class="hub-tile-icon">💵</div>
@@ -333,7 +348,7 @@ tr:hover td{background:#ffffff05;}
         <div class="stat-card" style="cursor:pointer" onclick="showPage('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 id="mod-po-open" style="font-size:16px">-</h3><p>طلبات توريد مفتوحة</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('custody')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد المفتوحة (ج)</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('expenses')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 id="mod-expenses-total" style="font-size:16px">-</h3><p>إجمالي المصروفات (ج)</p></div></div>
-        <div class="stat-card hub-soon" style="cursor:pointer;opacity:.7" onclick="toast('🚧 قسم المستخلصات جاري العمل عليه','info')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 style="font-size:16px">-</h3><p>المستخلصات (قريبًا)</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('extracts')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 id="mod-extracts-total" style="font-size:16px">-</h3><p>أعمال المستخلصات المعتمدة (ج)</p></div></div>
       </div>
 
       <!-- تفاصيل المخزون -->
@@ -978,6 +993,63 @@ tr:hover td{background:#ffffff05;}
         <div id="xp-log"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
+
+    <!-- EXTRACTS: قائمة المستخلصات -->
+    <div class="page" id="page-extracts">
+      <div class="page-header"><div><h2>المستخلصات</h2><p>مستخلصات أعمال المقاولين - كل مستخلص بيتعمل من مقايسة</p></div></div>
+      <div class="card">
+        <div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="ex-new-boq" style="min-width:300px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر المقايسة...</option></select>
+          <button class="btn btn-success" onclick="newExtract()">➕ مستخلص جديد</button>
+          <span style="font-size:11px;color:var(--text3)">المقايسة لازم تتسجل الأول من صفحة "المقايسات"</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📋 المستخلصات</h3></div>
+        <div id="ex-list"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- EXTRACTS: المقايسات -->
+    <div class="page" id="page-boqs">
+      <div class="page-header"><div><h2>المقايسات</h2><p>بنود أعمال المقاولين وأسعارها - ومنها بتتعمل المستخلصات</p></div>
+        <button class="btn btn-accent" onclick="openBoqEditor(null)">➕ مقايسة جديدة</button>
+      </div>
+      <div class="card" id="boq-editor" style="display:none">
+        <div class="card-header"><h3 id="boq-editor-title">مقايسة جديدة</h3></div>
+        <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border)">
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم المقايسة *</label><input type="text" id="boq-number" style="width:150px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المشروع *</label><select id="boq-project" style="width:220px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر...</option></select></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المقاول *</label><select id="boq-contractor" style="width:240px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر...</option></select></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">بداية العمل</label><input type="date" id="boq-start" style="padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">نهاية المشروع</label><input type="date" id="boq-end" style="padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+        </div>
+        <div style="padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="downloadBoqTemplate()">📥 Template Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('boq-import-file').click()">📤 رفع بنود من Excel</button>
+          <input type="file" id="boq-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleBoqImport(this)">
+          <span style="font-size:11px;color:var(--text3)">حساب المستخلص بتكتبه وتختاره من حسابات "مستخلصات" في الشجرة</span>
+        </div>
+        <datalist id="boq-acc-list"></datalist>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th style="width:30px">م</th><th>وصف البند *</th><th style="width:80px">الوحدة</th><th style="width:110px">الكمية</th><th style="width:110px">سعر الوحدة</th><th style="width:120px">الإجمالي</th><th style="width:300px">حساب المستخلص (من الشجرة) *</th><th style="width:40px"></th></tr></thead>
+          <tbody id="boq-rows-body"></tbody>
+        </table></div>
+        <div style="padding:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="addBoqRow()">➕ بند جديد</button>
+          <button class="btn btn-success" onclick="saveBoq()">💾 حفظ المقايسة</button>
+          <button class="btn btn-ghost" onclick="closeBoqEditor()">إغلاق</button>
+          <b id="boq-editor-total" style="margin-right:auto"></b>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📑 المقايسات</h3></div>
+        <div id="boq-list"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- EXTRACTS: شاشة المستخلص (بتتبني بالجافاسكريبت) -->
+    <div class="page" id="page-extract-sheet"><div id="xs-root"></div></div>
   </div>
 </div>
 
@@ -1134,7 +1206,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.11';
+const APP_VERSION='2026.08.27.12';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1319,7 +1391,11 @@ const NAV_STRUCTURE=[
     {page:'movements', icon:'🔄', label:'سجل الحركات'},
     {page:'inventory', icon:'📦', label:'أرصدة المخزون'},
   ]},
-  {type:'soon', icon:'📋', label:'المستخلصات', msg:'🚧 قسم المستخلصات جاري العمل عليه، هيتفعل قريبًا'},
+  {type:'module', key:'extracts-module', icon:'📋', label:'المستخلصات', children:[
+    {page:'extracts', icon:'📋', label:'المستخلصات'},
+    {page:'boqs', icon:'📑', label:'المقايسات'},
+    {page:'extract-sheet', icon:'🧾', label:'شاشة المستخلص', hidden:true},
+  ]},
   {type:'module', key:'custody-module', icon:'💵', label:'العهد النقدية', children:[
     {page:'custody', icon:'📋', label:'أرصدة العهد'},
     {page:'custody-entry', icon:'➕', label:'تسجيل عهدة'},
@@ -1364,7 +1440,7 @@ function renderTopNav(){
     } else if(entry.type==='soon'){
       h+=`<div class="nav-item" style="opacity:.65" onclick="toast('${entry.msg}','info')"><span class="ico">${entry.icon}</span> ${entry.label} <span class="nav-alert-badge" style="background:var(--bg3);color:var(--text3)">قريبًا</span></div>`;
     } else {
-      const visibleChildren=entry.children.filter(c=>canSeePage(c.page));
+      const visibleChildren=entry.children.filter(c=>!c.hidden&&canSeePage(c.page));
       if(!visibleChildren.length)return;
       h+=`<div class="nav-item" data-module="${entry.key}" onclick="enterModule('${entry.key}')"><span class="ico">${entry.icon}</span> ${entry.label} <span class="nav-arrow">◀</span></div>`;
     }
@@ -1377,7 +1453,7 @@ function enterModule(key){
   currentModuleKey=key;
   const nav=document.getElementById('main-nav');
   if(!nav)return;
-  const visibleChildren=mod.children.filter(c=>canSeePage(c.page));
+  const visibleChildren=mod.children.filter(c=>!c.hidden&&canSeePage(c.page));
   let h=`<div class="nav-item nav-back" onclick="renderTopNav();showPage('hub')"><span class="ico">▶</span> رجوع لكل الأقسام</div>
     <div class="nav-section">${mod.icon} ${mod.label}</div>`;
   visibleChildren.forEach(c=>{
@@ -1477,6 +1553,16 @@ async function loadDashboard(){
     if(error){modExp.textContent='-';return;}
     const total=(xp||[]).reduce((s,t)=>s+t.amount,0);
     modExp.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
+  })();
+
+  // أعمال المستخلصات المعتمدة (من موديول المستخلصات)
+  (async()=>{
+    const el=document.getElementById('mod-extracts-total');
+    if(!el)return;
+    const {data,error}=await sb.from('extract_items').select('current_qty,boq_items(unit_price),extracts!inner(status)').eq('extracts.status','معتمد');
+    if(error){el.textContent='-';return;}
+    const total=(data||[]).reduce((s,r)=>s+(+r.current_qty||0)*(+(r.boq_items&&r.boq_items.unit_price)||0),0);
+    el.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
   })();
 
   let inv={}, usingView=true;
@@ -3206,6 +3292,368 @@ async function saveXpImport(){
   await loadExpenses();
 }
 
+// ===== المستخلصات: مقايسات + مستخلصات =====
+const COMPANY_NAME='شركة العمار للتوسع العمراني';
+let allBoqs=[], allBoqItems=[], allExtracts=[], allExtractItems=[], boqAccounts=[], boqEdit=null, xsState=null;
+// @@PURE-START
+function fnum(n){return (+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function resolveAccountText(text,accounts){
+  const v=String(text==null?'':text).trim();
+  if(!v) return null;
+  const cm=v.match(/^(\d{12})/);
+  if(cm) return accounts.find(a=>a.account_code===cm[1])||null;
+  const n=normAr(v);
+  const m=accounts.filter(a=>normAr(a.account_name)===n);
+  return m.length===1?m[0]:null;
+}
+// الحساب كله في دالة واحدة عشان نعدل فيها بعدين (التعلية / ما سبق صرفه ...)
+function computeExtract(ex,items,qtyMap,prevMap){
+  const rows=items.map(it=>{
+    const q=+it.qty||0, pr=+it.unit_price||0;
+    const pq=+prevMap[it.id]||0, cq=+qtyMap[it.id]||0, tq=pq+cq;
+    return {id:it.id, description:it.description, unit:it.unit, qty:q, unit_price:pr,
+      contract_value:q*pr, prev_qty:pq, cur_qty:cq, tot_qty:tq,
+      p_prev:q?pq/q*100:0, p_cur:q?cq/q*100:0, p_tot:q?tq/q*100:0,
+      v_prev:pq*pr, v_cur:cq*pr, v_tot:tq*pr, due:cq*pr};
+  });
+  const sum=k=>rows.reduce((s,r)=>s+r[k],0);
+  const T={contract:sum('contract_value'),prev_qty:sum('prev_qty'),cur_qty:sum('cur_qty'),tot_qty:sum('tot_qty'),v_prev:sum('v_prev'),v_cur:sum('v_cur'),v_tot:sum('v_tot'),due:sum('due')};
+  const defs=[['vat_rate','ضريبة القيمة المضافة',1],['wht_rate','ضريبة الخصم',-1],['insurance_rate','تأمين اعمال',-1],['social_rate','تأمينات اجتماعية',-1],['stamp_rate','دمغة هندسية',-1],['advance_rate','الدفعه المقدمة',-1]];
+  const taxes=defs.map(([k,label,sign])=>{const r=(+ex[k]||0)/100;return {key:k,label,sign,rate:+ex[k]||0,prev:T.v_prev*r,cur:T.v_cur*r,tot:T.v_tot*r};});
+  const adj=c=>taxes.reduce((s,t)=>s+t.sign*t[c],0);
+  const net_prev=T.v_prev+adj('prev'), net_cur=T.v_cur+adj('cur'), net_tot=T.v_tot+adj('tot');
+  const manualPrev=(ex.prev_paid===null||ex.prev_paid===undefined||ex.prev_paid==='');
+  const prevPaid=manualPrev?net_prev:(+ex.prev_paid||0);
+  const other=+ex.other_deductions||0, ret=+ex.retention||0, refund=+ex.retention_refund||0;
+  const net_due=net_tot-prevPaid-other-ret+refund;
+  return {rows,T,taxes,net_prev,net_cur,net_tot,prevPaid,manualPrev,other,ret,refund,net_due,percent:T.contract?T.v_tot/T.contract*100:0};
+}
+function prevQtyMapFrom(extracts,extractItems,boqId,number){
+  const ids=new Set(extracts.filter(e=>e.boq_id===boqId&&e.extract_number<number).map(e=>e.id));
+  const m={};
+  extractItems.forEach(x=>{ if(ids.has(x.extract_id)) m[x.boq_item_id]=(m[x.boq_item_id]||0)+(+x.current_qty||0); });
+  return m;
+}
+// @@PURE-END
+function accLabel(code){const a=expenseAccounts.find(x=>x.account_code===code);return a?a.account_code+' - '+a.account_name:(code||'');}
+async function fetchAllRows(table,select){
+  let out=[],from=0;
+  while(true){
+    const {data,error}=await sb.from(table).select(select).order('id',{ascending:true}).range(from,from+999);
+    if(error) return {error};
+    if(!data||!data.length) break;
+    out=out.concat(data);
+    if(data.length<1000) break;
+    from+=1000;
+  }
+  return {data:out};
+}
+async function loadExtractsData(){
+  const r1=await fetchAllRows('boqs','*,projects(name),vendors(name)');
+  if(r1.error){
+    const w='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL المستخلصات (extracts_setup.sql) في Supabase</p></div>';
+    const a=document.getElementById('boq-list'), b=document.getElementById('ex-list');
+    if(a) a.innerHTML=w; if(b) b.innerHTML=w;
+    return false;
+  }
+  allBoqs=r1.data;
+  const [r2,r3,r4]=await Promise.all([fetchAllRows('boq_items','*'),fetchAllRows('extracts','*'),fetchAllRows('extract_items','*')]);
+  allBoqItems=r2.data||[]; allExtracts=r3.data||[]; allExtractItems=r4.data||[];
+  if(!expenseAccounts.length){
+    const {data:allAcc}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
+    expenseAccounts=allAcc||[];
+  }
+  boqAccounts=expenseAccounts.filter(a=>a.account_code.startsWith('120202')&&a.level===5);
+  renderBoqList(); renderExtractList();
+  return true;
+}
+function boqTotal(boqId){return allBoqItems.filter(i=>i.boq_id===boqId).reduce((s,i)=>s+(+i.qty||0)*(+i.unit_price||0),0);}
+function extractModel(ex){
+  const items=allBoqItems.filter(i=>i.boq_id===ex.boq_id).sort((a,b)=>a.seq-b.seq);
+  const qtyMap={}; allExtractItems.filter(x=>x.extract_id===ex.id).forEach(x=>qtyMap[x.boq_item_id]=x.current_qty);
+  return computeExtract(ex,items,qtyMap,prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number));
+}
+function renderBoqList(){
+  const el=document.getElementById('boq-list'); if(!el) return;
+  const sel=document.getElementById('ex-new-boq');
+  if(sel){ const cur=sel.value; sel.innerHTML='<option value="">اختر المقايسة...</option>'+allBoqs.map(b=>`<option value="${b.id}">${escHtml(b.boq_number)} — ${escHtml(b.projects?.name||'')} — ${escHtml(b.vendors?.name||'')}</option>`).join(''); sel.value=cur; }
+  if(!allBoqs.length){ el.innerHTML='<div class="empty"><div class="ico">📑</div><p>مفيش مقايسات لسه. دوس "مقايسة جديدة" وابدأ.</p></div>'; return; }
+  let h='<div class="tbl-wrap"><table><thead><tr><th>رقم المقايسة</th><th>المشروع</th><th>المقاول</th><th>البنود</th><th>إجمالي المقايسة (ج)</th><th>المستخلصات</th><th></th></tr></thead><tbody>';
+  allBoqs.slice().reverse().forEach(b=>{
+    const n=allBoqItems.filter(i=>i.boq_id===b.id).length, ne=allExtracts.filter(e=>e.boq_id===b.id).length;
+    h+=`<tr><td style="font-weight:700">${escHtml(b.boq_number)}</td><td>${escHtml(b.projects?.name||'-')}</td><td>${escHtml(b.vendors?.name||'-')}</td><td>${n}</td><td style="font-weight:700">${fnum(boqTotal(b.id))}</td><td>${ne}</td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openBoqEditor(${b.id})">✏️ تعديل</button> <button class="btn btn-success btn-sm" onclick="newExtract(${b.id})">🧾 مستخلص جديد</button> <button class="btn btn-ghost btn-sm" onclick="deleteBoq(${b.id})">🗑️</button></td></tr>`;
+  });
+  el.innerHTML=h+'</tbody></table></div>';
+}
+function renderExtractList(){
+  const el=document.getElementById('ex-list'); if(!el) return;
+  if(!allExtracts.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div><p>مفيش مستخلصات لسه. اختار مقايسة فوق وابدأ مستخلص جديد.</p></div>'; return; }
+  const bMap={}; allBoqs.forEach(b=>bMap[b.id]=b);
+  let h='<div class="tbl-wrap"><table><thead><tr><th>المستخلص</th><th>المقايسة</th><th>المشروع</th><th>المقاول</th><th>التاريخ</th><th>الحالة</th><th>أعمال المستخلص (ج)</th><th>صافي المستحق (ج)</th><th></th></tr></thead><tbody>';
+  allExtracts.slice().reverse().forEach(e=>{
+    const b=bMap[e.boq_id]||{}, m=extractModel(e);
+    const st=e.status==='معتمد'?'<span class="badge badge-in">معتمد</span>':'<span class="badge" style="background:#f59e0b20;color:#f59e0b">مسودة</span>';
+    h+=`<tr><td style="font-weight:700">مستخلص رقم ${e.extract_number}</td><td>${escHtml(b.boq_number||'-')}</td><td>${escHtml(b.projects?.name||'-')}</td><td>${escHtml(b.vendors?.name||'-')}</td><td style="font-size:12px">${e.extract_date||'-'}</td><td>${st}</td>
+      <td>${fnum(m.T.v_cur)}</td><td style="font-weight:700;color:#10b981">${fnum(m.net_due)}</td>
+      <td style="white-space:nowrap"><button class="btn btn-accent btn-sm" onclick="openExtract(${e.id})">فتح</button>${e.status==='مسودة'?` <button class="btn btn-ghost btn-sm" onclick="deleteExtract(${e.id})">🗑️</button>`:''}</td></tr>`;
+  });
+  el.innerHTML=h+'</tbody></table></div>';
+}
+// ----- BOQ editor -----
+function openBoqEditor(id){
+  const b=id?allBoqs.find(x=>x.id===id):null;
+  boqEdit={id:id||null,items:[]};
+  if(b) boqEdit.items=allBoqItems.filter(i=>i.boq_id===id).sort((a,c)=>a.seq-c.seq).map(i=>({id:i.id,description:i.description,unit:i.unit||'',qty:i.qty,unit_price:i.unit_price,account_code:i.account_code||'',acc_label:accLabel(i.account_code)}));
+  else boqEdit.items=[{description:'',unit:'م²',qty:'',unit_price:'',account_code:'',acc_label:''}];
+  document.getElementById('boq-project').innerHTML='<option value="">اختر...</option>'+allProjects.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+  document.getElementById('boq-contractor').innerHTML='<option value="">اختر...</option>'+allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
+  document.getElementById('boq-number').value=b?b.boq_number:'';
+  document.getElementById('boq-project').value=b?(b.project_id||''):'';
+  document.getElementById('boq-contractor').value=b?(b.contractor_id||''):'';
+  document.getElementById('boq-start').value=b?(b.start_date||''):'';
+  document.getElementById('boq-end').value=b?(b.end_date||''):'';
+  document.getElementById('boq-editor-title').textContent=b?('تعديل المقايسة '+b.boq_number):'مقايسة جديدة';
+  document.getElementById('boq-acc-list').innerHTML=boqAccounts.map(a=>`<option value="${a.account_code} - ${escHtml(a.account_name)}"></option>`).join('');
+  document.getElementById('boq-editor').style.display='block';
+  renderBoqRows();
+  document.getElementById('boq-editor').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeBoqEditor(){ boqEdit=null; document.getElementById('boq-editor').style.display='none'; }
+function addBoqRow(){ boqEdit.items.push({description:'',unit:'م²',qty:'',unit_price:'',account_code:'',acc_label:''}); renderBoqRows(); }
+function removeBoqRow(i){ boqEdit.items.splice(i,1); if(!boqEdit.items.length) addBoqRow(); else renderBoqRows(); }
+function onBoqAccInput(i,el){
+  const it=boqEdit.items[i]; it.acc_label=el.value;
+  const a=resolveAccountText(el.value,boqAccounts);
+  it.account_code=a?a.account_code:'';
+  el.style.borderColor=(!el.value.trim()||a)?'':'#ef4444';
+}
+function updBoqTotals(){
+  let t=0;
+  boqEdit.items.forEach((it,i)=>{const v=(+it.qty||0)*(+it.unit_price||0);t+=v;const c=document.getElementById('boq-rt-'+i);if(c)c.textContent=fnum(v);});
+  document.getElementById('boq-editor-total').textContent='إجمالي المقايسة: '+fnum(t)+' ج';
+}
+function renderBoqRows(){
+  const tb=document.getElementById('boq-rows-body'); if(!tb) return;
+  tb.innerHTML=boqEdit.items.map((it,i)=>`<tr><td>${i+1}</td>
+    <td><input type="text" value="${escHtml(it.description)}" style="width:100%" oninput="boqEdit.items[${i}].description=this.value"></td>
+    <td><input type="text" value="${escHtml(it.unit)}" style="width:100%" oninput="boqEdit.items[${i}].unit=this.value"></td>
+    <td><input type="number" step="0.01" value="${it.qty===''?'':it.qty}" style="width:100%" oninput="boqEdit.items[${i}].qty=this.value;updBoqTotals()"></td>
+    <td><input type="number" step="0.01" value="${it.unit_price===''?'':it.unit_price}" style="width:100%" oninput="boqEdit.items[${i}].unit_price=this.value;updBoqTotals()"></td>
+    <td id="boq-rt-${i}" style="font-weight:700">0.00</td>
+    <td><input type="text" list="boq-acc-list" value="${escHtml(it.acc_label)}" placeholder="اكتب اسم أو رقم الحساب..." style="width:100%${it.acc_label&&!it.account_code?';border-color:#ef4444':''}" oninput="onBoqAccInput(${i},this)"></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="removeBoqRow(${i})">🗑️</button></td></tr>`).join('');
+  updBoqTotals();
+}
+async function saveBoq(){
+  if(!boqEdit) return;
+  const boq_number=document.getElementById('boq-number').value.trim();
+  const project_id=parseInt(document.getElementById('boq-project').value)||null;
+  const contractor_id=parseInt(document.getElementById('boq-contractor').value)||null;
+  if(!boq_number){toast('اكتب رقم المقايسة','error');return;}
+  if(!project_id){toast('اختر المشروع','error');return;}
+  if(!contractor_id){toast('اختر المقاول','error');return;}
+  const rows=boqEdit.items.filter(it=>String(it.description).trim()||it.qty||it.unit_price);
+  if(!rows.length){toast('اكتب بند واحد على الأقل','error');return;}
+  for(let i=0;i<rows.length;i++){
+    if(!String(rows[i].description).trim()){toast('وصف البند ناقص في الصف '+(i+1),'error');return;}
+    if(!rows[i].account_code){toast('حساب المستخلص ناقص أو مش مطابق في الصف '+(i+1)+'، اختاره من القائمة','error');return;}
+  }
+  const hdr={boq_number,project_id,contractor_id,start_date:document.getElementById('boq-start').value||null,end_date:document.getElementById('boq-end').value||null};
+  let boqId=boqEdit.id;
+  if(boqId){ const {error}=await sb.from('boqs').update(hdr).eq('id',boqId); if(error){toast('خطأ: '+error.message,'error');return;} }
+  else { const {data,error}=await sb.from('boqs').insert({...hdr,created_by:CU?.id||null}).select().single(); if(error){toast('خطأ: '+error.message,'error');return;} boqId=data.id; }
+  const keepIds=new Set(rows.filter(r=>r.id).map(r=>r.id));
+  const old=allBoqItems.filter(i=>i.boq_id===boqId&&!keepIds.has(i.id));
+  let blocked=0;
+  for(const o of old){ const {error}=await sb.from('boq_items').delete().eq('id',o.id); if(error) blocked++; }
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    const rec={boq_id:boqId,seq:i+1,description:String(r.description).trim(),unit:r.unit||null,qty:parseFloat(r.qty)||0,unit_price:parseFloat(r.unit_price)||0,account_code:r.account_code};
+    const {error}=r.id?await sb.from('boq_items').update(rec).eq('id',r.id):await sb.from('boq_items').insert(rec);
+    if(error){toast('خطأ في البند '+(i+1)+': '+error.message,'error');return;}
+  }
+  toast('✅ تم حفظ المقايسة'+(blocked?` (${blocked} بند مستخدم في مستخلص ومتمسحش)`:''),'success');
+  closeBoqEditor();
+  await loadExtractsData();
+}
+async function deleteBoq(id){
+  if(allExtracts.some(e=>e.boq_id===id)){toast('المقايسة دي عليها مستخلصات، امسح المستخلصات الأول','error');return;}
+  if(!confirm('متأكد إنك عايز تمسح المقايسة وكل بنودها؟')) return;
+  const {error}=await sb.from('boqs').delete().eq('id',id);
+  if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
+  toast('✅ اتمسحت المقايسة','success');
+  await loadExtractsData();
+}
+async function downloadBoqTemplate(){
+  if(!boqAccounts.length) await loadExtractsData();
+  const a1=boqAccounts.find(a=>a.account_code==='120202003000')||boqAccounts[0], a2=boqAccounts.find(a=>a.account_code==='120202006000')||boqAccounts[0];
+  const lab=a=>a?a.account_code+' - '+a.account_name:'';
+  const ws=XLSX.utils.aoa_to_sheet([['البند','الوحدة','الكمية','السعر','حساب المستخلص'],
+    ['مباني طوب أحمر 25 سم','م²',1200,180,lab(a1)],['بياض داخلي','م²',2400,65,lab(a2)]]);
+  ws['!cols']=[{wch:34},{wch:10},{wch:12},{wch:12},{wch:50}];
+  const ref=[['حسابات المستخلصات (انسخ منها)']].concat(boqAccounts.map(a=>[lab(a)]));
+  const ws2=XLSX.utils.aoa_to_sheet(ref); ws2['!cols']=[{wch:60}];
+  const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'المقايسة'); XLSX.utils.book_append_sheet(wb,ws2,'قوائم للمراجعة');
+  XLSX.writeFile(wb,'boq_template.xlsx');
+}
+async function handleBoqImport(input){
+  const file=input.files&&input.files[0]; if(!file||!boqEdit) return;
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    let added=0,bad=0;
+    const first=boqEdit.items.length===1&&!boqEdit.items[0].description&&!boqEdit.items[0].qty;
+    if(first) boqEdit.items=[];
+    raw.forEach(r0=>{
+      const r={}; Object.keys(r0).forEach(k=>r[String(k).trim()]=r0[k]);
+      if(Object.values(r).every(v=>String(v).trim()==='')) return;
+      const acc=resolveAccountText(r['حساب المستخلص'],boqAccounts);
+      if(!acc) bad++;
+      boqEdit.items.push({description:String(r['البند']||'').trim(),unit:String(r['الوحدة']||'').trim(),qty:parseFloat(String(r['الكمية']).replace(/,/g,''))||'',unit_price:parseFloat(String(r['السعر']).replace(/,/g,''))||'',account_code:acc?acc.account_code:'',acc_label:acc?(acc.account_code+' - '+acc.account_name):String(r['حساب المستخلص']||'')});
+      added++;
+    });
+    if(!boqEdit.items.length) addBoqRow(); else renderBoqRows();
+    toast(`تم قراءة ${added} بند`+(bad?` — ${bad} بند حسابه مش مطابق (متعلم بالأحمر)`:''),bad?'warning':'success');
+  }catch(e){ toast('مقدرتش أقرا الملف: '+e.message,'error'); }
+  input.value='';
+}
+async function newExtract(boqId){
+  boqId=boqId||parseInt(document.getElementById('ex-new-boq').value);
+  if(!boqId){toast('اختر المقايسة الأول','error');return;}
+  const items=allBoqItems.filter(i=>i.boq_id===boqId);
+  if(!items.length){toast('المقايسة دي مفيهاش بنود','error');return;}
+  const nums=allExtracts.filter(e=>e.boq_id===boqId).map(e=>e.extract_number);
+  const next=(nums.length?Math.max(...nums):0)+1;
+  const {data,error}=await sb.from('extracts').insert({boq_id:boqId,extract_number:next,extract_date:new Date().toISOString().slice(0,10),created_by:CU?.id||null}).select().single();
+  if(error){toast('خطأ: '+error.message,'error');return;}
+  const {error:e2}=await sb.from('extract_items').insert(items.map(i=>({extract_id:data.id,boq_item_id:i.id,current_qty:0})));
+  if(e2){toast('خطأ: '+e2.message,'error');return;}
+  toast('✅ اتعمل مستخلص رقم '+next,'success');
+  await openExtract(data.id);
+}
+async function deleteExtract(id){
+  const e=allExtracts.find(x=>x.id===id);
+  if(!e||e.status==='معتمد'){toast('المستخلص المعتمد مينفعش يتمسح، ألغي الاعتماد الأول','error');return;}
+  if(!confirm('متأكد إنك عايز تمسح المستخلص ده؟')) return;
+  const {error}=await sb.from('extracts').delete().eq('id',id);
+  if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
+  toast('✅ اتمسح المستخلص','success');
+  await loadExtractsData();
+}
+
+// ----- شاشة المستخلص (بنفس نموذج الشركة) -----
+async function openExtract(id){
+  await loadExtractsData();
+  const ex=allExtracts.find(e=>e.id===id);
+  if(!ex){toast('المستخلص مش موجود','error');return;}
+  xsState={ex:{...ex},qty:{}};
+  allExtractItems.filter(x=>x.extract_id===id).forEach(x=>xsState.qty[x.boq_item_id]=x.current_qty);
+  showPage('extract-sheet');
+  renderExtractSheet();
+}
+function xsField(k,v){ if(!xsState) return; xsState.ex[k]=v; renderExtractSheet(); }
+function xsQty(itemId,v){ if(!xsState) return; xsState.qty[itemId]=v; renderExtractSheet(); }
+function xsModel(){
+  const ex=xsState.ex, boq=allBoqs.find(b=>b.id===ex.boq_id)||{};
+  const items=allBoqItems.filter(i=>i.boq_id===ex.boq_id).sort((a,b)=>a.seq-b.seq);
+  const prev=prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number);
+  return {boq,model:computeExtract(ex,items,xsState.qty,prev)};
+}
+function renderExtractSheet(){
+  const root=document.getElementById('xs-root'); if(!root||!xsState) return;
+  const {boq,model:m}=xsModel(), ex=xsState.ex, dis=ex.status==='معتمد', D=dis?' disabled':'';
+  const inp=(val,fn,w,type)=>`<input class="xs-in" type="${type||'number'}" step="any" value="${val==null?'':escHtml(val)}" style="width:${w||70}px"${D} onchange="${fn}">`;
+  const hb=rows=>'<div class="xs-hb">'+rows.map(([a,b])=>`<div class="xs-hr"><span>${a}</span><b>${b}</b></div>`).join('')+'</div>';
+  const rowsHtml=m.rows.map((r,i)=>`<tr><td>${i+1}</td><td class="l">${escHtml(r.description)}</td><td>${escHtml(r.unit||'')}</td><td>${fnum(r.qty)}</td><td>${fnum(r.unit_price)}</td><td>${fnum(r.contract_value)}</td>
+    <td class="xs-c1">${fnum(r.prev_qty)}</td><td class="xs-c1">${inp(xsState.qty[r.id],`xsQty(${r.id},this.value)`,78)}</td><td class="xs-c1">${fnum(r.tot_qty)}</td>
+    <td class="xs-c2">${r.p_prev.toFixed(1)}%</td><td class="xs-c2">${r.p_cur.toFixed(1)}%</td><td class="xs-c2">${r.p_tot.toFixed(1)}%</td>
+    <td class="xs-c3">${fnum(r.v_prev)}</td><td class="xs-c3">${fnum(r.v_cur)}</td><td class="xs-c3">${fnum(r.v_tot)}</td>
+    <td class="xs-c4">0.00</td><td class="xs-c4">0.00</td><td class="xs-c4">0.00</td><td class="xs-c5">${fnum(r.due)}</td></tr>`).join('');
+  const T=m.T;
+  const totRow=`<tr class="xs-tot"><td colspan="5">الإجمالي</td><td>${fnum(T.contract)}</td><td>${fnum(T.prev_qty)}</td><td>${fnum(T.cur_qty)}</td><td>${fnum(T.tot_qty)}</td><td></td><td></td><td></td><td>${fnum(T.v_prev)}</td><td>${fnum(T.v_cur)}</td><td>${fnum(T.v_tot)}</td><td>0.00</td><td>0.00</td><td>0.00</td><td>${fnum(T.due)}</td></tr>`;
+  const taxRows=m.taxes.map(t=>`<tr><td class="l">${t.label}</td><td>${inp(ex[t.key],`xsField('${t.key}',this.value)`,56)}%</td><td>${fnum(t.prev)}</td><td>${fnum(t.cur)}</td><td class="xs-y">${fnum(t.tot)}</td></tr>`).join('');
+  const manual=(label,key,val,ph)=>`<tr><td class="l" colspan="2">${label}</td><td>—</td><td>—</td><td class="xs-y">${inp(val,`xsField('${key}',this.value)`,110).replace('<input','<input placeholder="'+(ph||'0.00')+'"')}</td></tr>`;
+  const finRows=taxRows
+    +manual('خصم ماسبق صرفه','prev_paid',ex.prev_paid,m.manualPrev?fnum(m.prevPaid)+' (تلقائي)':'')
+    +manual('خصومات اخري','other_deductions',ex.other_deductions)
+    +manual('التعلية','retention',ex.retention)
+    +manual('مسترد من التعلية','retention_refund',ex.retention_refund)
+    +`<tr class="xs-net"><td class="l" colspan="2">صافي المستحق للصرف</td><td>${fnum(m.net_prev)}</td><td>${fnum(m.net_cur)}</td><td class="xs-y" style="font-size:15px">${fnum(m.net_due)}</td></tr>`;
+  const st=dis?'<span class="badge badge-in">معتمد</span>':'<span class="badge" style="background:#f59e0b20;color:#f59e0b">مسودة</span>';
+  const btns=`<button class="btn btn-ghost" onclick="showPage('extracts')">→ رجوع للقائمة</button><button class="btn btn-ghost" onclick="printExtract()">🖨️ طباعة</button>`
+    +(dis?(CP?.role==='مدير'?'<button class="btn btn-ghost" onclick="unapproveExtract()">↩️ إلغاء الاعتماد</button>':'')
+          :'<button class="btn btn-ghost" onclick="saveExtract().then(ok=>ok&&toast(\'✅ تم حفظ المسودة\',\'success\'))">💾 حفظ مسودة</button><button class="btn btn-success" onclick="approveExtract()">✅ اعتماد المستخلص</button>');
+  root.innerHTML=`<div class="page-header"><div><h2>مستخلص أعمال رقم ${ex.extract_number} ${st}</h2><p>مقايسة ${escHtml(boq.boq_number||'')} — ${escHtml(boq.projects?.name||'')}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+    ${hb([['المطور',COMPANY_NAME],['المشروع',escHtml(boq.projects?.name||'-')],['المقاول',escHtml(boq.vendors?.name||'-')]])}
+    ${hb([['مستخلص اعمال رقم',ex.extract_number],['بداية العمل',boq.start_date||'-'],['نهاية المشروع',boq.end_date||'-']])}
+    ${hb([['التاريخ',inp(ex.extract_date,"xsField('extract_date',this.value)",140,'date')],['الاعمال من',inp(ex.period_from,"xsField('period_from',this.value)",140,'date')],['حتى',inp(ex.period_to,"xsField('period_to',this.value)",140,'date')]])}
+  </div>
+  <div class="card" style="overflow-x:auto"><table class="xs-t" style="min-width:1500px"><thead>
+    <tr><th rowspan="2">م</th><th rowspan="2" style="min-width:180px">البند</th><th rowspan="2">الوحدة</th><th>الكمية</th><th rowspan="2">السعر</th><th rowspan="2">اجمالي القيمة للبند</th><th colspan="3" class="xs-h1">الكميات</th><th colspan="3" class="xs-h2">نسب التنفيذ</th><th colspan="3" class="xs-h3">قيمة الاعمال المستحقة</th><th colspan="3" class="xs-h4">الخصومات على البند</th><th rowspan="2" class="xs-h5">القيمة المستحقة الحالية</th></tr>
+    <tr><th>التعاقد</th><th class="xs-h1">الكمية السابقة</th><th class="xs-h1">الكمية الحالية</th><th class="xs-h1">اجمالي الكمية</th><th class="xs-h2">النسبة السابقة</th><th class="xs-h2">النسبة الحالية</th><th class="xs-h2">اجمالي النسبة</th><th class="xs-h3">السابق</th><th class="xs-h3">الحالي</th><th class="xs-h3">الإجمالي</th><th class="xs-h4">التعلية</th><th class="xs-h4">الخصومات</th><th class="xs-h4">المسترد</th></tr>
+  </thead><tbody>${rowsHtml}${totRow}</tbody></table></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+    <div class="card" style="width:330px"><div class="xs-sec" style="background:var(--bg3)">اهم الملاحظات</div><div style="padding:10px"><textarea style="width:100%;height:90px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:Cairo,sans-serif"${D} onchange="xsField('notes',this.value)">${escHtml(ex.notes||'')}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><span style="font-size:11px;color:var(--text3)">رقم القيد</span>${inp(ex.entry_number,"xsField('entry_number',this.value)",90,'text')}</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><span style="font-size:11px;color:var(--text3)">لينك</span>${inp(ex.receipt_link,"xsField('receipt_link',this.value)",190,'text')}</div></div></div>
+    <div class="card" style="width:330px"><div class="xs-sec" style="background:var(--bg3)">ملخص التعاقد</div>
+      <div class="xs-hr"><span>اجمالي التعاقد</span><b>${fnum(T.contract)}</b></div><div class="xs-hr"><span>اجمالي القيمة المنفذة</span><b>${fnum(T.v_tot)}</b></div><div class="xs-hr"><span>النسبة</span><b style="color:#10b981">${m.percent.toFixed(1)}%</b></div></div>
+    <div class="card" style="flex:1;min-width:520px"><div class="xs-sec" style="background:#3b82f6;color:#fff;text-align:center">الحسابات المالية والاستقطاعات</div>
+      <table class="xs-t"><thead><tr><th style="text-align:right">البند</th><th>النسبة</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th></tr></thead><tbody>${finRows}</tbody></table></div>
+  </div>
+  <div style="display:flex;margin-top:20px">${['المقاول','مهندس الموقع','مدير المشروع','المشرف العام للمشروع','مكتب فني','الاستشاري','الإدارة المالية'].map(x=>`<div class="xs-sg">${x}</div>`).join('')}</div>`;
+}
+async function saveExtract(status){
+  if(!xsState) return false;
+  const ex=xsState.ex, n=k=>{const v=parseFloat(ex[k]);return isNaN(v)?0:v;};
+  const patch={extract_date:ex.extract_date||null,period_from:ex.period_from||null,period_to:ex.period_to||null,
+    vat_rate:n('vat_rate'),wht_rate:n('wht_rate'),insurance_rate:n('insurance_rate'),social_rate:n('social_rate'),stamp_rate:n('stamp_rate'),advance_rate:n('advance_rate'),
+    other_deductions:n('other_deductions'),retention:n('retention'),retention_refund:n('retention_refund'),
+    prev_paid:(ex.prev_paid===null||ex.prev_paid===undefined||ex.prev_paid==='')?null:parseFloat(ex.prev_paid),
+    notes:ex.notes||null,entry_number:ex.entry_number||null,receipt_link:ex.receipt_link||null};
+  if(status){ patch.status=status; patch.approved_at=status==='معتمد'?new Date().toISOString():null; }
+  const {error}=await sb.from('extracts').update(patch).eq('id',ex.id);
+  if(error){toast('خطأ في الحفظ: '+error.message,'error');return false;}
+  const up=Object.keys(xsState.qty).map(id=>({extract_id:ex.id,boq_item_id:+id,current_qty:parseFloat(xsState.qty[id])||0}));
+  if(up.length){
+    const {error:e2}=await sb.from('extract_items').upsert(up,{onConflict:'extract_id,boq_item_id'});
+    if(e2){toast('خطأ في حفظ الكميات: '+e2.message,'error');return false;}
+  }
+  xsState.ex={...xsState.ex,...patch};
+  await loadExtractsData();
+  return true;
+}
+async function approveExtract(){
+  if(CP?.role!=='مدير'){toast('اعتماد المستخلص للمدير بس','error');return;}
+  if(!confirm('اعتماد المستخلص هيقفل التعديل عليه ويدخل أرقامه في الكشف الموحد وملخص لوحة التحكم. تكمل؟')) return;
+  if(await saveExtract('معتمد')){ toast('✅ تم اعتماد المستخلص','success'); renderExtractSheet(); }
+}
+async function unapproveExtract(){
+  if(CP?.role!=='مدير'){toast('الصلاحية للمدير بس','error');return;}
+  if(!confirm('إلغاء الاعتماد هيرجّع المستخلص مسودة ويطلعه من الكشف الموحد. تكمل؟')) return;
+  if(await saveExtract('مسودة')){ toast('تم إلغاء الاعتماد','success'); renderExtractSheet(); }
+}
+function printExtract(){
+  if(!xsState) return;
+  const {boq,model:m}=xsModel(), ex=xsState.ex, e=escHtml, f=fnum;
+  const rows=m.rows.map((r,i)=>`<tr><td>${i+1}</td><td class="l">${e(r.description)}</td><td>${e(r.unit||'')}</td><td>${f(r.qty)}</td><td>${f(r.unit_price)}</td><td>${f(r.contract_value)}</td><td>${f(r.prev_qty)}</td><td>${f(r.cur_qty)}</td><td>${f(r.tot_qty)}</td><td>${r.p_prev.toFixed(1)}%</td><td>${r.p_cur.toFixed(1)}%</td><td>${r.p_tot.toFixed(1)}%</td><td>${f(r.v_prev)}</td><td>${f(r.v_cur)}</td><td>${f(r.v_tot)}</td><td>0.00</td><td>0.00</td><td>0.00</td><td><b>${f(r.due)}</b></td></tr>`).join('');
+  const T=m.T;
+  const fin=m.taxes.map(t=>`<tr><td class="l">${t.label}</td><td>${t.rate}%</td><td>${f(t.prev)}</td><td>${f(t.cur)}</td><td class="y">${f(t.tot)}</td></tr>`).join('')
+    +`<tr><td class="l" colspan="2">خصم ماسبق صرفه</td><td>—</td><td>—</td><td class="y">${f(m.prevPaid)}</td></tr><tr><td class="l" colspan="2">خصومات اخري</td><td>—</td><td>—</td><td class="y">${f(m.other)}</td></tr><tr><td class="l" colspan="2">التعلية</td><td>—</td><td>—</td><td class="y">${f(m.ret)}</td></tr><tr><td class="l" colspan="2">مسترد من التعلية</td><td>—</td><td>—</td><td class="y">${f(m.refund)}</td></tr><tr><td class="l" colspan="2"><b>صافي المستحق للصرف</b></td><td>${f(m.net_prev)}</td><td>${f(m.net_cur)}</td><td class="y"><b>${f(m.net_due)}</b></td></tr>`;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>مستخلص رقم ${ex.extract_number}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,sans-serif;font-size:10px;direction:rtl;padding:8px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #666;padding:3px 4px;text-align:center}th{background:#e8edf5}td.l{text-align:right}.g{display:flex;gap:8px;margin:6px 0}.g div{border:1px solid #666;flex:1;padding:3px 8px;line-height:1.7}.y{background:#fff3b0}.row{display:flex;gap:10px;margin-top:8px;align-items:flex-start}.sig{display:flex;margin-top:34px}.sig div{flex:1;text-align:center;border-top:1px solid #333;margin:0 8px;padding-top:4px}@media print{.np{display:none}}</style></head><body>
+  <div style="display:flex;align-items:center;gap:10px"><img src="${COMPANY_LOGO}" style="height:34px"><h2 style="margin:0">مستخلص أعمال رقم ${ex.extract_number}</h2></div>
+  <div class="g"><div>المطور: ${COMPANY_NAME}<br>المشروع: ${e(boq.projects?.name||'')}<br>المقاول: ${e(boq.vendors?.name||'')}</div><div>مستخلص اعمال رقم: ${ex.extract_number}<br>بداية العمل: ${boq.start_date||''}<br>نهاية المشروع: ${boq.end_date||''}</div><div>التاريخ: ${ex.extract_date||''}<br>الاعمال من: ${ex.period_from||''}<br>حتى: ${ex.period_to||''}</div></div>
+  <table><thead><tr><th rowspan="2">م</th><th rowspan="2">البند</th><th rowspan="2">الوحدة</th><th>الكمية</th><th rowspan="2">السعر</th><th rowspan="2">اجمالي القيمة للبند</th><th colspan="3">الكميات</th><th colspan="3">نسب التنفيذ</th><th colspan="3">قيمة الاعمال المستحقة</th><th colspan="3">الخصومات على البند</th><th rowspan="2">القيمة المستحقة الحالية</th></tr><tr><th>التعاقد</th><th>السابقة</th><th>الحالية</th><th>الإجمالي</th><th>السابقة</th><th>الحالية</th><th>الإجمالي</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th><th>التعلية</th><th>الخصومات</th><th>المسترد</th></tr></thead><tbody>${rows}<tr><td colspan="5"><b>الإجمالي</b></td><td><b>${f(T.contract)}</b></td><td>${f(T.prev_qty)}</td><td>${f(T.cur_qty)}</td><td>${f(T.tot_qty)}</td><td></td><td></td><td></td><td>${f(T.v_prev)}</td><td>${f(T.v_cur)}</td><td>${f(T.v_tot)}</td><td>0.00</td><td>0.00</td><td>0.00</td><td><b>${f(T.due)}</b></td></tr></tbody></table>
+  <div class="row"><table style="width:30%"><tr><th>اهم الملاحظات</th></tr><tr><td class="l" style="height:90px;vertical-align:top">${e(ex.notes||'')}</td></tr></table><table style="width:25%"><tr><th colspan="2">ملخص التعاقد</th></tr><tr><td class="l">اجمالي التعاقد</td><td>${f(T.contract)}</td></tr><tr><td class="l">اجمالي القيمة المنفذة</td><td>${f(T.v_tot)}</td></tr><tr><td class="l">النسبة</td><td>${m.percent.toFixed(1)}%</td></tr></table><table style="flex:1"><tr><th colspan="5">الحسابات المالية والاستقطاعات</th></tr><tr><th>البند</th><th>النسبة</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th></tr>${fin}</table></div>
+  <div class="sig">${['المقاول','مهندس الموقع','مدير المشروع','المشرف العام للمشروع','مكتب فني','الاستشاري','الإدارة المالية'].map(x=>`<div>${x}</div>`).join('')}</div>
+  <button class="np" onclick="window.print()" style="margin-top:14px;padding:8px 24px">🖨️ طباعة</button></body></html>`);
+  w.document.close();
+}
+
 let allCOA=[];
 async function loadCOA(){
   let data=[], from=0;
@@ -3333,19 +3781,24 @@ async function showAccountStatement(accountCode){
     }
   }
 
-  const grandTotal=custodyTotal+warehouseTotal+expensesTotal;
+  // (د) المستخلصات المعتمدة: قيمة الأعمال المرمية على الحساب ده (من حساب كل بند في المقايسة)
+  const {data:exRows}=await sb.from('extract_items').select('current_qty,boq_items!inner(unit_price,account_code),extracts!inner(status)').eq('extracts.status','معتمد').in('boq_items.account_code',codes);
+  const extractsTotal=(exRows||[]).reduce((s,r)=>s+(+r.current_qty||0)*(+r.boq_items.unit_price||0),0);
+  const extractsCount=(exRows||[]).filter(r=>+r.current_qty>0).length;
+  const grandTotal=custodyTotal+warehouseTotal+expensesTotal+extractsTotal;
   let h=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
     <div class="stat-card"><div class="stat-icon" style="background:#3b82f620">💰</div><div><h3 style="font-size:16px">${grandTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>الإجمالي الموحّد (ج)</p></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#f59e0b20">📦</div><div><h3 style="font-size:16px">${warehouseTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المخزون (${warehouseCount} حركة)</p></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#10b98120">💵</div><div><h3 style="font-size:16px">${custodyTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من العهد (${custodyCount} معاملة)</p></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 style="font-size:16px">${expensesTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المصروفات (${expensesCount} معاملة)</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 style="font-size:16px">${extractsTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المستخلصات (${extractsCount} بند)</p></div></div>
   </div>`;
   if(groupBreakdown.length){
     h+='<h4 style="font-size:13px;color:var(--text2);margin-bottom:8px">تفصيل المخزون حسب المجموعة</h4><div class="tbl-wrap"><table><thead><tr><th>المجموعة</th><th>القيمة (ج)</th></tr></thead><tbody>';
     groupBreakdown.forEach(g=>{h+=`<tr><td>${g.name}</td><td style="font-weight:700">${g.total.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td></tr>`;});
     h+='</tbody></table></div>';
   }
-  if(!custodyCount&&!warehouseCount&&!expensesCount){
+  if(!custodyCount&&!warehouseCount&&!expensesCount&&!extractsCount){
     h+='<div class="empty"><div class="ico">📭</div><p>مفيش حركات متسجلة على الحساب ده لحد دلوقتي من أي موديول</p></div>';
   }
   body.innerHTML=h;
@@ -4324,7 +4777,7 @@ function showPage(name){
     currentModuleKey=targetModule.key;
     const nav=document.getElementById('main-nav');
     if(nav){
-      const visibleChildren=targetModule.children.filter(c=>canSeePage(c.page));
+      const visibleChildren=targetModule.children.filter(c=>!c.hidden&&canSeePage(c.page));
       let h=`<div class="nav-item nav-back" onclick="renderTopNav();showPage('hub')"><span class="ico">▶</span> رجوع لكل الأقسام</div>
         <div class="nav-section">${targetModule.icon} ${targetModule.label}</div>`;
       visibleChildren.forEach(c=>{
@@ -4347,6 +4800,7 @@ function showPage(name){
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
   if(name==='custody'||name==='custody-entry'||name==='custody-log') loadCustody();
   if(name==='expenses'||name==='expenses-entry'||name==='expenses-log') loadExpenses();
+  if(name==='extracts'||name==='boqs') loadExtractsData();
   if(name==='dashboard') loadDashboard();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
