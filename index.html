@@ -109,6 +109,20 @@ nav{flex:1;padding:6px 0;}
 .xs-sg{flex:1;text-align:center;font-size:12px;color:var(--text2);border-top:1px solid var(--border);padding-top:8px;margin:0 14px}
 .xs-in{background:var(--bg);color:var(--text);border:1px solid #3b82f6;border-radius:5px;padding:4px;font-family:Cairo,sans-serif;font-size:12px;text-align:center}
 .xs-in:disabled{border-color:transparent;opacity:.85}
+.vc-wrap{max-width:920px;margin:0 auto}
+.vc-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px}
+.vc-f{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.vc-f label{width:150px;color:var(--text2);font-size:13px;flex-shrink:0}
+.vc-in{flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:Cairo,sans-serif;font-size:13px}
+.vc-t{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+.vc-t th{background:var(--bg3);color:var(--text2);padding:9px;text-align:right;border:1px solid var(--border)}
+.vc-t td{padding:9px;border:1px solid var(--border)}
+.vc-t td.n{text-align:left;font-variant-numeric:tabular-nums;width:170px}
+.vc-sec td{background:var(--bg3);font-weight:700;color:var(--accent)}
+.vc-net td{background:#f59e0b2e;color:#fbbf24;font-weight:800;font-size:15px}
+.vc-sig{display:flex;gap:14px;margin-top:22px}
+.vc-sig>div{flex:1;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px}
+.vc-sig h4{margin:0 0 10px;font-size:13px;color:var(--text2);text-align:center}
 .rep-group{margin-bottom:20px;}
 .rep-group-title{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px;padding-right:2px;}
 .rep-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
@@ -1050,6 +1064,13 @@ tr:hover td{background:#ffffff05;}
 
     <!-- EXTRACTS: شاشة المستخلص (بتتبني بالجافاسكريبت) -->
     <div class="page" id="page-extract-sheet"><div id="xs-root"></div></div>
+
+    <!-- أذون الصرف -->
+    <div class="page" id="page-vouchers">
+      <div class="page-header"><div><h2>أذون الصرف</h2><p>سداد المستخلصات - كل إذن بيتعمل من مستخلص معتمد، وبيغذّي "ماسبق صرفه" في المستخلص اللي بعده</p></div></div>
+      <div class="card"><div class="card-header"><h3>💸 أذون الصرف</h3></div><div id="vc-list"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+    <div class="page" id="page-extract-voucher"><div id="vc-root"></div></div>
   </div>
 </div>
 
@@ -1206,7 +1227,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.12';
+const APP_VERSION='2026.08.27.13';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -1394,7 +1415,9 @@ const NAV_STRUCTURE=[
   {type:'module', key:'extracts-module', icon:'📋', label:'المستخلصات', children:[
     {page:'extracts', icon:'📋', label:'المستخلصات'},
     {page:'boqs', icon:'📑', label:'المقايسات'},
+    {page:'vouchers', icon:'💸', label:'أذون الصرف'},
     {page:'extract-sheet', icon:'🧾', label:'شاشة المستخلص', hidden:true},
+    {page:'extract-voucher', icon:'🧾', label:'إذن الصرف', hidden:true},
   ]},
   {type:'module', key:'custody-module', icon:'💵', label:'العهد النقدية', children:[
     {page:'custody', icon:'📋', label:'أرصدة العهد'},
@@ -3294,7 +3317,7 @@ async function saveXpImport(){
 
 // ===== المستخلصات: مقايسات + مستخلصات =====
 const COMPANY_NAME='شركة العمار للتوسع العمراني';
-let allBoqs=[], allBoqItems=[], allExtracts=[], allExtractItems=[], boqAccounts=[], boqEdit=null, xsState=null;
+let allBoqs=[], allBoqItems=[], allExtracts=[], allExtractItems=[], allVouchers=[], boqAccounts=[], boqEdit=null, xsState=null, vcState=null;
 // @@PURE-START
 function fnum(n){return (+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function resolveAccountText(text,accounts){
@@ -3323,7 +3346,8 @@ function computeExtract(ex,items,qtyMap,prevMap){
   const adj=c=>taxes.reduce((s,t)=>s+t.sign*t[c],0);
   const net_prev=T.v_prev+adj('prev'), net_cur=T.v_cur+adj('cur'), net_tot=T.v_tot+adj('tot');
   const manualPrev=(ex.prev_paid===null||ex.prev_paid===undefined||ex.prev_paid==='');
-  const prevPaid=manualPrev?net_prev:(+ex.prev_paid||0);
+  const autoPrev=(ex._auto_prev_paid===undefined)?net_prev:(+ex._auto_prev_paid||0);
+  const prevPaid=manualPrev?autoPrev:(+ex.prev_paid||0);
   const other=+ex.other_deductions||0, ret=+ex.retention||0, refund=+ex.retention_refund||0;
   const net_due=net_tot-prevPaid-other-ret+refund;
   return {rows,T,taxes,net_prev,net_cur,net_tot,prevPaid,manualPrev,other,ret,refund,net_due,percent:T.contract?T.v_tot/T.contract*100:0};
@@ -3333,6 +3357,79 @@ function prevQtyMapFrom(extracts,extractItems,boqId,number){
   const m={};
   extractItems.forEach(x=>{ if(ids.has(x.extract_id)) m[x.boq_item_id]=(m[x.boq_item_id]||0)+(+x.current_qty||0); });
   return m;
+}
+// مجموع اللي اتصرف فعلاً (أذون الصرف) على المستخلصات السابقة لنفس المقايسة
+function autoPrevPaidFrom(extracts,vouchers,boqId,number){
+  const ids=new Set(extracts.filter(e=>e.boq_id===boqId&&e.extract_number<number).map(e=>e.id));
+  return vouchers.filter(v=>ids.has(v.extract_id)).reduce((s,v)=>s+(+v.amount||0),0);
+}
+// ---- تفقيط المبلغ بالعربي ----
+function arBelow1000(n,forNoun){
+  const ones=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+  const teens=['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const tens=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  const hund=['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  if(forNoun&&n===200) return 'مئتا';
+  const parts=[], h=Math.floor(n/100), r=n%100;
+  if(h) parts.push(hund[h]);
+  if(r){
+    if(r<10) parts.push(ones[r]);
+    else if(r<20) parts.push(teens[r-10]);
+    else { const t=Math.floor(r/10), o=r%10; parts.push(o?ones[o]+' و'+tens[t]:tens[t]); }
+  }
+  return parts.join(' و');
+}
+// idafa=true لما الجروب ده جنبه المعدود على طول (أحد عشر ألف جنيه، ألفا جنيه)
+function arGroup(g,sing,dual,dualC,plural,acc,idafa){
+  const r=g%100;
+  if(g===1) return sing;
+  if(g===2) return idafa?dualC:dual;
+  const w=arBelow1000(g);
+  if(r>=3&&r<=10) return w+' '+plural;
+  if(r===0) return (g===200?'مئتا':w)+' '+sing;
+  return w+' '+(idafa?sing:acc);
+}
+function arIntWords(n,forNoun){
+  if(n===0) return 'صفر';
+  const B=Math.floor(n/1e9), M=Math.floor(n%1e9/1e6), K=Math.floor(n%1e6/1e3), U=n%1e3, out=[];
+  const last=U?'U':(K?'K':(M?'M':'B'));
+  if(B) out.push(arGroup(B,'مليار','ملياران','مليارا','مليارات','مليارًا',forNoun&&last==='B'));
+  if(M) out.push(arGroup(M,'مليون','مليونان','مليونا','ملايين','مليونًا',forNoun&&last==='M'));
+  if(K) out.push(arGroup(K,'ألف','ألفان','ألفا','آلاف','ألفًا',forNoun&&last==='K'));
+  if(U) out.push(arBelow1000(U,forNoun));
+  return out.join(' و');
+}
+function tafqeet(amount){
+  const a=Math.round((+amount||0)*100)/100;
+  if(!(a>0)) return '';
+  const pounds=Math.floor(a+1e-9), q=Math.round((a-pounds)*100);
+  let pp='';
+  if(pounds===1) pp='جنيه مصري واحد';
+  else if(pounds===2) pp='جنيهان مصريان';
+  else if(pounds>2){ const r=pounds%100; pp=arIntWords(pounds,true)+' '+((r>=3&&r<=10)?'جنيهات مصرية':(r===0?'جنيه مصري':'جنيهًا مصريًا')); }
+  let qp='';
+  if(q===1) qp='قرش واحد';
+  else if(q===2) qp='قرشان';
+  else if(q>2) qp=arIntWords(q)+' '+((q>=3&&q<=10)?'قروش':'قرشًا');
+  return 'فقط '+[pp,qp].filter(Boolean).join(' و')+' لا غير';
+}
+// تفاصيل إذن الصرف: قيمة المستخلص + الضريبة - المستقطعات (+/- فرق ما سبق صرفه) = الصافي
+function voucherModel(m){
+  const tx=k=>m.taxes.find(t=>t.key===k)||{cur:0,rate:0};
+  const works=m.T.v_cur, vat=tx('vat_rate').cur;
+  const ded=[
+    {label:'دفعات مقدمة',rate:null,amount:tx('advance_rate').cur,show:true},
+    {label:'ضريبة الخصم والتحصيل',rate:tx('wht_rate').rate,amount:tx('wht_rate').cur,show:true},
+    {label:'خصم تأمين أعمال',rate:tx('insurance_rate').rate,amount:tx('insurance_rate').cur,show:true},
+    {label:'تأمينات اجتماعية',rate:tx('social_rate').rate,amount:tx('social_rate').cur,show:tx('social_rate').rate>0},
+    {label:'خصم دمغة هندسية',rate:tx('stamp_rate').rate,amount:tx('stamp_rate').cur,show:true},
+    {label:'خصومات أخرى',rate:null,amount:m.other,show:true},
+    {label:'تعليات',rate:null,amount:m.ret-m.refund,show:true}
+  ].filter(d=>d.show);
+  const totalDed=ded.reduce((s,d)=>s+d.amount,0);
+  const adj=m.net_prev-m.prevPaid;
+  const net=works+vat-totalDed+adj;
+  return {works,vat,vatRate:tx('vat_rate').rate,ded,totalDed,adj,net};
 }
 // @@PURE-END
 function accLabel(code){const a=expenseAccounts.find(x=>x.account_code===code);return a?a.account_code+' - '+a.account_name:(code||'');}
@@ -3357,21 +3454,21 @@ async function loadExtractsData(){
     return false;
   }
   allBoqs=r1.data;
-  const [r2,r3,r4]=await Promise.all([fetchAllRows('boq_items','*'),fetchAllRows('extracts','*'),fetchAllRows('extract_items','*')]);
-  allBoqItems=r2.data||[]; allExtracts=r3.data||[]; allExtractItems=r4.data||[];
+  const [r2,r3,r4,r5]=await Promise.all([fetchAllRows('boq_items','*'),fetchAllRows('extracts','*'),fetchAllRows('extract_items','*'),fetchAllRows('payment_vouchers','*')]);
+  allBoqItems=r2.data||[]; allExtracts=r3.data||[]; allExtractItems=r4.data||[]; allVouchers=r5.error?[]:(r5.data||[]);
   if(!expenseAccounts.length){
     const {data:allAcc}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
     expenseAccounts=allAcc||[];
   }
   boqAccounts=expenseAccounts.filter(a=>a.account_code.startsWith('120202')&&a.level===5);
-  renderBoqList(); renderExtractList();
+  renderBoqList(); renderExtractList(); renderVoucherList();
   return true;
 }
 function boqTotal(boqId){return allBoqItems.filter(i=>i.boq_id===boqId).reduce((s,i)=>s+(+i.qty||0)*(+i.unit_price||0),0);}
 function extractModel(ex){
   const items=allBoqItems.filter(i=>i.boq_id===ex.boq_id).sort((a,b)=>a.seq-b.seq);
   const qtyMap={}; allExtractItems.filter(x=>x.extract_id===ex.id).forEach(x=>qtyMap[x.boq_item_id]=x.current_qty);
-  return computeExtract(ex,items,qtyMap,prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number));
+  return computeExtract({...ex,_auto_prev_paid:autoPrevPaidFrom(allExtracts,allVouchers,ex.boq_id,ex.extract_number)},items,qtyMap,prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number));
 }
 function renderBoqList(){
   const el=document.getElementById('boq-list'); if(!el) return;
@@ -3390,12 +3487,13 @@ function renderExtractList(){
   const el=document.getElementById('ex-list'); if(!el) return;
   if(!allExtracts.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div><p>مفيش مستخلصات لسه. اختار مقايسة فوق وابدأ مستخلص جديد.</p></div>'; return; }
   const bMap={}; allBoqs.forEach(b=>bMap[b.id]=b);
-  let h='<div class="tbl-wrap"><table><thead><tr><th>المستخلص</th><th>المقايسة</th><th>المشروع</th><th>المقاول</th><th>التاريخ</th><th>الحالة</th><th>أعمال المستخلص (ج)</th><th>صافي المستحق (ج)</th><th></th></tr></thead><tbody>';
+  let h='<div class="tbl-wrap"><table><thead><tr><th>المستخلص</th><th>المقايسة</th><th>المشروع</th><th>المقاول</th><th>التاريخ</th><th>الحالة</th><th>أعمال المستخلص (ج)</th><th>صافي المستحق (ج)</th><th>إذن الصرف</th><th></th></tr></thead><tbody>';
   allExtracts.slice().reverse().forEach(e=>{
     const b=bMap[e.boq_id]||{}, m=extractModel(e);
     const st=e.status==='معتمد'?'<span class="badge badge-in">معتمد</span>':'<span class="badge" style="background:#f59e0b20;color:#f59e0b">مسودة</span>';
     h+=`<tr><td style="font-weight:700">مستخلص رقم ${e.extract_number}</td><td>${escHtml(b.boq_number||'-')}</td><td>${escHtml(b.projects?.name||'-')}</td><td>${escHtml(b.vendors?.name||'-')}</td><td style="font-size:12px">${e.extract_date||'-'}</td><td>${st}</td>
       <td>${fnum(m.T.v_cur)}</td><td style="font-weight:700;color:#10b981">${fnum(m.net_due)}</td>
+      <td>${(()=>{const vo=allVouchers.find(v=>v.extract_id===e.id);return vo?`<a href="#" onclick="openVoucher(${e.id});return false">🧾 ${escHtml(vo.voucher_number)}</a>`:(e.status==='معتمد'?`<button class="btn btn-ghost btn-sm" onclick="openVoucher(${e.id})">➕ إذن صرف</button>`:'—');})()}</td>
       <td style="white-space:nowrap"><button class="btn btn-accent btn-sm" onclick="openExtract(${e.id})">فتح</button>${e.status==='مسودة'?` <button class="btn btn-ghost btn-sm" onclick="deleteExtract(${e.id})">🗑️</button>`:''}</td></tr>`;
   });
   el.innerHTML=h+'</tbody></table></div>';
@@ -3559,7 +3657,7 @@ function xsModel(){
   const ex=xsState.ex, boq=allBoqs.find(b=>b.id===ex.boq_id)||{};
   const items=allBoqItems.filter(i=>i.boq_id===ex.boq_id).sort((a,b)=>a.seq-b.seq);
   const prev=prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number);
-  return {boq,model:computeExtract(ex,items,xsState.qty,prev)};
+  return {boq,model:computeExtract({...ex,_auto_prev_paid:autoPrevPaidFrom(allExtracts,allVouchers,ex.boq_id,ex.extract_number)},items,xsState.qty,prev)};
 }
 function renderExtractSheet(){
   const root=document.getElementById('xs-root'); if(!root||!xsState) return;
@@ -3576,13 +3674,14 @@ function renderExtractSheet(){
   const taxRows=m.taxes.map(t=>`<tr><td class="l">${t.label}</td><td>${inp(ex[t.key],`xsField('${t.key}',this.value)`,56)}%</td><td>${fnum(t.prev)}</td><td>${fnum(t.cur)}</td><td class="xs-y">${fnum(t.tot)}</td></tr>`).join('');
   const manual=(label,key,val,ph)=>`<tr><td class="l" colspan="2">${label}</td><td>—</td><td>—</td><td class="xs-y">${inp(val,`xsField('${key}',this.value)`,110).replace('<input','<input placeholder="'+(ph||'0.00')+'"')}</td></tr>`;
   const finRows=taxRows
-    +manual('خصم ماسبق صرفه','prev_paid',ex.prev_paid,m.manualPrev?fnum(m.prevPaid)+' (تلقائي)':'')
+    +manual('خصم ماسبق صرفه','prev_paid',ex.prev_paid,m.manualPrev?fnum(m.prevPaid)+' (من أذون الصرف)':'')
     +manual('خصومات اخري','other_deductions',ex.other_deductions)
     +manual('التعلية','retention',ex.retention)
     +manual('مسترد من التعلية','retention_refund',ex.retention_refund)
     +`<tr class="xs-net"><td class="l" colspan="2">صافي المستحق للصرف</td><td>${fnum(m.net_prev)}</td><td>${fnum(m.net_cur)}</td><td class="xs-y" style="font-size:15px">${fnum(m.net_due)}</td></tr>`;
   const st=dis?'<span class="badge badge-in">معتمد</span>':'<span class="badge" style="background:#f59e0b20;color:#f59e0b">مسودة</span>';
   const btns=`<button class="btn btn-ghost" onclick="showPage('extracts')">→ رجوع للقائمة</button><button class="btn btn-ghost" onclick="printExtract()">🖨️ طباعة</button>`
+    +(dis?`<button class="btn btn-accent" onclick="openVoucher(${ex.id})">🧾 إذن الصرف</button>`:'')
     +(dis?(CP?.role==='مدير'?'<button class="btn btn-ghost" onclick="unapproveExtract()">↩️ إلغاء الاعتماد</button>':'')
           :'<button class="btn btn-ghost" onclick="saveExtract().then(ok=>ok&&toast(\'✅ تم حفظ المسودة\',\'success\'))">💾 حفظ مسودة</button><button class="btn btn-success" onclick="approveExtract()">✅ اعتماد المستخلص</button>');
   root.innerHTML=`<div class="page-header"><div><h2>مستخلص أعمال رقم ${ex.extract_number} ${st}</h2><p>مقايسة ${escHtml(boq.boq_number||'')} — ${escHtml(boq.projects?.name||'')}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div></div>
@@ -3633,6 +3732,7 @@ async function approveExtract(){
 }
 async function unapproveExtract(){
   if(CP?.role!=='مدير'){toast('الصلاحية للمدير بس','error');return;}
+  if(allVouchers.some(v=>v.extract_id===xsState.ex.id)){toast('المستخلص ده ليه إذن صرف. امسح الإذن الأول من صفحة أذون الصرف قبل إلغاء الاعتماد','error');return;}
   if(!confirm('إلغاء الاعتماد هيرجّع المستخلص مسودة ويطلعه من الكشف الموحد. تكمل؟')) return;
   if(await saveExtract('مسودة')){ toast('تم إلغاء الاعتماد','success'); renderExtractSheet(); }
 }
@@ -3651,6 +3751,133 @@ function printExtract(){
   <div class="row"><table style="width:30%"><tr><th>اهم الملاحظات</th></tr><tr><td class="l" style="height:90px;vertical-align:top">${e(ex.notes||'')}</td></tr></table><table style="width:25%"><tr><th colspan="2">ملخص التعاقد</th></tr><tr><td class="l">اجمالي التعاقد</td><td>${f(T.contract)}</td></tr><tr><td class="l">اجمالي القيمة المنفذة</td><td>${f(T.v_tot)}</td></tr><tr><td class="l">النسبة</td><td>${m.percent.toFixed(1)}%</td></tr></table><table style="flex:1"><tr><th colspan="5">الحسابات المالية والاستقطاعات</th></tr><tr><th>البند</th><th>النسبة</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th></tr>${fin}</table></div>
   <div class="sig">${['المقاول','مهندس الموقع','مدير المشروع','المشرف العام للمشروع','مكتب فني','الاستشاري','الإدارة المالية'].map(x=>`<div>${x}</div>`).join('')}</div>
   <button class="np" onclick="window.print()" style="margin-top:14px;padding:8px 24px">🖨️ طباعة</button></body></html>`);
+  w.document.close();
+}
+
+// ===== أذون الصرف (كافر السداد) =====
+function nextVoucherNumber(){
+  const nums=allVouchers.map(v=>parseInt(v.voucher_number,10)).filter(n=>!isNaN(n));
+  return String((nums.length?Math.max(...nums):0)+1).padStart(4,'0');
+}
+function vcModel(){
+  const ex=allExtracts.find(e=>e.id===vcState.extract_id)||{};
+  const boq=allBoqs.find(b=>b.id===ex.boq_id)||{};
+  const items=allBoqItems.filter(i=>i.boq_id===ex.boq_id).sort((a,b)=>a.seq-b.seq);
+  const qtyMap={}; allExtractItems.filter(x=>x.extract_id===ex.id).forEach(x=>qtyMap[x.boq_item_id]=x.current_qty);
+  const m=computeExtract({...ex,_auto_prev_paid:autoPrevPaidFrom(allExtracts,allVouchers,ex.boq_id,ex.extract_number)},items,qtyMap,prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number));
+  return {ex,boq,items,m,v:voucherModel(m)};
+}
+async function openVoucher(extractId){
+  await loadExtractsData();
+  const ex=allExtracts.find(e=>e.id===extractId);
+  if(!ex){toast('المستخلص مش موجود','error');return;}
+  if(ex.status!=='معتمد'){toast('اعتمد المستخلص الأول قبل ما تعمل إذن الصرف','error');return;}
+  const old=allVouchers.find(v=>v.extract_id===extractId);
+  if(old) vcState={...old};
+  else {
+    const boq=allBoqs.find(b=>b.id===ex.boq_id)||{};
+    const names=[...new Set(allBoqItems.filter(i=>i.boq_id===ex.boq_id).map(i=>{const a=expenseAccounts.find(x=>x.account_code===i.account_code);return a?a.account_name.replace(/^مستخلصات\s*/,''):'';}).filter(Boolean))].slice(0,3);
+    const last=allVouchers.length?allVouchers[allVouchers.length-1]:{};
+    vcState={extract_id:extractId,voucher_number:nextVoucherNumber(),voucher_date:new Date().toISOString().slice(0,10),
+      beneficiary:boq.vendors?.name||'',account_label:'مستخلصات مقاولين'+(names.length?' — '+names.join(' / '):''),
+      statement:`سداد قيمة المستخلص رقم (${ex.extract_number}) - ${boq.projects?.name||''}`,
+      prepared_name:last.prepared_name||'',reviewer_name:last.reviewer_name||'',cfo_name:last.cfo_name||''};
+  }
+  showPage('extract-voucher');
+  renderVoucher();
+}
+function vcField(k,v){ if(!vcState) return; vcState[k]=v; renderVoucher(); }
+function renderVoucher(){
+  const root=document.getElementById('vc-root'); if(!root||!vcState) return;
+  const {ex,boq,m,v}=vcModel(), st=vcState, e=escHtml;
+  const amount=Math.round(v.net*100)/100;
+  const inp=(k,type)=>`<input class="vc-in" type="${type||'text'}" value="${e(st[k]||'')}" onchange="vcField('${k}',this.value)">`;
+  const pct=r=>r===null||r===undefined||r===0&&false?'':` (${+(+r).toFixed(3)}%)`;
+  const dedRows=v.ded.map(d=>`<tr><td>${d.label}${d.rate!==null?pct(d.rate):''}</td><td class="n">${fnum(d.amount)}</td></tr>`).join('');
+  const diff=st.id&&Math.abs((+st.amount||0)-amount)>0.005?`<div style="margin-top:10px;padding:10px;border-radius:8px;background:#ef444418;color:#fca5a5;font-size:12px">⚠️ المبلغ المحفوظ في الإذن (${fnum(st.amount)}) مختلف عن المحسوب دلوقتي (${fnum(amount)}). دوس "حفظ الإذن" عشان يتحدّث.</div>`:'';
+  root.innerHTML=`<div class="vc-wrap">
+  <div class="page-header"><div><h2>إذن صرف رقم ${e(st.voucher_number||'')}</h2><p>مستخلص رقم ${ex.extract_number} — ${e(boq.projects?.name||'')}</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="openExtract(${ex.id})">→ رجوع للمستخلص</button><button class="btn btn-ghost" onclick="printVoucher()">🖨️ طباعة</button><button class="btn btn-success" onclick="saveVoucher()">💾 حفظ الإذن</button>${st.id?'<button class="btn btn-ghost" onclick="deleteVoucher()">🗑️ مسح الإذن</button>':''}</div></div>
+  <div class="vc-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:2px solid var(--accent)">
+      <div style="display:flex;align-items:center;gap:12px"><img src="${COMPANY_LOGO}" style="height:44px"><div><div style="font-weight:800;font-size:16px">${COMPANY_NAME}</div><div style="color:var(--accent);font-weight:800;font-size:20px">إذن صرف</div></div></div>
+      <div style="min-width:260px"><div class="vc-f" style="border:0;padding:4px 0"><label style="width:80px">رقم الإذن</label>${inp('voucher_number')}</div><div class="vc-f" style="border:0;padding:4px 0"><label style="width:80px">التاريخ</label>${inp('voucher_date','date')}</div></div>
+    </div>
+    <div class="vc-f"><label>اسم المستفيد</label>${inp('beneficiary')}</div>
+    <div class="vc-f"><label>البند المحاسبي</label>${inp('account_label')}</div>
+    <div class="vc-f"><label>المبلغ بالأرقام</label><b style="font-size:22px;color:#fbbf24;font-variant-numeric:tabular-nums">${fnum(amount)} ج.م.</b></div>
+    <div class="vc-f"><label>البيان</label>${inp('statement')}</div>
+    <table class="vc-t"><thead><tr><th>تفاصيل المستخلص والمستقطعات</th><th style="text-align:left">المبلغ (ج.م.)</th></tr></thead><tbody>
+      <tr><td>إجمالي قيمة المستخلص عن الأعمال المنفذة</td><td class="n">${fnum(v.works)}</td></tr>
+      <tr class="vc-sec"><td colspan="2">يضاف إلى قيمة المستخلص:</td></tr>
+      <tr><td>ضريبة القيمة المضافة${pct(v.vatRate)}</td><td class="n">${fnum(v.vat)}</td></tr>
+      <tr class="vc-sec"><td colspan="2">يخصم من قيمة المستخلص:</td></tr>
+      ${dedRows}
+      <tr><td><b>إجمالي المستقطعات</b></td><td class="n"><b>${fnum(v.totalDed)}</b></td></tr>
+      ${Math.abs(v.adj)>0.005?`<tr><td>فرق ما سبق صرفه عن المستحق السابق (${v.adj>0?'يضاف':'يخصم'})</td><td class="n">${fnum(Math.abs(v.adj))}</td></tr>`:''}
+      <tr class="vc-net"><td>الصافي المستحق للصرف</td><td class="n">${fnum(amount)}</td></tr>
+    </tbody></table>
+    <div class="vc-f" style="margin-top:12px;border:0"><label>المبلغ كتابة</label><b style="line-height:1.8">${e(tafqeet(amount))}</b></div>
+    ${diff}
+    <div class="vc-sig">
+      <div><h4>أعدها / حسابات المقاولين</h4><div class="vc-f" style="border:0"><label style="width:60px">الاسم</label>${inp('prepared_name')}</div><div style="margin-top:14px;color:var(--text3)">التوقيع: ..............</div></div>
+      <div><h4>اعتماد / المراجعة</h4><div class="vc-f" style="border:0"><label style="width:60px">الاسم</label>${inp('reviewer_name')}</div><div style="margin-top:14px;color:var(--text3)">التوقيع: ..............</div></div>
+      <div><h4>اعتماد المدير المالي</h4><div class="vc-f" style="border:0"><label style="width:60px">الاسم</label>${inp('cfo_name')}</div><div style="margin-top:14px;color:var(--text3)">التوقيع: ..............</div></div>
+    </div>
+  </div></div>`;
+}
+async function saveVoucher(){
+  if(!vcState) return;
+  const st=vcState, {ex,v}=vcModel();
+  const num=String(st.voucher_number||'').trim();
+  if(!num){toast('اكتب رقم الإذن','error');return;}
+  const amount=Math.round(v.net*100)/100;
+  if(!(amount>0)){toast('الصافي المستحق لازم يكون أكبر من صفر','error');return;}
+  if(allVouchers.some(x=>x.voucher_number===num&&x.extract_id!==ex.id)){toast('رقم الإذن ده مستخدم قبل كده','error');return;}
+  const rec={extract_id:ex.id,voucher_number:num,voucher_date:st.voucher_date||null,beneficiary:st.beneficiary||null,account_label:st.account_label||null,statement:st.statement||null,amount,prepared_name:st.prepared_name||null,reviewer_name:st.reviewer_name||null,cfo_name:st.cfo_name||null};
+  const res=st.id?await sb.from('payment_vouchers').update(rec).eq('id',st.id).select().single()
+                 :await sb.from('payment_vouchers').insert({...rec,created_by:CU?.id||null}).select().single();
+  if(res.error){toast('خطأ: '+res.error.message,'error');return;}
+  vcState={...res.data};
+  toast('✅ تم حفظ إذن الصرف','success');
+  await loadExtractsData();
+  renderVoucher();
+}
+async function deleteVoucher(){
+  if(!vcState||!vcState.id) return;
+  if(!confirm('متأكد إنك عايز تمسح إذن الصرف؟ المبلغ ده هيتشال من "ماسبق صرفه" في المستخلصات اللي بعده.')) return;
+  const {error}=await sb.from('payment_vouchers').delete().eq('id',vcState.id);
+  if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
+  toast('✅ اتمسح إذن الصرف','success');
+  vcState=null;
+  await loadExtractsData();
+  showPage('vouchers');
+}
+function renderVoucherList(){
+  const el=document.getElementById('vc-list'); if(!el) return;
+  if(!allVouchers.length){ el.innerHTML='<div class="empty"><div class="ico">💸</div><p>مفيش أذون صرف لسه. اعتمد مستخلص وبعدين دوس "إذن صرف" منه.</p></div>'; return; }
+  const exMap={}; allExtracts.forEach(x=>exMap[x.id]=x);
+  const bMap={}; allBoqs.forEach(b=>bMap[b.id]=b);
+  let h='<div class="tbl-wrap"><table><thead><tr><th>رقم الإذن</th><th>التاريخ</th><th>المستفيد</th><th>المشروع</th><th>المستخلص</th><th>المبلغ (ج)</th><th></th></tr></thead><tbody>';
+  allVouchers.slice().reverse().forEach(v=>{
+    const x=exMap[v.extract_id]||{}, b=bMap[x.boq_id]||{};
+    h+=`<tr><td style="font-weight:700">${escHtml(v.voucher_number)}</td><td style="font-size:12px">${v.voucher_date||'-'}</td><td>${escHtml(v.beneficiary||'-')}</td><td>${escHtml(b.projects?.name||'-')}</td><td>مستخلص رقم ${x.extract_number||'-'}</td><td style="font-weight:700;color:#10b981">${fnum(v.amount)}</td><td><button class="btn btn-accent btn-sm" onclick="openVoucher(${v.extract_id})">فتح</button></td></tr>`;
+  });
+  el.innerHTML=h+'</tbody></table></div>';
+}
+function printVoucher(){
+  if(!vcState) return;
+  const {ex,boq,v}=vcModel(), st=vcState, e=escHtml, f=fnum, amount=Math.round(v.net*100)/100;
+  const pct=r=>(r===null||r===undefined)?'':` (${+(+r).toFixed(3)}%)`;
+  const ded=v.ded.map(d=>`<tr><td>${d.label}${d.rate!==null?pct(d.rate):''}</td><td class="n">${f(d.amount)}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>إذن صرف ${e(st.voucher_number||'')}</title><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:10px}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #555;padding:7px 9px;text-align:right}th{background:#e8edf5}td.n{text-align:left;width:150px}.sec td{background:#f1f5f9;font-weight:bold}.net td{background:#fff3b0;font-weight:bold;font-size:15px}.hd{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e40af;padding-bottom:10px}.r{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid #ddd}.r span{width:130px;color:#555}.sig{display:flex;gap:12px;margin-top:26px}.sig div{flex:1;border:1px solid #555;padding:10px;min-height:90px}.sig h4{margin:0 0 8px;text-align:center}</style></head><body>
+  <div class="hd"><div style="display:flex;align-items:center;gap:10px"><img src="${COMPANY_LOGO}" style="height:44px"><div><b style="font-size:16px">${COMPANY_NAME}</b><div style="color:#1e40af;font-weight:bold;font-size:20px">إذن صرف</div></div></div><div>رقم الإذن: <b>${e(st.voucher_number||'')}</b><br>التاريخ: <b>${st.voucher_date||''}</b></div></div>
+  <div class="r"><span>اسم المستفيد:</span><b>${e(st.beneficiary||'')}</b></div><div class="r"><span>البند المحاسبي:</span><b>${e(st.account_label||'')}</b></div><div class="r"><span>المبلغ بالأرقام:</span><b style="font-size:17px">${f(amount)} ج.م.</b></div><div class="r"><span>البيان:</span><b>${e(st.statement||'')}</b></div>
+  <table><thead><tr><th>تفاصيل المستخلص والمستقطعات</th><th>المبلغ (ج.م.)</th></tr></thead><tbody><tr><td>إجمالي قيمة المستخلص عن الأعمال المنفذة</td><td class="n">${f(v.works)}</td></tr><tr class="sec"><td colspan="2">يضاف إلى قيمة المستخلص:</td></tr><tr><td>ضريبة القيمة المضافة${pct(v.vatRate)}</td><td class="n">${f(v.vat)}</td></tr><tr class="sec"><td colspan="2">يخصم من قيمة المستخلص:</td></tr>${ded}<tr><td><b>إجمالي المستقطعات</b></td><td class="n"><b>${f(v.totalDed)}</b></td></tr>${Math.abs(v.adj)>0.005?`<tr><td>فرق ما سبق صرفه عن المستحق السابق (${v.adj>0?'يضاف':'يخصم'})</td><td class="n">${f(Math.abs(v.adj))}</td></tr>`:''}<tr class="net"><td>الصافي المستحق للصرف</td><td class="n">${f(amount)}</td></tr></tbody></table>
+  <div class="r" style="margin-top:10px"><span>المبلغ كتابة:</span><b>${e(tafqeet(amount))}</b></div>
+  <div class="sig"><div><h4>أعدها / حسابات المقاولين</h4>الاسم: ${e(st.prepared_name||'')}<br><br>التوقيع:</div><div><h4>اعتماد / المراجعة</h4>الاسم: ${e(st.reviewer_name||'')}<br><br>التوقيع:</div><div><h4>اعتماد المدير المالي</h4>الاسم: ${e(st.cfo_name||'')}<br><br>التوقيع:</div></div>
+  <button onclick="window.print()" style="margin-top:14px;padding:8px 24px" class="np">🖨️ طباعة</button><style>@media print{.np{display:none}}</style></body></html>`);
   w.document.close();
 }
 
@@ -4800,7 +5027,7 @@ function showPage(name){
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
   if(name==='custody'||name==='custody-entry'||name==='custody-log') loadCustody();
   if(name==='expenses'||name==='expenses-entry'||name==='expenses-log') loadExpenses();
-  if(name==='extracts'||name==='boqs') loadExtractsData();
+  if(name==='extracts'||name==='boqs'||name==='vouchers') loadExtractsData();
   if(name==='dashboard') loadDashboard();
   if(name==='reports'){
     const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
