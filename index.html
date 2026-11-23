@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.16';
+const APP_VERSION='2026.08.27.17';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -3538,7 +3538,7 @@ function buildCostReport(d,level){
     const executed=d.extractItems.reduce((t,x)=>{const s=subById[x.boq_item_id];return (s&&s.master_item_id===m.id)?t+(+x.current_qty||0)*(+s.unit_price||0):t;},0);
     const contractors=[...new Set(subs.map(s=>d.contractorOf[s.boq_id]).filter(Boolean))];
     const villas=[...new Set(subs.map(s=>boqCCId[s.boq_id]).filter(Boolean).map(id=>ccLabel(byId[id],ccs)).filter(Boolean))];
-    return {id:m.id,seq:m.seq,section:(m.section&&String(m.section).trim())||'عام',description:m.description,unit:m.unit,unit_price:price,total_qty:qty,est:qty*price,contracted,executed,var_contract:contracted-qty*price,contractors,villas};
+    return {id:m.id,seq:m.seq,section:(m.section&&String(m.section).trim())||'عام',description:m.description,unit:m.unit,unit_price:price,total_qty:qty,master_qty:+m.qty||0,est:qty*price,contracted,executed,var_contract:contracted-qty*price,contractors,villas};
   });
   const secMap=new Map();
   items.forEach(i=>{const e=secMap.get(i.section)||{name:i.section,count:0,est:0,contracted:0,executed:0};e.count++;e.est+=i.est;e.contracted+=i.contracted;e.executed+=i.executed;secMap.set(i.section,e);});
@@ -3584,10 +3584,7 @@ function extractModel(ex){
   const qtyMap={}; allExtractItems.filter(x=>x.extract_id===ex.id).forEach(x=>qtyMap[x.boq_item_id]=x.current_qty);
   return computeExtract({...ex,_auto_prev_paid:autoPrevPaidFrom(allExtracts,allVouchers,ex.boq_id,ex.extract_number)},items,qtyMap,prevQtyMapFrom(allExtracts,allExtractItems,ex.boq_id,ex.extract_number));
 }
-function masterEstimate(b){
-  const agg=aggregateMasterQty(projectSubItems(b.project_id));
-  return allBoqItems.filter(i=>i.boq_id===b.id).reduce((t,i)=>t+((agg[i.id]?agg[i.id].qty:0)*(+i.unit_price||0)),0);
-}
+function masterEstimate(b){ return boqTotal(b.id); }
 function renderBoqList(){
   const el=document.getElementById('boq-list'); if(!el) return;
   const sel=document.getElementById('ex-new-boq');
@@ -3631,10 +3628,10 @@ function masterBoqOf(pid){return pid?(allBoqs.find(b=>b.kind==='رئيسية'&&S
 function masterItemsOf(pid){const mb=masterBoqOf(pid);return mb?allBoqItems.filter(i=>i.boq_id===mb.id).sort((a,b)=>a.seq-b.seq):[];}
 function projectSubItems(pid){const ids=new Set(allBoqs.filter(b=>b.kind!=='رئيسية'&&String(b.project_id)===String(pid)).map(b=>b.id));return allBoqItems.filter(i=>ids.has(i.boq_id));}
 function blankBoqRow(){return {description:'',unit:'م²',qty:'',unit_price:'',account_code:'',acc_label:'',master_item_id:''};}
-function blankMasterItem(){return {description:'',unit:'م²',unit_price:''};}
+function blankMasterItem(){return {description:'',unit:'م²',qty:'',unit_price:''};}
 function buildMasterSections(items){
   const secs=[];
-  items.forEach(i=>{const n=secNameOf(i);let s=secs.find(x=>x.name===n);if(!s){s={name:n,items:[]};secs.push(s);}s.items.push({id:i.id,description:i.description,unit:i.unit||'',unit_price:i.unit_price});});
+  items.forEach(i=>{const n=secNameOf(i);let s=secs.find(x=>x.name===n);if(!s){s={name:n,items:[]};secs.push(s);}s.items.push({id:i.id,description:i.description,unit:i.unit||'',qty:i.qty||'',unit_price:i.unit_price});});
   return secs;
 }
 function fillBoqCC(keep){
@@ -3747,11 +3744,11 @@ function updBoqTotals(){
   let t=0; const master=boqEdit.kind==='رئيسية';
   if(master){
     boqEdit.sections.forEach((sec,si)=>sec.items.forEach((it,ii)=>{
-      const v=((boqEdit._usage[it.id]&&boqEdit._usage[it.id].qty)||0)*(+it.unit_price||0); t+=v;
+      const v=(+it.qty||0)*(+it.unit_price||0); t+=v;
       const c=document.getElementById('boq-rt-'+si+'-'+ii); if(c) c.textContent=fnum(v);
     }));
   } else boqEdit.items.forEach((it,i)=>{const v=(+it.qty||0)*(+it.unit_price||0);t+=v;const c=document.getElementById('boq-rt-'+i);if(c)c.textContent=fnum(v);});
-  document.getElementById('boq-editor-total').textContent=(master?'إجمالي التقدير (من كميات الفرعيات): ':'إجمالي المقايسة: ')+fnum(t)+' ج';
+  document.getElementById('boq-editor-total').textContent=(master?'إجمالي التقدير (كمية الرئيسية × السعر): ':'إجمالي المقايسة: ')+fnum(t)+' ج';
 }
 function renderBoqRows(){
   const tb=document.getElementById('boq-rows-body'), th=document.getElementById('boq-thead'); if(!tb||!boqEdit) return;
@@ -3766,18 +3763,19 @@ function renderBoqRows(){
   const W='<th style="width:30px">م</th>';
   if(master){
     document.getElementById('boq-sec-list').innerHTML=[...new Set([...DEFAULT_SECTIONS,...boqEdit.sections.map(s=>s.name).filter(Boolean)])].map(n=>`<option value="${escHtml(n)}">`).join('');
-    th.innerHTML='<tr>'+W+'<th>وصف البند (اسم ثابت) *</th><th style="width:90px">الوحدة</th><th style="width:130px">السعر التقديري</th><th style="width:170px">إجمالي الكمية (من الفرعيات)</th><th style="width:140px">القيمة التقديرية</th><th style="width:40px"></th></tr>';
+    th.innerHTML='<tr>'+W+'<th>وصف البند (اسم ثابت) *</th><th style="width:80px">الوحدة</th><th style="width:110px">الكمية</th><th style="width:120px">السعر التقديري</th><th style="width:130px">القيمة (الكمية × السعر)</th><th style="width:170px">كمية الفرعيات (تجميع)</th><th style="width:40px"></th></tr>';
     let n=0, html='';
     boqEdit.sections.forEach((sec,si)=>{
-      const secTotal=sec.items.reduce((t,it)=>t+(((boqEdit._usage[it.id]&&boqEdit._usage[it.id].qty)||0)*(+it.unit_price||0)),0);
-      html+=`<tr style="background:var(--bg3)"><td colspan="7" style="padding:8px 10px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">📂 <input type="text" list="boq-sec-list" value="${escHtml(sec.name)}" placeholder="اسم القسم (مثال: المباني)" style="width:240px;font-weight:700" onchange="renameBoqSection(${si},this.value)"><button class="btn btn-ghost btn-sm" onclick="addBoqSectionItem(${si})">➕ بند</button><button class="btn btn-ghost btn-sm" onclick="removeBoqSection(${si})">🗑 القسم</button><span style="margin-right:auto;font-size:12px;color:var(--text3)">إجمالي القسم: ${fnum(secTotal)}</span></div></td></tr>`;
+      const secTotal=sec.items.reduce((t,it)=>t+((+it.qty||0)*(+it.unit_price||0)),0);
+      html+=`<tr style="background:var(--bg3)"><td colspan="8" style="padding:8px 10px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">📂 <input type="text" list="boq-sec-list" value="${escHtml(sec.name)}" placeholder="اسم القسم (مثال: المباني)" style="width:240px;font-weight:700" onchange="renameBoqSection(${si},this.value)"><button class="btn btn-ghost btn-sm" onclick="addBoqSectionItem(${si})">➕ بند</button><button class="btn btn-ghost btn-sm" onclick="removeBoqSection(${si})">🗑 القسم</button><span style="margin-right:auto;font-size:12px;color:var(--text3)">إجمالي القسم: ${fnum(secTotal)}</span></div></td></tr>`;
       sec.items.forEach((it,ii)=>{ n++; const u=boqEdit._usage[it.id];
         html+=`<tr><td>${n}</td>
         <td><input type="text" value="${escHtml(it.description)}" style="width:100%" oninput="boqEdit.sections[${si}].items[${ii}].description=this.value"></td>
         <td><input type="text" value="${escHtml(it.unit)}" style="width:100%" oninput="boqEdit.sections[${si}].items[${ii}].unit=this.value"></td>
+        <td><input type="number" step="0.01" value="${it.qty===''?'':it.qty}" style="width:100%" oninput="boqEdit.sections[${si}].items[${ii}].qty=this.value;updBoqTotals()"></td>
         <td><input type="number" step="0.01" value="${it.unit_price===''?'':it.unit_price}" style="width:100%" oninput="boqEdit.sections[${si}].items[${ii}].unit_price=this.value;updBoqTotals()"></td>
-        <td style="font-weight:700">${fnum(u?u.qty:0)}${u?` <span style="font-size:11px;color:var(--text3)">(${u.boqIds.size} مقايسة)</span>`:''}</td>
         <td id="boq-rt-${si}-${ii}" style="font-weight:700">0.00</td>
+        <td style="font-weight:700;color:var(--text2)">${fnum(u?u.qty:0)}${u?` <span style="font-size:11px;color:var(--text3)">(${u.boqIds.size} مقايسة)</span>`:''}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="removeBoqSectionItem(${si},${ii})">🗑️</button></td></tr>`; });
     });
     tb.innerHTML=html;
@@ -3845,7 +3843,7 @@ async function saveBoq(){
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
     const rec={boq_id:boqId,seq:i+1,description:String(r.description).trim(),unit:r.unit||null,unit_price:parseFloat(r.unit_price)||0};
-    if(master){ rec.qty=0; rec.account_code=null; rec.section=r.section; }
+    if(master){ rec.qty=parseFloat(r.qty)||0; rec.account_code=null; rec.section=r.section; }
     else { rec.qty=parseFloat(r.qty)||0; rec.account_code=r.account_code; if(hasMaster||r.master_item_id) rec.master_item_id=parseInt(r.master_item_id)||null; }
     const {error}=r.id?await sb.from('boq_items').update(rec).eq('id',r.id):await sb.from('boq_items').insert(rec);
     if(error){toast('خطأ في البند '+(i+1)+': '+error.message,'error');return;}
@@ -3881,8 +3879,8 @@ async function downloadBoqTemplate(){
   const mi=masterItemsOf(pid), lab=a=>a?a.account_code+' - '+a.account_name:'';
   let ws,ws2=null;
   if(master){
-    ws=XLSX.utils.aoa_to_sheet([['القسم','البند','الوحدة','السعر التقديري'],['المباني','مباني طوب أحمر 25 سم','م²',170],['المباني','بياض داخلي','م²',60],['الصحي','نقطة صرف','نقطة',350],['الكهرباء','نقطة إنارة','نقطة',280]]);
-    ws['!cols']=[{wch:16},{wch:36},{wch:10},{wch:16}];
+    ws=XLSX.utils.aoa_to_sheet([['القسم','البند','الوحدة','الكمية','السعر التقديري'],['المباني','مباني طوب أحمر 25 سم','م²',1200,170],['المباني','بياض داخلي','م²',2400,60],['الصحي','نقطة صرف','نقطة',40,350],['الكهرباء','نقطة إنارة','نقطة',90,280]]);
+    ws['!cols']=[{wch:16},{wch:36},{wch:10},{wch:12},{wch:16}];
   } else {
     const a1=boqAccounts.find(a=>a.account_code==='120202003000')||boqAccounts[0];
     ws=XLSX.utils.aoa_to_sheet([['البند','الكمية','السعر','حساب المستخلص'],[mi.length?mi[0].description:'مباني طوب أحمر 25 سم',250,180,lab(a1)]]);
@@ -3912,7 +3910,7 @@ async function handleBoqImport(input){
       if(master){
         const name=String(r['القسم']||'').trim()||'عام';
         let sec=boqEdit.sections.find(x=>x.name===name); if(!sec){sec={name,items:[]};boqEdit.sections.push(sec);}
-        sec.items.push({description:String(r['البند']||'').trim(),unit:String(r['الوحدة']||'').trim(),unit_price:parseFloat(String(r['السعر التقديري']).replace(/,/g,''))||''});
+        sec.items.push({description:String(r['البند']||'').trim(),unit:String(r['الوحدة']||'').trim(),qty:parseFloat(String(r['الكمية']).replace(/,/g,''))||'',unit_price:parseFloat(String(r['السعر التقديري']).replace(/,/g,''))||''});
         added++; return;
       }
       const it=blankBoqRow();
