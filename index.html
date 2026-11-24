@@ -618,7 +618,7 @@ tr:hover td{background:#ffffff05;}
     <!-- PROJECTS -->
     <div class="page" id="page-projects">
       <div class="page-header"><div><h2>المشاريع والمخازن</h2><p>تكويد المشاريع ومخازنها</p></div>
-        <button class="btn btn-accent" onclick="openProjectModal()">➕ مشروع جديد</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="downloadSetupTemplate('projects')">📥 Template Excel</button><button class="btn btn-ghost" onclick="pickSetupImport('projects')">📤 رفع Excel</button><button class="btn btn-accent" onclick="openProjectModal()">➕ مشروع جديد</button></div>
       </div>
       <div class="card">
         <div id="projects-table"><div class="loading"><div class="spinner"></div></div></div>
@@ -628,7 +628,8 @@ tr:hover td{background:#ffffff05;}
     <!-- COST CENTERS -->
     <div class="page" id="page-cost-centers">
       <div class="page-header"><div><h2>مراكز التكلفة</h2><p>تكويد مراكز التكلفة (مستويين)</p></div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="downloadSetupTemplate('cc')">📥 Template Excel</button><button class="btn btn-ghost" onclick="pickSetupImport('cc')">📤 رفع Excel</button>
           <button class="btn btn-accent" onclick="openCCModal(1)">➕ مركز تكلفة 1 (عمارة/مشروع)</button>
           <button class="btn btn-success" onclick="openCCModal(2)">➕ مركز تكلفة 2 (شقة/وحدة)</button>
         </div>
@@ -714,7 +715,7 @@ tr:hover td{background:#ffffff05;}
     <!-- GROUPS -->
     <div class="page" id="page-groups">
       <div class="page-header"><div><h2>المجموعات</h2></div>
-        <button class="btn btn-accent" onclick="openGroupModal()" id="btn-add-grp">➕ إضافة مجموعة</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="downloadSetupTemplate('groups')">📥 Template Excel</button><button class="btn btn-ghost" onclick="pickSetupImport('groups')">📤 رفع Excel</button><button class="btn btn-accent" onclick="openGroupModal()" id="btn-add-grp">➕ إضافة مجموعة</button></div>
       </div>
       <div class="card">
         <div id="groups-table"><div class="loading"><div class="spinner"></div></div></div>
@@ -1092,6 +1093,14 @@ tr:hover td{background:#ffffff05;}
 </div>
 
 <!-- MODALS -->
+<input type="file" id="setup-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleSetupImport(this)">
+<div class="modal-overlay" id="setup-import-modal">
+  <div class="modal" style="width:min(1000px,94vw)">
+    <div class="modal-header"><h3 id="si-title">مراجعة الملف قبل الحفظ</h3><button class="modal-close" onclick="closeModal('setup-import-modal')">✕</button></div>
+    <div class="modal-body"><div id="si-summary" style="font-size:13px;margin-bottom:10px"></div><div id="si-table" style="max-height:55vh;overflow:auto"></div></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('setup-import-modal')">إلغاء</button><button class="btn btn-success" id="si-save" onclick="saveSetupImport()">💾 حفظ</button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="project-modal">
   <div class="modal">
     <div class="modal-header"><h3 id="pm-title">مشروع جديد</h3><button class="modal-close" onclick="closeModal('project-modal')">✕</button></div>
@@ -1244,7 +1253,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.17';
+const APP_VERSION='2026.08.27.18';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -4322,6 +4331,171 @@ function projOptionsFor(sel){
 }
 function onCustodyProject(i,v){ custodyRows[i].project_id=v; custodyRows[i].cost_center_id=''; renderCustodyRows(); }
 function onXpProject(i,v){ xpRows[i].project_id=v; xpRows[i].cost_center_id=''; renderXpRows(); }
+
+// ===== Template + رفع Excel للتكويدات: المشاريع / مراكز التكلفة / المجموعات =====
+// @@SETUP-START
+function normKeys(r0){const r={};Object.keys(r0).forEach(k=>{r[String(k).trim()]=r0[k];});return r;}
+function pickField(r,names){for(const n of names){if(r[n]!==undefined&&String(r[n]).trim()!=='') return String(r[n]).trim();}return '';}
+function rowIsEmpty(r){return Object.values(r).every(v=>String(v).trim()==='');}
+function validateProjectsImport(rawRows,ctx){
+  const exName=new Set(ctx.projects.map(p=>normAr(p.name))), exCode=new Set(ctx.projects.map(p=>String(p.code||'').trim()).filter(Boolean));
+  const out=[], seenName=new Set(), seenCode=new Set();
+  rawRows.forEach((r0,idx)=>{
+    const r=normKeys(r0); if(rowIsEmpty(r)) return;
+    const errs=[], code=pickField(r,['الكود','كود المشروع']), name=pickField(r,['اسم المشروع','المشروع','الاسم']), wh=pickField(r,['اسم المخزن','المخزن']);
+    if(!name) errs.push('اسم المشروع ناقص');
+    else { if(exName.has(normAr(name))) errs.push('المشروع موجود بالفعل'); if(seenName.has(normAr(name))) errs.push('مكرر في الملف'); }
+    if(code){ if(exCode.has(code)) errs.push('الكود موجود بالفعل'); if(seenCode.has(code)) errs.push('الكود مكرر في الملف'); }
+    if(name) seenName.add(normAr(name)); if(code) seenCode.add(code);
+    out.push({row:idx+2,errors:errs,ok:errs.length===0,code,name,warehouse_name:wh});
+  });
+  return out;
+}
+function parseCCLevel(v,hasParent){
+  const t=String(v==null?'':v).trim();
+  if(!t) return hasParent?2:1;
+  const m=t.match(/[12]/); return m?+m[0]:null;
+}
+function validateCCImport(rawRows,ctx){
+  const projs=ctx.projects, ccs=ctx.costCenters, parsed=[];
+  const resolveProject=txt=>{const v=String(txt||'').trim(); if(!v) return projs.length===1?projs[0]:null; const n=normAr(v); return projs.find(p=>normAr(p.name)===n)||projs.find(p=>String(p.code||'').trim()===v)||null;};
+  rawRows.forEach((r0,idx)=>{
+    const r=normKeys(r0); if(rowIsEmpty(r)) return;
+    const errs=[], projTxt=pickField(r,['المشروع','اسم المشروع']), proj=resolveProject(projTxt);
+    if(!proj) errs.push(projTxt?'المشروع مش موجود':'اكتب المشروع');
+    const parentTxt=pickField(r,['يتبع (للمستوى 2)','يتبع','المركز الأب','مركز التكلفة 1']);
+    const level=parseCCLevel(pickField(r,['المستوى']),!!parentTxt); if(level===null) errs.push('المستوى لازم يكون 1 أو 2');
+    const code=pickField(r,['الكود','كود المركز']), name=pickField(r,['الاسم','اسم المركز','اسم مركز التكلفة']);
+    if(!name) errs.push('الاسم ناقص');
+    if(level===1&&parentTxt) errs.push('مركز مستوى 1 مينفعش يتبع مركز');
+    if(level===2&&!parentTxt) errs.push('مركز مستوى 2 لازم تكتب يتبع مين');
+    parsed.push({row:idx+2,errors:errs,ok:false,project_id:proj?proj.id:null,project_name:proj?proj.name:projTxt,level,code,name,parent_label:parentTxt,parentExistingId:null,parentRow:null});
+  });
+  // مستوى 1: تكرار مع الموجود ومع الملف
+  parsed.forEach((o,i)=>{
+    if(o.level!==1||!o.project_id) return;
+    const ex=ccs.find(c=>(c.level||1)===1&&c.project_id===o.project_id&&((o.code&&String(c.code||'').trim()===o.code)||normAr(c.name)===normAr(o.name)));
+    if(ex) o.errors.push('موجود بالفعل');
+    const dup=parsed.slice(0,i).find(p=>p.level===1&&p.project_id===o.project_id&&((o.code&&p.code===o.code)||normAr(p.name)===normAr(o.name)));
+    if(dup) o.errors.push('مكرر في الملف (سطر '+dup.row+')');
+  });
+  // مستوى 2: ربط بالأب (موجود أو في نفس الملف)
+  parsed.forEach((o,i)=>{
+    if(o.level!==2||!o.project_id||!o.parent_label) return;
+    const pl=o.parent_label, pn=normAr(pl);
+    const exM=ccs.filter(c=>(c.level||1)===1&&c.project_id===o.project_id&&(String(c.code||'').trim()===pl||normAr(c.name)===pn));
+    const fileM=parsed.filter(p=>p.level===1&&p.project_id===o.project_id&&p.errors.length===0&&(p.code===pl||normAr(p.name)===pn));
+    if(exM.length+fileM.length===1){ if(exM.length) o.parentExistingId=exM[0].id; else o.parentRow=fileM[0]; }
+    else if(!exM.length&&!fileM.length) o.errors.push('مركز التكلفة 1 اللي بيتبعه مش موجود');
+    else o.errors.push('اسم الأب مش واضح، اكتب الكود');
+    if(o.parentExistingId||o.parentRow){
+      const exD=ccs.find(c=>c.level===2&&c.parent_id===o.parentExistingId&&o.parentExistingId&&((o.code&&String(c.code||'').trim()===o.code)||normAr(c.name)===normAr(o.name)));
+      if(exD) o.errors.push('موجود بالفعل');
+      const dup=parsed.slice(0,i).find(p=>p.level===2&&(p.parentExistingId?p.parentExistingId===o.parentExistingId:(p.parentRow&&p.parentRow===o.parentRow))&&((o.code&&p.code===o.code)||normAr(p.name)===normAr(o.name)));
+      if(dup) o.errors.push('مكرر في الملف (سطر '+dup.row+')');
+    }
+  });
+  parsed.forEach(o=>{o.ok=o.errors.length===0;});
+  return parsed;
+}
+function validateGroupsImport(rawRows,ctx){
+  const exCode=new Set(ctx.groups.map(g=>String(g.code||'').trim()).filter(Boolean)), exName=new Set(ctx.groups.map(g=>normAr(g.name)));
+  const out=[], seenName=new Set(), seenCode=new Set();
+  rawRows.forEach((r0,idx)=>{
+    const r=normKeys(r0); if(rowIsEmpty(r)) return;
+    const errs=[], code=pickField(r,['الكود','كود المجموعة']), name=pickField(r,['اسم المجموعة','الاسم','المجموعة']), accTxt=pickField(r,['حساب الشجرة (اختياري)','حساب الشجرة','الحساب']);
+    if(!name) errs.push('اسم المجموعة ناقص');
+    else { if(exName.has(normAr(name))) errs.push('المجموعة موجودة بالفعل'); if(seenName.has(normAr(name))) errs.push('مكررة في الملف'); }
+    if(code){ if(exCode.has(code)) errs.push('الكود موجود بالفعل'); if(seenCode.has(code)) errs.push('الكود مكرر في الملف'); }
+    const acc=accTxt?resolveAccountText(accTxt,ctx.accounts):null;
+    if(accTxt&&!acc) errs.push('الحساب مش مطابق لأي حساب في الشجرة');
+    if(name) seenName.add(normAr(name)); if(code) seenCode.add(code);
+    out.push({row:idx+2,errors:errs,ok:errs.length===0,code,name,account_code:acc?acc.account_code:null,account_label:acc?(acc.account_code+' - '+acc.account_name):accTxt});
+  });
+  return out;
+}
+// @@SETUP-END
+let setupImport={kind:null,rows:[]};
+async function ensureAccountsLoaded(){
+  if(expenseAccounts.length) return;
+  const {data}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
+  expenseAccounts=data||[];
+}
+function pickSetupImport(kind){ setupImport.kind=kind; document.getElementById('setup-import-file').click(); }
+async function downloadSetupTemplate(kind){
+  const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  let ws,ws2,name;
+  if(kind==='projects'){
+    ws=XLSX.utils.aoa_to_sheet([['الكود','اسم المشروع','اسم المخزن'],['P01','مشروع جديد','مخزن مشروع جديد']]); ws['!cols']=[{wch:12},{wch:34},{wch:34}];
+    ws2=XLSX.utils.aoa_to_sheet([['الكود (موجود)','اسم المشروع (موجود)']].concat(allProjects.map(p=>[p.code||'',p.name]))); ws2['!cols']=[{wch:16},{wch:34}];
+    name='projects_template';
+  } else if(kind==='cc'){
+    const pn=allProjects.length?allProjects[0].name:'اسم المشروع';
+    ws=XLSX.utils.aoa_to_sheet([['المشروع','المستوى','الكود','الاسم','يتبع (للمستوى 2)'],[pn,1,'B1','عمارة 1',''],[pn,2,'B1-101','شقة 101','عمارة 1'],[pn,2,'B1-102','شقة 102','عمارة 1']]); ws['!cols']=[{wch:30},{wch:10},{wch:12},{wch:30},{wch:24}];
+    const ref=[['المشروع','مراكز المستوى 1 الموجودة (اكتب اسم أو كود الأب)']];
+    allProjects.forEach(p=>{const l1=allCostCenters.filter(c=>c.project_id===p.id&&(c.level||1)===1); if(!l1.length) ref.push([p.name,'']); l1.forEach(c=>ref.push([p.name,(c.code?c.code+' - ':'')+c.name]));});
+    ws2=XLSX.utils.aoa_to_sheet(ref); ws2['!cols']=[{wch:34},{wch:40}];
+    name='cost_centers_template';
+  } else {
+    await ensureAccountsLoaded();
+    ws=XLSX.utils.aoa_to_sheet([['الكود','اسم المجموعة','حساب الشجرة (اختياري)'],['G01','مجموعة الأسمنت','120203002000 - تكاليف أسمنت']]); ws['!cols']=[{wch:12},{wch:34},{wch:50}];
+    ws2=XLSX.utils.aoa_to_sheet([['حسابات الشجرة (انسخ منها)']].concat(expenseAccounts.filter(a=>a.level>=4).map(a=>[a.account_code+' - '+a.account_name]))); ws2['!cols']=[{wch:64}];
+    name='groups_template';
+  }
+  XLSX.utils.book_append_sheet(wb,ws,'البيانات'); XLSX.utils.book_append_sheet(wb,ws2,'قوائم للمراجعة');
+  XLSX.writeFile(wb,name+'.xlsx');
+}
+async function handleSetupImport(input){
+  const file=input.files&&input.files[0]; if(!file) return;
+  const kind=setupImport.kind;
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    if(kind==='projects') setupImport.rows=validateProjectsImport(raw,{projects:allProjects});
+    else if(kind==='cc') setupImport.rows=validateCCImport(raw,{projects:allProjects,costCenters:allCostCenters});
+    else { await ensureAccountsLoaded(); setupImport.rows=validateGroupsImport(raw,{groups:allGroups,accounts:expenseAccounts.filter(a=>a.level>=4)}); }
+    renderSetupImportPreview();
+  }catch(e){ toast('مقدرتش أقرا الملف: '+e.message,'error'); }
+  input.value='';
+}
+function renderSetupImportPreview(){
+  const rows=setupImport.rows, kind=setupImport.kind, e=escHtml;
+  if(!rows.length){ toast('الملف فاضي أو ملقتش فيه صفوف','error'); return; }
+  const ok=rows.filter(r=>r.ok).length, bad=rows.length-ok;
+  document.getElementById('si-title').textContent='مراجعة الملف قبل الحفظ — '+(kind==='projects'?'المشاريع':kind==='cc'?'مراكز التكلفة':'المجموعات');
+  document.getElementById('si-summary').innerHTML=`<span style="color:#10b981;font-weight:700">✓ ${ok} صف سليم</span> &nbsp;|&nbsp; <span style="color:${bad?'#ef4444':'var(--text3)'};font-weight:700">✗ ${bad} صف فيه أخطاء</span><div style="font-size:11px;color:var(--text3);margin-top:6px">الرفع بيضيف بس (مش بيعدّل الموجود). الصفوف الغلط مش هتتحفظ، صلّحها في ملف جديد من غير الصفوف اللي اتحفظت.</div>`;
+  const cols=kind==='projects'?['الكود','المشروع','المخزن']:kind==='cc'?['المشروع','المستوى','الكود','الاسم','يتبع']:['الكود','المجموعة','الحساب'];
+  const cells=r=>kind==='projects'?[r.code,r.name,r.warehouse_name]:kind==='cc'?[r.project_name,r.level,r.code,r.name,r.parent_label]:[r.code,r.name,r.account_label];
+  let h='<div class="tbl-wrap"><table><thead><tr><th>سطر</th><th>الحالة</th>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>الأخطاء</th></tr></thead><tbody>';
+  rows.forEach(r=>{ h+=`<tr style="background:${r.ok?'transparent':'#ef444410'}"><td>${r.row}</td><td>${r.ok?'✅':'❌'}</td>${cells(r).map(c=>`<td>${e(c==null?'':c)}</td>`).join('')}<td style="color:#ef4444;font-size:12px">${e(r.errors.join('، '))}</td></tr>`; });
+  document.getElementById('si-table').innerHTML=h+'</tbody></table></div>';
+  const btn=document.getElementById('si-save'); btn.disabled=ok===0; btn.textContent=`💾 حفظ ${ok} صف سليم`;
+  openModal('setup-import-modal');
+}
+async function saveSetupImport(){
+  const kind=setupImport.kind, good=setupImport.rows.filter(r=>r.ok);
+  if(!good.length){toast('مفيش صفوف سليمة تتحفظ','error');return;}
+  const btn=document.getElementById('si-save'); btn.disabled=true;
+  const chunked=async(table,arr)=>{ for(let i=0;i<arr.length;i+=500){ const {error}=await sb.from(table).insert(arr.slice(i,i+500)); if(error) return error; } return null; };
+  let err=null;
+  if(kind==='projects') err=await chunked('projects',good.map(r=>({code:r.code,name:r.name,warehouse_name:r.warehouse_name})));
+  else if(kind==='groups'){
+    const withAcc=good.some(r=>r.account_code);
+    err=await chunked('groups',good.map(r=>{const o={code:r.code,name:r.name}; if(withAcc) o.account_code=r.account_code; return o;}));
+  } else {
+    const l1=good.filter(r=>r.level===1), l2=good.filter(r=>r.level===2), idOf=new Map();
+    if(l1.length){
+      const {data,error}=await sb.from('cost_centers').insert(l1.map(r=>({code:r.code,name:r.name,project_id:r.project_id,level:1,parent_id:null}))).select('id');
+      if(error) err=error; else l1.forEach((r,i)=>idOf.set(r,data[i].id));
+    }
+    if(!err&&l2.length) err=await chunked('cost_centers',l2.map(r=>({code:r.code,name:r.name,project_id:r.project_id,level:2,parent_id:r.parentExistingId||idOf.get(r.parentRow)||null})));
+  }
+  if(err){ toast('خطأ في الحفظ: '+err.message,'error'); btn.disabled=false; return; }
+  toast(`✅ تم حفظ ${good.length} صف`,'success');
+  closeModal('setup-import-modal');
+  if(kind==='projects') await loadProjects(); else if(kind==='cc') await loadCostCenters(); else await loadGroups();
+  populateSelects();
+}
 
 let allCOA=[];
 async function loadCOA(){
