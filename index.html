@@ -5425,7 +5425,7 @@ async function deleteUser(id,name){
 // LEDGER: دفتر التكاليف
 const LEDGER_TYPES=['عهدة','مصروف','استحقاق','مستخلص','أصل'];
 let allLedger=[], ledgerPg=1, editLedgerId=null, ledgerLoaded=false;
-const LEDGER_PS=50;
+let LEDGER_PS=50;
 function lgOpt(list,val,lab,empty){return '<option value="">'+(empty||'—')+'</option>'+list.map(x=>`<option value="${x[val]}">${escHtml(typeof lab==='function'?lab(x):x[lab])}</option>`).join('');}
 async function loadLedger(){
   const box=document.getElementById('ledger-table');
@@ -5443,6 +5443,7 @@ async function loadLedger(){
   if(fp&&fp.options.length<=1) allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;fp.appendChild(o);});
   renderLedger();
 }
+function ledgerGo(n){ ledgerPg=Math.max(1,n); renderLedger(); var t=document.getElementById('ledger-table'); if(t&&t.scrollIntoView) t.scrollIntoView({block:'start'}); }
 function ledgerFiltered(){
   const t=document.getElementById('lg-f-type')?.value||'',rv=document.getElementById('lg-f-review')?.value||'',
     pj=document.getElementById('lg-f-project')?.value||'',fr=document.getElementById('lg-f-from')?.value||'',to=document.getElementById('lg-f-to')?.value||'',
@@ -5476,7 +5477,7 @@ function renderLedger(){
   });
   h+='</tbody></table></div>';
   document.getElementById('ledger-table').innerHTML=h;
-  document.getElementById('ledger-pager').innerHTML=`<button class="btn btn-ghost btn-sm" ${ledgerPg<=1?'disabled':''} onclick="ledgerPg--;renderLedger()">السابق</button> <span style="margin:0 10px">صفحة ${ledgerPg} من ${pages} (${rows.length} قيد)</span> <button class="btn btn-ghost btn-sm" ${ledgerPg>=pages?'disabled':''} onclick="ledgerPg++;renderLedger()">التالي</button>`;
+  document.getElementById('ledger-pager').innerHTML=`<button class="btn btn-ghost btn-sm" ${ledgerPg<=1?'disabled':''} onclick="ledgerGo(1)">الأولى</button> <button class="btn btn-ghost btn-sm" ${ledgerPg<=1?'disabled':''} onclick="ledgerGo(${ledgerPg-1})">السابق</button> <span style="margin:0 10px">صفحة ${ledgerPg} من ${pages} (${rows.length} قيد)</span> <button class="btn btn-ghost btn-sm" ${ledgerPg>=pages?'disabled':''} onclick="ledgerGo(${ledgerPg+1})">التالي</button> <button class="btn btn-ghost btn-sm" ${ledgerPg>=pages?'disabled':''} onclick="ledgerGo(${pages})">الأخيرة</button> <select onchange="LEDGER_PS=parseInt(this.value);ledgerPg=1;renderLedger()" style="margin-right:10px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text)">${[50,100,250,1000].map(n=>`<option value="${n}" ${n===LEDGER_PS?'selected':''}>${n} في الصفحة</option>`).join('')}</select>`;
 }
 async function openLedgerModal(id=null){
   if(!allCOA.length) await loadCOA();
@@ -5552,6 +5553,7 @@ function lgiHolderDefault(key){
   return m?m.name:'';
 }
 function lgiHolderFor(key){ if(lgiMap.holder[key]===undefined) lgiMap.holder[key]=lgiHolderDefault(key); return lgiMap.holder[key]; }
+let lgiShow=40;
 let lgiLines=[], lgiMeta={sections:{},ccs:{},skipped:0,file:''}, lgiMap={sec:{},cc:{},holder:{}}, lgiBuilt=[], lgiFlagOnly=false;
 function lgiDate(v){
   if(v==null||v==='') return {v:null};
@@ -5624,7 +5626,7 @@ async function handleLedgerImport(input){
     Object.keys(accs).forEach(a=>{lgiMap.acc[a]=a?lgiMatchAcc(a):'';});
     Object.keys(secs).forEach(s=>{lgiMap.sec[s]=lgiDefaultType(s);});
     Object.keys(ccs).forEach(p=>{lgiMap.cc[p]=p?lgiMatchCC(p,ccs[p].c2,ccs[p].c1):'';});
-    lgiFlagOnly=false;
+    lgiFlagOnly=false; lgiShow=40;
     openModal('ledger-import-modal');
     lgiRender();
   }catch(e){ toast('مقدرتش أقرا الملف: '+e.message,'error'); }
@@ -5726,9 +5728,9 @@ function lgiRender(){
     <button class="btn btn-primary" onclick="lgiRun('full')">⬆️ ارفع الكل (${fresh.length})</button>
     <label style="font-size:12px"><input type="checkbox" ${lgiFlagOnly?'checked':''} onchange="lgiFlagOnly=this.checked;lgiRender()"> أعرض اللي محتاج مراجعة بس</label></div>
   <div id="lgi-progress" style="font-size:13px;margin-bottom:8px"></div>
-  <h4 style="margin:6px 0 4px">معاينة (أول 40 سطر)</h4>
+  <h4 style="margin:6px 0 4px">معاينة (أول ${lgiShow} سطر) <button class="btn btn-ghost btn-sm" onclick="lgiShow+=100;lgiRender()">اعرض 100 زيادة</button></h4>
   <div style="overflow:auto"><table style="width:100%;font-size:12px;border-collapse:collapse"><tr><th ${th}>صف</th><th ${th}>النوع</th><th ${th}>التاريخ</th><th ${th}>مركز التكلفة</th><th ${th}>المورد/المقاول</th><th ${th}>البيان</th><th ${th}>الإجمالي</th><th ${th}>ملاحظات</th></tr>`+
-  fresh.filter(o=>!lgiFlagOnly||o.payload.needs_review).slice(0,40).map(o=>{const p=o.payload,c=allCostCenters.find(x=>x.id===(p.cost_center2_id||p.cost_center_id));return `<tr><td ${td}>${o.row}</td><td ${td}>${p.entry_type}</td><td ${td}>${p.entry_date||'بلانك'}</td><td ${td}>${c?escHtml(c.name):'بلانك'}</td><td ${td}>${escHtml(p.vendor_name||'بلانك')}${p.vendor_name&&!p.vendor_id?' ⚠️':''}</td><td ${td}>${escHtml((p.description||'بلانك').slice(0,40))}</td><td ${td}>${fnum(p.total||0)}</td><td ${td} style="color:#d97706">${p.needs_review?'⚠️ '+escHtml(p.review_reason):''}</td></tr>`;}).join('')+`</table></div>
+  fresh.filter(o=>!lgiFlagOnly||o.payload.needs_review).slice(0,lgiShow).map(o=>{const p=o.payload,c=allCostCenters.find(x=>x.id===(p.cost_center2_id||p.cost_center_id));return `<tr><td ${td}>${o.row}</td><td ${td}>${p.entry_type}</td><td ${td}>${p.entry_date||'بلانك'}</td><td ${td}>${c?escHtml(c.name):'بلانك'}</td><td ${td}>${escHtml(p.vendor_name||'بلانك')}${p.vendor_name&&!p.vendor_id?' ⚠️':''}</td><td ${td}>${escHtml((p.description||'بلانك').slice(0,40))}</td><td ${td}>${fnum(p.total||0)}</td><td ${td} style="color:#d97706">${p.needs_review?'⚠️ '+escHtml(p.review_reason):''}</td></tr>`;}).join('')+`</table></div>
   <h4 style="margin:14px 0 4px">دفعات اتعملت قبل كده (للتراجع)</h4><div id="lgi-batches"></div>`;
   window.lgiSecKeys=secKeys; window.lgiCcKeys=ccKeys;
   document.getElementById('lgi-body').innerHTML=h;
