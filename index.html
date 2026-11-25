@@ -655,6 +655,9 @@ tr:hover td{background:#ffffff05;}
         <div style="display:flex;gap:8px;">
           <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ مورد جديد</button>
           <button class="btn btn-success" onclick="openVendorModal('مقاول')">➕ مقاول جديد</button>
+          <button class="btn btn-ghost" onclick="downloadVendorsTemplate()">⬇️ تحميل نموذج Excel</button>
+          <input type="file" id="vendors-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleVendorsImport(event)">
+          <button class="btn btn-ghost" onclick="document.getElementById('vendors-import-file').click()">📥 استيراد من Excel</button>
         </div>
       </div>
       <div class="card">
@@ -1186,6 +1189,17 @@ tr:hover td{background:#ffffff05;}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('vendor-modal')">إلغاء</button>
       <button class="btn btn-accent" onclick="saveVendor()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="vendors-import-modal">
+  <div class="modal" style="width:760px;max-width:95vw">
+    <div class="modal-header"><h3>استيراد الأطراف من Excel</h3><button class="modal-close" onclick="closeModal('vendors-import-modal')">✕</button></div>
+    <div class="modal-body"><div id="vendors-import-preview"></div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('vendors-import-modal')">إلغاء</button>
+      <button class="btn btn-accent" id="vendors-import-confirm" onclick="confirmVendorsImport()" style="display:none">✅ تأكيد الاستيراد</button>
     </div>
   </div>
 </div>
@@ -5372,6 +5386,80 @@ async function deleteVendor(id){
   const {error}=await sb.from('vendors').delete().eq('id',id);
   if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
   toast('تم الحذف','success');await loadVendors();
+}
+
+// VENDORS EXCEL IMPORT
+let vendorsImportRows=[];
+function downloadVendorsTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([['الكود','الاسم','النوع','الهاتف','ملاحظات'],['V-001','مثال مورد','مورد','01000000000','احذف هذين الصفين المثالين'],['C-001','مثال مقاول','مقاول','','']]);
+  ws['!cols']=[{wch:14},{wch:30},{wch:12},{wch:16},{wch:30}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الأطراف');
+  XLSX.writeFile(wb,'نموذج_الأطراف.xlsx');
+}
+function normVendorType(t){
+  t=String(t||'').trim();
+  if(t==='مورد'||t==='موردين'||t==='الموردين')return 'مورد';
+  if(t==='مقاول'||t==='مقاولين'||t==='المقاولين')return 'مقاول';
+  return null;
+}
+function handleVendorsImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+      const existing=new Map(allVendors.filter(v=>v.code).map(v=>[String(v.code).trim().toLowerCase(),v]));
+      const seen=new Set();vendorsImportRows=[];
+      rows.slice(1).forEach((r,i)=>{
+        if(!r.some(c=>String(c).trim()))return;
+        const code=String(r[0]||'').trim(),name=String(r[1]||'').trim(),type=normVendorType(r[2]);
+        const phone=String(r[3]||'').trim(),notes=String(r[4]||'').trim();
+        let err='';
+        if(!code)err='الكود فاضي';
+        else if(!name)err='الاسم فاضي';
+        else if(!type)err='النوع لازم يكون مورد أو مقاول';
+        else if(seen.has(code.toLowerCase()))err='الكود متكرر في الملف';
+        seen.add(code.toLowerCase());
+        const ex=existing.get(code.toLowerCase());
+        vendorsImportRows.push({line:i+2,code,name,type,phone,notes,err,existingId:ex?ex.id:null,status:err?'خطأ':(ex?'تحديث':'جديد')});
+      });
+      renderVendorsImportPreview();openModal('vendors-import-modal');
+    }catch(err){toast('خطأ في قراءة الملف','error');}
+    e.target.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderVendorsImportPreview(){
+  const R=vendorsImportRows;
+  const nNew=R.filter(r=>r.status==='جديد').length,nUpd=R.filter(r=>r.status==='تحديث').length,nErr=R.filter(r=>r.status==='خطأ').length;
+  let h=`<div style="margin-bottom:10px">جديد: <b>${nNew}</b> &nbsp; هيتحدّث: <b>${nUpd}</b> &nbsp; فيه خطأ: <b style="color:#ef4444">${nErr}</b></div>`;
+  if(nErr)h+='<div class="msg error" style="margin-bottom:10px">الصفوف اللي فيها خطأ مش هتتستورد. صلّحها في الملف وارفعه تاني، أو كمّل بالباقي.</div>';
+  h+='<div class="tbl-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>صف</th><th>الحالة</th><th>الكود</th><th>الاسم</th><th>النوع</th><th>الهاتف</th><th>ملاحظة</th></tr></thead><tbody>';
+  R.forEach(r=>{h+=`<tr><td>${r.line}</td><td style="color:${r.status==='خطأ'?'#ef4444':r.status==='تحديث'?'#f59e0b':'#10b981'}">${r.status}</td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td><td>${escHtml(r.type||'')}</td><td>${escHtml(r.phone)}</td><td style="font-size:12px">${escHtml(r.err)}</td></tr>`;});
+  h+='</tbody></table></div>';
+  document.getElementById('vendors-import-preview').innerHTML=h;
+  document.getElementById('vendors-import-confirm').style.display=(nNew+nUpd)?'inline-flex':'none';
+}
+async function confirmVendorsImport(){
+  const ok=vendorsImportRows.filter(r=>r.status!=='خطأ');
+  if(!ok.length)return;
+  const btn=document.getElementById('vendors-import-confirm');btn.disabled=true;
+  let added=0,updated=0,failed=0,lastErr='';
+  const inserts=ok.filter(r=>!r.existingId).map(r=>({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}));
+  for(let i=0;i<inserts.length;i+=200){
+    const chunk=inserts.slice(i,i+200);
+    const {error}=await sb.from('vendors').insert(chunk);
+    if(error){failed+=chunk.length;lastErr=error.message;}else added+=chunk.length;
+  }
+  for(const r of ok.filter(r=>r.existingId)){
+    const {error}=await sb.from('vendors').update({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}).eq('id',r.existingId);
+    if(error){failed++;lastErr=error.message;}else updated++;
+  }
+  btn.disabled=false;
+  closeModal('vendors-import-modal');
+  toast(`تم: ${added} جديد، ${updated} متحدّث`+(failed?`، فشل ${failed} (${lastErr})`:''),failed?'error':'success');
+  await loadVendors();
 }
 
 // PURCHASE ORDERS
