@@ -653,8 +653,7 @@ tr:hover td{background:#ffffff05;}
     <div class="page" id="page-vendors">
       <div class="page-header"><div><h2>الأطراف والجهات</h2><p>تكويد أي طرف له علاقة بالسيستم (موردين، مقاولين، وأنواع تانية لاحقًا)</p></div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ مورد جديد</button>
-          <button class="btn btn-success" onclick="openVendorModal('مقاول')">➕ مقاول جديد</button>
+          <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ طرف جديد</button>
           <button class="btn btn-ghost" onclick="downloadVendorsTemplate()">⬇️ تحميل نموذج Excel</button>
           <input type="file" id="vendors-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleVendorsImport(event)">
           <button class="btn btn-ghost" onclick="document.getElementById('vendors-import-file').click()">📥 استيراد من Excel</button>
@@ -662,13 +661,8 @@ tr:hover td{background:#ffffff05;}
       </div>
       <div class="card">
         <div class="card-header">
-          <h3>الموردين والمقاولين</h3>
+          <h3>الأطراف</h3>
           <div class="card-actions">
-            <select id="vendor-type-filter" onchange="renderVendorsTable()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;">
-              <option value="">الكل</option>
-              <option value="مورد">الموردين فقط</option>
-              <option value="مقاول">المقاولين فقط</option>
-            </select>
             <input type="text" id="vendor-search" placeholder="بحث..." oninput="renderVendorsTable()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:160px">
           </div>
         </div>
@@ -1570,7 +1564,7 @@ function populateSelects(){
   // Populate the single document-level supplier dropdown for وارد
   const bulkSup=document.getElementById('bulk-supplier');
   if(bulkSup){
-    const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+    const supOpts=allVendors.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
     bulkSup.innerHTML='<option value="">اختر المورد</option>'+supOpts+'<option value="__other__">أخرى...</option>';
   }
   updateBulkType();
@@ -2011,7 +2005,7 @@ function renderBulkRows(){
       </select></td>`;
     }
     if(isOut){
-      const conOpts=allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+      const conOpts=allVendors.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
       h+=`
       <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
         <option value="">اختر المقاول</option>${conOpts}
@@ -3748,7 +3742,7 @@ function openBoqEditor(id,kind){
   if(k==='رئيسية') boqEdit.sections=b?buildMasterSections(its):DEFAULT_SECTIONS.map(n=>({name:n,items:[blankMasterItem()]}));
   else boqEdit.items=b?its.map(i=>({id:i.id,description:i.description,unit:i.unit||'',qty:i.qty,unit_price:i.unit_price,account_code:i.account_code||'',acc_label:accLabel(i.account_code),master_item_id:i.master_item_id||''})):[blankBoqRow()];
   document.getElementById('boq-project').innerHTML='<option value="">اختر...</option>'+allProjects.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
-  document.getElementById('boq-contractor').innerHTML='<option value="">اختر...</option>'+allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
+  document.getElementById('boq-contractor').innerHTML='<option value="">اختر...</option>'+allVendors.map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
   document.getElementById('boq-contractor-wrap').style.display=k==='رئيسية'?'none':'';
   document.getElementById('boq-cc-wrap').style.display=k==='رئيسية'?'none':'';
   document.getElementById('boq-number').value=b?b.boq_number:'';
@@ -5333,9 +5327,9 @@ function renderVendorsTable(){
   const search=(document.getElementById('vendor-search')?.value||'').toLowerCase();
   let data=allVendors.filter(v=>(!typeF||v.type===typeF)&&(!search||v.name.toLowerCase().includes(search)||(v.code||'').toLowerCase().includes(search)));
   if(!data.length){document.getElementById('vendors-table').innerHTML='<div class="empty"><div class="ico">🤝</div><p>لا يوجد موردين أو مقاولين</p></div>';return;}
-  let h='<div class="tbl-wrap"><table><thead><tr><th>النوع</th><th>الكود</th><th>الاسم</th><th>الهاتف</th><th>ملاحظات</th><th>إجراءات</th></tr></thead><tbody>';
+  let h='<div class="tbl-wrap"><table><thead><tr><th></th><th>الكود</th><th>الاسم</th><th>الهاتف</th><th>ملاحظات</th><th>إجراءات</th></tr></thead><tbody>';
   data.forEach(v=>{
-    const badge=v.type==='مورد'?'<span class="badge" style="background:#3b82f620;color:#3b82f6">مورد</span>':'<span class="badge" style="background:#10b98120;color:#10b981">مقاول</span>';
+    const badge='';
     h+=`<tr><td>${badge}</td><td style="font-family:monospace">${v.code||'-'}</td><td style="font-weight:600">${v.name}</td><td>${v.phone||'-'}</td><td style="font-size:12px;color:var(--text2)">${v.notes||'-'}</td>
     <td><button class="btn btn-ghost btn-sm" onclick="openVendorModal('${v.type}',${v.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteVendor(${v.id})">🗑️</button></td></tr>`;
   });
@@ -5346,10 +5340,9 @@ let editVendorId=null;
 function openVendorModal(type='مورد',id=null){
   editVendorId=id;
   document.getElementById('vm-type').value=type;
-  document.getElementById('vm-title').textContent=id?(type==='مورد'?'تعديل مورد':'تعديل مقاول'):(type==='مورد'?'مورد جديد':'مقاول جديد');
+  document.getElementById('vm-title').textContent=id?'تعديل طرف':'طرف جديد';
   const badge=document.getElementById('vm-type-badge');
-  if(type==='مورد'){badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640';badge.textContent='🏭 مورد';}
-  else{badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#10b98120;color:#10b981;border:1px solid #10b98140';badge.textContent='👷 مقاول';}
+  badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640';badge.textContent='🤝 طرف';
   if(id){
     const v=allVendors.find(x=>x.id===id);
     document.getElementById('vm-code').value=v?.code||'';
@@ -5391,16 +5384,28 @@ async function deleteVendor(id){
 // VENDORS EXCEL IMPORT
 let vendorsImportRows=[];
 function downloadVendorsTemplate(){
-  const ws=XLSX.utils.aoa_to_sheet([['الكود','الاسم','النوع','الهاتف','ملاحظات'],['V-001','مثال مورد','مورد','01000000000','احذف هذين الصفين المثالين'],['C-001','مثال مقاول','مقاول','','']]);
-  ws['!cols']=[{wch:14},{wch:30},{wch:12},{wch:16},{wch:30}];
+  const ws=XLSX.utils.aoa_to_sheet([['الكود','الاسم','الهاتف','ملاحظات'],['','مثال: شركة الأمل للتوريدات','01000000000','احذف هذا الصف المثال. الكود اتركه فاضي ليتولد تلقائي']]);
+  ws['!cols']=[{wch:14},{wch:40},{wch:16},{wch:30}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الأطراف');
   XLSX.writeFile(wb,'نموذج_الأطراف.xlsx');
 }
-function normVendorType(t){
-  t=String(t||'').trim();
-  if(t==='مورد'||t==='موردين'||t==='الموردين')return 'مورد';
-  if(t==='مقاول'||t==='مقاولين'||t==='المقاولين')return 'مقاول';
-  return null;
+function vNorm(s){
+  s=String(s||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+  return s.replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g,' ').toLowerCase().split(/\s+/).filter(Boolean).join(' ');
+}
+function vRatio(a,b){
+  if(a===b)return 1;
+  const m=a.length,n=b.length;if(!m||!n)return 0;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}
+  return 1-prev[n]/Math.max(m,n);
+}
+function vTokMatch(t,toks){return toks.some(x=>vRatio(t,x)>=0.85);}
+function vSimilar(na,nb){
+  const ta=na.split(' '),tb=nb.split(' ');
+  const [s,l]=ta.length<=tb.length?[ta,tb]:[tb,ta];
+  if(s.length>=2&&s.every(t=>vTokMatch(t,l)))return true;
+  return false;
 }
 function handleVendorsImport(e){
   const file=e.target.files[0];if(!file)return;
@@ -5409,51 +5414,78 @@ function handleVendorsImport(e){
     try{
       const wb=XLSX.read(ev.target.result,{type:'array'});
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
-      const existing=new Map(allVendors.filter(v=>v.code).map(v=>[String(v.code).trim().toLowerCase(),v]));
-      const seen=new Set();vendorsImportRows=[];
+      if(!rows.length)throw new Error('empty');
+      const hdr=rows[0].map(h=>String(h).trim());
+      let cCode=hdr.indexOf('الكود'),cName=hdr.indexOf('الاسم'),cPhone=hdr.indexOf('الهاتف'),cNotes=hdr.indexOf('ملاحظات');
+      if(cName<0){cName=0;cCode=-1;cPhone=-1;cNotes=-1;}
+      const get=(r,c)=>c<0?'':String(r[c]==null?'':r[c]).trim();
+      const exByCode=new Map(allVendors.filter(v=>v.code).map(v=>[String(v.code).trim().toLowerCase(),v]));
+      const exList=allVendors.map(v=>({id:v.id,name:v.name,code:v.code,n:vNorm(v.name)}));
+      const exExact=new Map();exList.forEach(x=>{if(!exExact.has(x.n))exExact.set(x.n,x);});
+      let maxP=0;
+      allVendors.forEach(v=>{const m=/^P-(\d+)$/i.exec(String(v.code||'').trim());if(m)maxP=Math.max(maxP,+m[1]);});
+      const parsed=[];
       rows.slice(1).forEach((r,i)=>{
         if(!r.some(c=>String(c).trim()))return;
-        const code=String(r[0]||'').trim(),name=String(r[1]||'').trim(),type=normVendorType(r[2]);
-        const phone=String(r[3]||'').trim(),notes=String(r[4]||'').trim();
-        let err='';
-        if(!code)err='الكود فاضي';
-        else if(!name)err='الاسم فاضي';
-        else if(!type)err='النوع لازم يكون مورد أو مقاول';
-        else if(seen.has(code.toLowerCase()))err='الكود متكرر في الملف';
-        seen.add(code.toLowerCase());
-        const ex=existing.get(code.toLowerCase());
-        vendorsImportRows.push({line:i+2,code,name,type,phone,notes,err,existingId:ex?ex.id:null,status:err?'خطأ':(ex?'تحديث':'جديد')});
+        const m=/^P-(\d+)$/i.exec(get(r,cCode));if(m)maxP=Math.max(maxP,+m[1]);
+        parsed.push({line:i+2,code:get(r,cCode),name:get(r,cName),phone:get(r,cPhone),notes:get(r,cNotes)});
       });
+      const seenCode=new Set(),seenName=new Map(),accepted=[];
+      vendorsImportRows=parsed.map(p=>{
+        const n=vNorm(p.name);let status='جديد',note='',existingId=null,approve=false;
+        const exC=p.code?exByCode.get(p.code.toLowerCase()):null;
+        if(!p.name)status='خطأ',note='الاسم فاضي';
+        else if(p.code&&seenCode.has(p.code.toLowerCase()))status='خطأ',note='الكود متكرر في الملف';
+        else if(exC){status='تحديث';existingId=exC.id;note='كود موجود، هيتحدث';}
+        else if(exExact.has(n)){status='مكرر';const x=exExact.get(n);note='موجود في السيستم: '+x.name+(x.code?' ('+x.code+')':'');}
+        else if(seenName.has(n)){status='مكرر';note='نفس الاسم في صف '+seenName.get(n)+' من الملف';}
+        else{
+          let sim=exList.find(x=>vSimilar(n,x.n));
+          if(sim){status='مشابه';note='يشبه (في السيستم): '+sim.name+(sim.code?' ('+sim.code+')':'');}
+          else{const a=accepted.find(x=>vSimilar(n,x.n));if(a){status='مشابه';note='يشبه (صف '+a.line+'): '+a.name;}}
+        }
+        if(p.code)seenCode.add(p.code.toLowerCase());
+        if(status!=='خطأ'&&status!=='مكرر'){if(!seenName.has(n))seenName.set(n,p.line);}
+        if(status==='جديد'||status==='مشابه')accepted.push({line:p.line,name:p.name,n});
+        return {...p,status,note,existingId,approve};
+      });
+      vendorsImportRows._nextP=maxP+1;
       renderVendorsImportPreview();openModal('vendors-import-modal');
     }catch(err){toast('خطأ في قراءة الملف','error');}
     e.target.value='';
   };
   reader.readAsArrayBuffer(file);
 }
+function toggleVendorApprove(i,v){vendorsImportRows[i].approve=v;renderVendorsImportPreview();}
 function renderVendorsImportPreview(){
-  const R=vendorsImportRows;
-  const nNew=R.filter(r=>r.status==='جديد').length,nUpd=R.filter(r=>r.status==='تحديث').length,nErr=R.filter(r=>r.status==='خطأ').length;
-  let h=`<div style="margin-bottom:10px">جديد: <b>${nNew}</b> &nbsp; هيتحدّث: <b>${nUpd}</b> &nbsp; فيه خطأ: <b style="color:#ef4444">${nErr}</b></div>`;
-  if(nErr)h+='<div class="msg error" style="margin-bottom:10px">الصفوف اللي فيها خطأ مش هتتستورد. صلّحها في الملف وارفعه تاني، أو كمّل بالباقي.</div>';
-  h+='<div class="tbl-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>صف</th><th>الحالة</th><th>الكود</th><th>الاسم</th><th>النوع</th><th>الهاتف</th><th>ملاحظة</th></tr></thead><tbody>';
-  R.forEach(r=>{h+=`<tr><td>${r.line}</td><td style="color:${r.status==='خطأ'?'#ef4444':r.status==='تحديث'?'#f59e0b':'#10b981'}">${r.status}</td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td><td>${escHtml(r.type||'')}</td><td>${escHtml(r.phone)}</td><td style="font-size:12px">${escHtml(r.err)}</td></tr>`;});
+  const R=vendorsImportRows,c=s=>R.filter(r=>r.status===s).length;
+  const nImp=R.filter(r=>r.status==='جديد'||r.status==='تحديث'||(r.status==='مشابه'&&r.approve)).length;
+  let h=`<div style="margin-bottom:10px">جديد: <b>${c('جديد')}</b> &nbsp; هيتحدّث: <b>${c('تحديث')}</b> &nbsp; مشابه (محتاج موافقتك): <b style="color:#f59e0b">${c('مشابه')}</b> &nbsp; مكرر (هيتخطى): <b>${c('مكرر')}</b> &nbsp; خطأ: <b style="color:#ef4444">${c('خطأ')}</b></div>`;
+  h+='<div style="margin-bottom:10px;font-size:12px;color:var(--text2)">الصفوف "مشابه" مش هتتستورد إلا لو علّمت عليها (يعني هو فعلاً طرف مختلف). "مكرر" و"خطأ" بيتخطوا. الكود الفاضي بيتولد تلقائي (P-0001...).</div>';
+  h+='<div class="tbl-wrap" style="max-height:380px;overflow:auto"><table><thead><tr><th>صف</th><th>الحالة</th><th>استورد؟</th><th>الكود</th><th>الاسم</th><th>ملاحظة</th></tr></thead><tbody>';
+  const col={'جديد':'#10b981','تحديث':'#3b82f6','مشابه':'#f59e0b','مكرر':'#9ca3af','خطأ':'#ef4444'};
+  R.forEach((r,i)=>{
+    const chk=r.status==='مشابه'?`<input type="checkbox" ${r.approve?'checked':''} onchange="toggleVendorApprove(${i},this.checked)">`:'';
+    h+=`<tr><td>${r.line}</td><td style="color:${col[r.status]}">${r.status}</td><td>${chk}</td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td><td style="font-size:12px">${escHtml(r.note)}</td></tr>`;
+  });
   h+='</tbody></table></div>';
   document.getElementById('vendors-import-preview').innerHTML=h;
-  document.getElementById('vendors-import-confirm').style.display=(nNew+nUpd)?'inline-flex':'none';
+  const b=document.getElementById('vendors-import-confirm');
+  b.style.display=nImp?'inline-flex':'none';b.textContent='✅ تأكيد استيراد '+nImp;
 }
 async function confirmVendorsImport(){
-  const ok=vendorsImportRows.filter(r=>r.status!=='خطأ');
+  const ok=vendorsImportRows.filter(r=>r.status==='جديد'||r.status==='تحديث'||(r.status==='مشابه'&&r.approve));
   if(!ok.length)return;
   const btn=document.getElementById('vendors-import-confirm');btn.disabled=true;
-  let added=0,updated=0,failed=0,lastErr='';
-  const inserts=ok.filter(r=>!r.existingId).map(r=>({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}));
+  let next=vendorsImportRows._nextP||1,added=0,updated=0,failed=0,lastErr='';
+  const inserts=ok.filter(r=>!r.existingId).map(r=>({code:r.code||('P-'+String(next++).padStart(4,'0')),name:r.name,type:'مورد',phone:r.phone||null,notes:r.notes||null}));
   for(let i=0;i<inserts.length;i+=200){
     const chunk=inserts.slice(i,i+200);
     const {error}=await sb.from('vendors').insert(chunk);
     if(error){failed+=chunk.length;lastErr=error.message;}else added+=chunk.length;
   }
   for(const r of ok.filter(r=>r.existingId)){
-    const {error}=await sb.from('vendors').update({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}).eq('id',r.existingId);
+    const {error}=await sb.from('vendors').update({name:r.name,phone:r.phone||null,notes:r.notes||null}).eq('id',r.existingId);
     if(error){failed++;lastErr=error.message;}else updated++;
   }
   btn.disabled=false;
@@ -5538,7 +5570,7 @@ function addPORow(){
 function clearPORows(){poBulkRows=[];addPORow();}
 
 function renderPORows(){
-  const venOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  const venOpts=allVendors.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
   let h='';
   poBulkRows.forEach((row,i)=>{
     h+=`<tr>
@@ -6099,7 +6131,7 @@ function initPQBulk(){
 function addPQRow(){pqRows.push({item_id:'',item_name:'',item_code:'',qty:'',unit:'',v1_id:'',v1_price:'',v2_id:'',v2_price:'',v3_id:'',v3_price:'',v4_id:'',v4_price:'',notes:''});renderPQRows();}
 function clearPQRows(){pqRows=[];addPQRow();}
 function renderPQRows(){
-  const venOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  const venOpts=allVendors.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
   let h='';
   pqRows.forEach((row,i)=>{
     h+=`<tr><td style="text-align:center;color:var(--text3);font-size:12px">${i+1}</td>
