@@ -327,6 +327,10 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">📋</div>
           <div class="hub-tile-title">المستخلصات</div>
         </div>
+        <div class="hub-tile hub-green" onclick="showPage('ledger')">
+          <div class="hub-tile-icon">📒</div>
+          <div class="hub-tile-title">دفتر التكاليف</div>
+        </div>
         <div class="hub-tile hub-amber" onclick="showPage('custody')">
           <div class="hub-tile-icon">💵</div>
           <div class="hub-tile-title">العهد النقدية</div>
@@ -653,7 +657,8 @@ tr:hover td{background:#ffffff05;}
     <div class="page" id="page-vendors">
       <div class="page-header"><div><h2>الأطراف والجهات</h2><p>تكويد أي طرف له علاقة بالسيستم (موردين، مقاولين، وأنواع تانية لاحقًا)</p></div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ طرف جديد</button>
+          <button class="btn btn-accent" onclick="openVendorModal('مورد')">➕ مورد جديد</button>
+          <button class="btn btn-success" onclick="openVendorModal('مقاول')">➕ مقاول جديد</button>
           <button class="btn btn-ghost" onclick="downloadVendorsTemplate()">⬇️ تحميل نموذج Excel</button>
           <input type="file" id="vendors-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleVendorsImport(event)">
           <button class="btn btn-ghost" onclick="document.getElementById('vendors-import-file').click()">📥 استيراد من Excel</button>
@@ -661,8 +666,13 @@ tr:hover td{background:#ffffff05;}
       </div>
       <div class="card">
         <div class="card-header">
-          <h3>الأطراف</h3>
+          <h3>الموردين والمقاولين</h3>
           <div class="card-actions">
+            <select id="vendor-type-filter" onchange="renderVendorsTable()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;">
+              <option value="">الكل</option>
+              <option value="مورد">الموردين فقط</option>
+              <option value="مقاول">المقاولين فقط</option>
+            </select>
             <input type="text" id="vendor-search" placeholder="بحث..." oninput="renderVendorsTable()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:160px">
           </div>
         </div>
@@ -853,6 +863,31 @@ tr:hover td{background:#ffffff05;}
     </div>
 
     <!-- CUSTODY: أرصدة العهد -->
+    <!-- LEDGER: دفتر التكاليف -->
+    <div class="page" id="page-ledger">
+      <div class="page-header"><div><h2>دفتر التكاليف</h2><p>عهدة، مصروف، استحقاق، مستخلص، أصل في مكان واحد</p></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-accent" onclick="openLedgerModal()">➕ قيد جديد</button></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>الإجماليات حسب النوع</h3></div>
+        <div id="ledger-totals" style="padding:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>سجل القيود</h3>
+          <div class="card-actions" style="flex-wrap:wrap;gap:6px">
+            <select id="lg-f-type" onchange="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">كل الأنواع</option></select>
+            <select id="lg-f-review" onchange="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">الكل</option><option value="1">للمراجعة فقط</option><option value="0">سليم فقط</option></select>
+            <select id="lg-f-project" onchange="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">كل المشاريع</option></select>
+            <input type="date" id="lg-f-from" onchange="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+            <input type="date" id="lg-f-to" onchange="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+            <input type="text" id="lg-f-search" placeholder="بحث (بيان، مورد، رقم قيد)..." oninput="ledgerPg=1;renderLedger()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:210px">
+          </div>
+        </div>
+        <div id="ledger-table"><div class="loading"><div class="spinner"></div></div></div>
+        <div id="ledger-pager" style="padding:10px;text-align:center"></div>
+      </div>
+    </div>
+
     <div class="page" id="page-custody">
       <div class="page-header"><div><h2>أرصدة العهد</h2><p>متابعة عهد الموظفين والمشرفين - الرصيد الحالي لكل شخص</p></div></div>
       <div class="card">
@@ -1167,6 +1202,65 @@ tr:hover td{background:#ffffff05;}
   </div>
 </div>
 
+<div class="modal-overlay" id="ledger-modal">
+  <div class="modal" style="width:760px;max-width:96vw">
+    <div class="modal-header"><h3 id="lg-title">قيد جديد</h3><button class="modal-close" onclick="closeModal('ledger-modal')">✕</button></div>
+    <div class="modal-body" style="max-height:72vh;overflow:auto">
+      <div class="form-row">
+        <div class="form-group"><label>النوع *</label><select id="lg-type"></select></div>
+        <div class="form-group"><label>التاريخ</label><input type="date" id="lg-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>المشروع</label><select id="lg-project"></select></div>
+        <div class="form-group"><label>مركز التكلفة</label><select id="lg-cc"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>مركز التكلفة 2</label><select id="lg-cc2"></select></div>
+        <div class="form-group"><label>حساب (كود - اسم)</label><input type="text" id="lg-account" list="lg-account-list" placeholder="ابحث بالكود أو الاسم"><datalist id="lg-account-list"></datalist></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>المورد / المقاول</label><select id="lg-vendor"></select></div>
+        <div class="form-group"><label>صاحب العهدة / الخزينة</label><input type="text" id="lg-holder"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>رقم القيد</label><input type="text" id="lg-entry"></div>
+        <div class="form-group"><label>رقم المستخلص / إذن الصرف</label><input type="text" id="lg-doc"></div>
+      </div>
+      <div class="form-group"><label>البيان</label><textarea id="lg-desc"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>بند الأعمال</label><input type="text" id="lg-work"></div>
+        <div class="form-group"><label>الوحدة</label><input type="text" id="lg-unit"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>الكمية</label><input type="number" step="any" id="lg-qty"></div>
+        <div class="form-group"><label>السعر</label><input type="number" step="any" id="lg-price"></div>
+        <div class="form-group"><label>نسبة الصرف</label><input type="number" step="any" id="lg-pct" placeholder="1 = 100%"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>القيمة</label><input type="number" step="any" id="lg-amount"></div>
+        <div class="form-group"><label>ض.ق.م</label><input type="number" step="any" id="lg-vat"></div>
+        <div class="form-group"><label>الإجمالي</label><input type="number" step="any" id="lg-total" placeholder="لو فاضي = القيمة + الضريبة"></div>
+        <div class="form-group"><label>ضريبة الخصم</label><input type="number" step="any" id="lg-wht"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>نوع المستند</label><input type="text" id="lg-doctype"></div>
+        <div class="form-group"><label>موقف ضريبة الخصم</label><input type="text" id="lg-taxst"></div>
+        <div class="form-group"><label>تاريخ الفاتورة</label><input type="date" id="lg-invdate"></div>
+      </div>
+      <div class="form-group"><label>رابط الفاتورة</label><input type="text" id="lg-invurl"></div>
+      <div class="form-group"><label>ملاحظات</label><textarea id="lg-notes"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label><input type="checkbox" id="lg-review"> للمراجعة</label></div>
+        <div class="form-group"><label>سبب المراجعة</label><input type="text" id="lg-reason"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ledger-modal')">إلغاء</button>
+      <button class="btn btn-accent" onclick="saveLedger()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="vendor-modal">
   <div class="modal" style="width:420px">
     <div class="modal-header"><h3 id="vm-title">مورد جديد</h3><button class="modal-close" onclick="closeModal('vendor-modal')">✕</button></div>
@@ -1454,6 +1548,9 @@ const NAV_STRUCTURE=[
     {page:'extract-sheet', icon:'🧾', label:'شاشة المستخلص', hidden:true},
     {page:'extract-voucher', icon:'🧾', label:'إذن الصرف', hidden:true},
   ]},
+  {type:'module', key:'ledger-module', icon:'📒', label:'دفتر التكاليف', children:[
+    {page:'ledger', icon:'📒', label:'دفتر التكاليف'},
+  ]},
   {type:'module', key:'custody-module', icon:'💵', label:'العهد النقدية', children:[
     {page:'custody', icon:'📋', label:'أرصدة العهد'},
     {page:'custody-entry', icon:'➕', label:'تسجيل عهدة'},
@@ -1564,7 +1661,7 @@ function populateSelects(){
   // Populate the single document-level supplier dropdown for وارد
   const bulkSup=document.getElementById('bulk-supplier');
   if(bulkSup){
-    const supOpts=allVendors.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+    const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
     bulkSup.innerHTML='<option value="">اختر المورد</option>'+supOpts+'<option value="__other__">أخرى...</option>';
   }
   updateBulkType();
@@ -2005,7 +2102,7 @@ function renderBulkRows(){
       </select></td>`;
     }
     if(isOut){
-      const conOpts=allVendors.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+      const conOpts=allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
       h+=`
       <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
         <option value="">اختر المقاول</option>${conOpts}
@@ -3742,7 +3839,7 @@ function openBoqEditor(id,kind){
   if(k==='رئيسية') boqEdit.sections=b?buildMasterSections(its):DEFAULT_SECTIONS.map(n=>({name:n,items:[blankMasterItem()]}));
   else boqEdit.items=b?its.map(i=>({id:i.id,description:i.description,unit:i.unit||'',qty:i.qty,unit_price:i.unit_price,account_code:i.account_code||'',acc_label:accLabel(i.account_code),master_item_id:i.master_item_id||''})):[blankBoqRow()];
   document.getElementById('boq-project').innerHTML='<option value="">اختر...</option>'+allProjects.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
-  document.getElementById('boq-contractor').innerHTML='<option value="">اختر...</option>'+allVendors.map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
+  document.getElementById('boq-contractor').innerHTML='<option value="">اختر...</option>'+allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
   document.getElementById('boq-contractor-wrap').style.display=k==='رئيسية'?'none':'';
   document.getElementById('boq-cc-wrap').style.display=k==='رئيسية'?'none':'';
   document.getElementById('boq-number').value=b?b.boq_number:'';
@@ -5315,6 +5412,109 @@ async function deleteUser(id,name){
   await loadUsers();
 }
 
+// LEDGER: دفتر التكاليف
+const LEDGER_TYPES=['عهدة','مصروف','استحقاق','مستخلص','أصل'];
+let allLedger=[], ledgerPg=1, editLedgerId=null, ledgerLoaded=false;
+const LEDGER_PS=50;
+function lgOpt(list,val,lab,empty){return '<option value="">'+(empty||'—')+'</option>'+list.map(x=>`<option value="${x[val]}">${escHtml(typeof lab==='function'?lab(x):x[lab])}</option>`).join('');}
+async function loadLedger(){
+  const box=document.getElementById('ledger-table');
+  if(box) box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const r=await pagedQuery(()=>sb.from('cost_ledger').select('*'));
+  if(r.error){
+    if(box) box.innerHTML='<div class="empty"><div class="ico">⚠️</div><p>لسه معملتش SQL دفتر التكاليف في Supabase ('+escHtml(r.error.message)+')</p></div>';
+    return;
+  }
+  allLedger=r.data||r;
+  ledgerLoaded=true;
+  const ft=document.getElementById('lg-f-type');
+  if(ft&&ft.options.length<=1) LEDGER_TYPES.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o);});
+  const fp=document.getElementById('lg-f-project');
+  if(fp&&fp.options.length<=1) allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;fp.appendChild(o);});
+  renderLedger();
+}
+function ledgerFiltered(){
+  const t=document.getElementById('lg-f-type')?.value||'',rv=document.getElementById('lg-f-review')?.value||'',
+    pj=document.getElementById('lg-f-project')?.value||'',fr=document.getElementById('lg-f-from')?.value||'',to=document.getElementById('lg-f-to')?.value||'',
+    q=(document.getElementById('lg-f-search')?.value||'').trim().toLowerCase();
+  return allLedger.filter(r=>{
+    if(t&&r.entry_type!==t)return false;
+    if(rv==='1'&&!r.needs_review)return false;
+    if(rv==='0'&&r.needs_review)return false;
+    if(pj&&String(r.project_id)!==pj)return false;
+    if(fr&&(!r.entry_date||r.entry_date<fr))return false;
+    if(to&&(!r.entry_date||r.entry_date>to))return false;
+    if(q&&!((r.description||'')+' '+(r.vendor_name||'')+' '+(r.entry_number||'')+' '+(r.doc_number||'')+' '+(r.holder_name||'')).toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function renderLedger(){
+  const rows=ledgerFiltered().sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||b.id-a.id);
+  const sums={};LEDGER_TYPES.forEach(t=>sums[t]={n:0,total:0,rev:0});
+  rows.forEach(r=>{const s=sums[r.entry_type];if(!s)return;s.n++;s.total+=+r.total||0;if(r.needs_review)s.rev++;});
+  document.getElementById('ledger-totals').innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap">'+LEDGER_TYPES.map(t=>`<div style="flex:1;min-width:150px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:12px;color:var(--text3)">${t} (${sums[t].n} قيد${sums[t].rev?'، '+sums[t].rev+' للمراجعة':''})</div><div style="font-weight:700;font-size:16px">${fnum(sums[t].total)}</div></div>`).join('')+'</div><div style="font-size:11px;color:var(--text3);margin-top:8px">كل نوع بيتحسب لوحده ومش بيتجمع مع التاني.</div>';
+  const pages=Math.max(1,Math.ceil(rows.length/LEDGER_PS));if(ledgerPg>pages)ledgerPg=pages;
+  const slice=rows.slice((ledgerPg-1)*LEDGER_PS,ledgerPg*LEDGER_PS);
+  if(!slice.length){document.getElementById('ledger-table').innerHTML='<div class="empty"><div class="ico">📒</div><p>لا توجد قيود</p></div>';document.getElementById('ledger-pager').innerHTML='';return;}
+  const pn=id=>allProjects.find(p=>p.id===id)?.name||'-',cn=id=>allCostCenters.find(c=>c.id===id)?.name||'-';
+  let h='<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المشروع</th><th>مركز التكلفة</th><th>الحساب</th><th>المورد</th><th>البيان</th><th>الإجمالي</th><th>رقم القيد</th><th></th><th>إجراءات</th></tr></thead><tbody>';
+  slice.forEach(r=>{
+    const v=r.vendor_id?(allVendors.find(x=>x.id===r.vendor_id)?.name||r.vendor_name||'-'):(r.vendor_name||'-');
+    h+=`<tr style="${r.needs_review?'background:#f59e0b12':''}"><td>${r.entry_date||'<span style="color:var(--text3)">بلانك</span>'}</td><td>${escHtml(r.entry_type)}</td><td style="font-size:12px">${escHtml(pn(r.project_id))}</td><td style="font-size:12px">${escHtml(cn(r.cost_center2_id||r.cost_center_id))}</td><td style="font-size:12px">${escHtml(r.account_name||r.account_code||'')||'<span style="color:var(--text3)">بلانك</span>'}</td><td style="font-size:12px">${escHtml(v)}</td><td style="font-size:12px;max-width:260px">${escHtml(r.description||'')||'<span style="color:var(--text3)">بلانك</span>'}</td><td style="font-weight:700">${fnum(r.total)}</td><td style="font-size:12px">${escHtml(r.entry_number||'')}</td>
+    <td>${r.needs_review?`<span title="${escHtml(r.review_reason||'')}" style="color:#f59e0b;font-size:12px">⚠️ ${escHtml(r.review_reason||'للمراجعة')}</span>`:''}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openLedgerModal(${r.id})">✏️</button>${CP?.role==='مدير'?` <button class="btn btn-danger btn-sm" onclick="deleteLedger(${r.id})">🗑️</button>`:''}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  document.getElementById('ledger-table').innerHTML=h;
+  document.getElementById('ledger-pager').innerHTML=`<button class="btn btn-ghost btn-sm" ${ledgerPg<=1?'disabled':''} onclick="ledgerPg--;renderLedger()">السابق</button> <span style="margin:0 10px">صفحة ${ledgerPg} من ${pages} (${rows.length} قيد)</span> <button class="btn btn-ghost btn-sm" ${ledgerPg>=pages?'disabled':''} onclick="ledgerPg++;renderLedger()">التالي</button>`;
+}
+async function openLedgerModal(id=null){
+  if(!allCOA.length) await loadCOA();
+  editLedgerId=id;
+  const r=id?allLedger.find(x=>x.id===id):null;
+  document.getElementById('lg-title').textContent=id?'تعديل قيد':'قيد جديد';
+  document.getElementById('lg-type').innerHTML=LEDGER_TYPES.map(t=>`<option>${t}</option>`).join('');
+  document.getElementById('lg-project').innerHTML=lgOpt(allProjects,'id','name');
+  const ccl=c=>c.name+' (مستوى '+(c.level||'-')+(c.projects?.name?' - '+c.projects.name:'')+')';
+  document.getElementById('lg-cc').innerHTML=lgOpt(allCostCenters,'id',ccl);
+  document.getElementById('lg-cc2').innerHTML=lgOpt(allCostCenters,'id',ccl);
+  document.getElementById('lg-vendor').innerHTML=lgOpt(allVendors,'id',v=>(v.code?v.code+' - ':'')+v.name);
+  document.getElementById('lg-account-list').innerHTML=allCOA.filter(a=>(a.level||0)>=4).map(a=>`<option value="${escHtml(a.account_code+' - '+a.account_name)}">`).join('');
+  const set=(k,v)=>{document.getElementById(k).value=(v==null?'':v);};
+  set('lg-type',r?.entry_type||'مصروف');set('lg-date',r?.entry_date);set('lg-project',r?.project_id);set('lg-cc',r?.cost_center_id);set('lg-cc2',r?.cost_center2_id);
+  set('lg-account',r?.account_code?(r.account_code+(r.account_name?' - '+r.account_name:'')):(r?.account_name||''));set('lg-vendor',r?.vendor_id);set('lg-holder',r?.holder_name);
+  set('lg-entry',r?.entry_number);set('lg-doc',r?.doc_number);set('lg-desc',r?.description);set('lg-work',r?.work_item);set('lg-unit',r?.unit);
+  set('lg-qty',r?.qty);set('lg-price',r?.unit_price);set('lg-pct',r?.pct);set('lg-amount',r?.amount);set('lg-vat',r?.vat);set('lg-total',r?.total);set('lg-wht',r?.wht_amount);
+  set('lg-doctype',r?.doc_type);set('lg-taxst',r?.tax_status);set('lg-invdate',r?.invoice_date);set('lg-invurl',r?.invoice_url);set('lg-notes',r?.notes);
+  document.getElementById('lg-review').checked=!!r?.needs_review;set('lg-reason',r?.review_reason);
+  openModal('ledger-modal');
+}
+async function saveLedger(){
+  const g=k=>document.getElementById(k).value.trim();
+  const num=k=>{const v=parseFloat(g(k));return isNaN(v)?null:v;};
+  const intv=k=>{const v=parseInt(g(k));return isNaN(v)?null:v;};
+  const acc=g('lg-account');let code=null,name=null;
+  if(acc){const m=/^(\S+)\s+-\s+(.*)$/.exec(acc);if(m){code=m[1];name=m[2];}else{name=acc;}}
+  let amount=num('lg-amount'),vat=num('lg-vat'),total=num('lg-total');
+  if(total==null&&(amount!=null||vat!=null))total=(amount||0)+(vat||0);
+  if(total==null){toast('اكتب القيمة أو الإجمالي','error');return;}
+  const payload={entry_type:g('lg-type'),entry_date:g('lg-date')||null,project_id:intv('lg-project'),cost_center_id:intv('lg-cc'),cost_center2_id:intv('lg-cc2'),
+    account_code:code,account_name:name,vendor_id:intv('lg-vendor'),holder_name:g('lg-holder')||null,entry_number:g('lg-entry')||null,doc_number:g('lg-doc')||null,
+    description:g('lg-desc')||null,work_item:g('lg-work')||null,unit:g('lg-unit')||null,qty:num('lg-qty'),unit_price:num('lg-price'),pct:num('lg-pct'),
+    amount,vat,total,wht_amount:num('lg-wht'),doc_type:g('lg-doctype')||null,tax_status:g('lg-taxst')||null,invoice_date:g('lg-invdate')||null,invoice_url:g('lg-invurl')||null,
+    notes:g('lg-notes')||null,needs_review:document.getElementById('lg-review').checked,review_reason:g('lg-reason')||null};
+  if(!editLedgerId)payload.created_by=CU?.id||null;
+  const {error}=editLedgerId?await sb.from('cost_ledger').update(payload).eq('id',editLedgerId):await sb.from('cost_ledger').insert(payload);
+  if(error){toast('خطأ: '+error.message,'error');return;}
+  toast('تم الحفظ ✅','success');closeModal('ledger-modal');await loadLedger();
+}
+async function deleteLedger(id){
+  if(!confirm('حذف القيد ده؟'))return;
+  const {error}=await sb.from('cost_ledger').delete().eq('id',id);
+  if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
+  toast('تم الحذف','success');await loadLedger();
+}
+
 // VENDORS
 let allVendors=[];
 async function loadVendors(){
@@ -5327,9 +5527,9 @@ function renderVendorsTable(){
   const search=(document.getElementById('vendor-search')?.value||'').toLowerCase();
   let data=allVendors.filter(v=>(!typeF||v.type===typeF)&&(!search||v.name.toLowerCase().includes(search)||(v.code||'').toLowerCase().includes(search)));
   if(!data.length){document.getElementById('vendors-table').innerHTML='<div class="empty"><div class="ico">🤝</div><p>لا يوجد موردين أو مقاولين</p></div>';return;}
-  let h='<div class="tbl-wrap"><table><thead><tr><th></th><th>الكود</th><th>الاسم</th><th>الهاتف</th><th>ملاحظات</th><th>إجراءات</th></tr></thead><tbody>';
+  let h='<div class="tbl-wrap"><table><thead><tr><th>النوع</th><th>الكود</th><th>الاسم</th><th>الهاتف</th><th>ملاحظات</th><th>إجراءات</th></tr></thead><tbody>';
   data.forEach(v=>{
-    const badge='';
+    const badge=v.type==='مورد'?'<span class="badge" style="background:#3b82f620;color:#3b82f6">مورد</span>':'<span class="badge" style="background:#10b98120;color:#10b981">مقاول</span>';
     h+=`<tr><td>${badge}</td><td style="font-family:monospace">${v.code||'-'}</td><td style="font-weight:600">${v.name}</td><td>${v.phone||'-'}</td><td style="font-size:12px;color:var(--text2)">${v.notes||'-'}</td>
     <td><button class="btn btn-ghost btn-sm" onclick="openVendorModal('${v.type}',${v.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteVendor(${v.id})">🗑️</button></td></tr>`;
   });
@@ -5340,9 +5540,10 @@ let editVendorId=null;
 function openVendorModal(type='مورد',id=null){
   editVendorId=id;
   document.getElementById('vm-type').value=type;
-  document.getElementById('vm-title').textContent=id?'تعديل طرف':'طرف جديد';
+  document.getElementById('vm-title').textContent=id?(type==='مورد'?'تعديل مورد':'تعديل مقاول'):(type==='مورد'?'مورد جديد':'مقاول جديد');
   const badge=document.getElementById('vm-type-badge');
-  badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640';badge.textContent='🤝 طرف';
+  if(type==='مورد'){badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640';badge.textContent='🏭 مورد';}
+  else{badge.style.cssText='margin-bottom:12px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:#10b98120;color:#10b981;border:1px solid #10b98140';badge.textContent='👷 مقاول';}
   if(id){
     const v=allVendors.find(x=>x.id===id);
     document.getElementById('vm-code').value=v?.code||'';
@@ -5384,28 +5585,16 @@ async function deleteVendor(id){
 // VENDORS EXCEL IMPORT
 let vendorsImportRows=[];
 function downloadVendorsTemplate(){
-  const ws=XLSX.utils.aoa_to_sheet([['الكود','الاسم','الهاتف','ملاحظات'],['','مثال: شركة الأمل للتوريدات','01000000000','احذف هذا الصف المثال. الكود اتركه فاضي ليتولد تلقائي']]);
-  ws['!cols']=[{wch:14},{wch:40},{wch:16},{wch:30}];
+  const ws=XLSX.utils.aoa_to_sheet([['الكود','الاسم','النوع','الهاتف','ملاحظات'],['V-001','مثال مورد','مورد','01000000000','احذف هذين الصفين المثالين'],['C-001','مثال مقاول','مقاول','','']]);
+  ws['!cols']=[{wch:14},{wch:30},{wch:12},{wch:16},{wch:30}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الأطراف');
   XLSX.writeFile(wb,'نموذج_الأطراف.xlsx');
 }
-function vNorm(s){
-  s=String(s||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
-  return s.replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g,' ').toLowerCase().split(/\s+/).filter(Boolean).join(' ');
-}
-function vRatio(a,b){
-  if(a===b)return 1;
-  const m=a.length,n=b.length;if(!m||!n)return 0;
-  let prev=Array.from({length:n+1},(_,j)=>j);
-  for(let i=1;i<=m;i++){const cur=[i];for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}
-  return 1-prev[n]/Math.max(m,n);
-}
-function vTokMatch(t,toks){return toks.some(x=>vRatio(t,x)>=0.85);}
-function vSimilar(na,nb){
-  const ta=na.split(' '),tb=nb.split(' ');
-  const [s,l]=ta.length<=tb.length?[ta,tb]:[tb,ta];
-  if(s.length>=2&&s.every(t=>vTokMatch(t,l)))return true;
-  return false;
+function normVendorType(t){
+  t=String(t||'').trim();
+  if(t==='مورد'||t==='موردين'||t==='الموردين')return 'مورد';
+  if(t==='مقاول'||t==='مقاولين'||t==='المقاولين')return 'مقاول';
+  return null;
 }
 function handleVendorsImport(e){
   const file=e.target.files[0];if(!file)return;
@@ -5414,78 +5603,51 @@ function handleVendorsImport(e){
     try{
       const wb=XLSX.read(ev.target.result,{type:'array'});
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
-      if(!rows.length)throw new Error('empty');
-      const hdr=rows[0].map(h=>String(h).trim());
-      let cCode=hdr.indexOf('الكود'),cName=hdr.indexOf('الاسم'),cPhone=hdr.indexOf('الهاتف'),cNotes=hdr.indexOf('ملاحظات');
-      if(cName<0){cName=0;cCode=-1;cPhone=-1;cNotes=-1;}
-      const get=(r,c)=>c<0?'':String(r[c]==null?'':r[c]).trim();
-      const exByCode=new Map(allVendors.filter(v=>v.code).map(v=>[String(v.code).trim().toLowerCase(),v]));
-      const exList=allVendors.map(v=>({id:v.id,name:v.name,code:v.code,n:vNorm(v.name)}));
-      const exExact=new Map();exList.forEach(x=>{if(!exExact.has(x.n))exExact.set(x.n,x);});
-      let maxP=0;
-      allVendors.forEach(v=>{const m=/^P-(\d+)$/i.exec(String(v.code||'').trim());if(m)maxP=Math.max(maxP,+m[1]);});
-      const parsed=[];
+      const existing=new Map(allVendors.filter(v=>v.code).map(v=>[String(v.code).trim().toLowerCase(),v]));
+      const seen=new Set();vendorsImportRows=[];
       rows.slice(1).forEach((r,i)=>{
         if(!r.some(c=>String(c).trim()))return;
-        const m=/^P-(\d+)$/i.exec(get(r,cCode));if(m)maxP=Math.max(maxP,+m[1]);
-        parsed.push({line:i+2,code:get(r,cCode),name:get(r,cName),phone:get(r,cPhone),notes:get(r,cNotes)});
+        const code=String(r[0]||'').trim(),name=String(r[1]||'').trim(),type=normVendorType(r[2]);
+        const phone=String(r[3]||'').trim(),notes=String(r[4]||'').trim();
+        let err='';
+        if(!code)err='الكود فاضي';
+        else if(!name)err='الاسم فاضي';
+        else if(!type)err='النوع لازم يكون مورد أو مقاول';
+        else if(seen.has(code.toLowerCase()))err='الكود متكرر في الملف';
+        seen.add(code.toLowerCase());
+        const ex=existing.get(code.toLowerCase());
+        vendorsImportRows.push({line:i+2,code,name,type,phone,notes,err,existingId:ex?ex.id:null,status:err?'خطأ':(ex?'تحديث':'جديد')});
       });
-      const seenCode=new Set(),seenName=new Map(),accepted=[];
-      vendorsImportRows=parsed.map(p=>{
-        const n=vNorm(p.name);let status='جديد',note='',existingId=null,approve=false;
-        const exC=p.code?exByCode.get(p.code.toLowerCase()):null;
-        if(!p.name)status='خطأ',note='الاسم فاضي';
-        else if(p.code&&seenCode.has(p.code.toLowerCase()))status='خطأ',note='الكود متكرر في الملف';
-        else if(exC){status='تحديث';existingId=exC.id;note='كود موجود، هيتحدث';}
-        else if(exExact.has(n)){status='مكرر';const x=exExact.get(n);note='موجود في السيستم: '+x.name+(x.code?' ('+x.code+')':'');}
-        else if(seenName.has(n)){status='مكرر';note='نفس الاسم في صف '+seenName.get(n)+' من الملف';}
-        else{
-          let sim=exList.find(x=>vSimilar(n,x.n));
-          if(sim){status='مشابه';note='يشبه (في السيستم): '+sim.name+(sim.code?' ('+sim.code+')':'');}
-          else{const a=accepted.find(x=>vSimilar(n,x.n));if(a){status='مشابه';note='يشبه (صف '+a.line+'): '+a.name;}}
-        }
-        if(p.code)seenCode.add(p.code.toLowerCase());
-        if(status!=='خطأ'&&status!=='مكرر'){if(!seenName.has(n))seenName.set(n,p.line);}
-        if(status==='جديد'||status==='مشابه')accepted.push({line:p.line,name:p.name,n});
-        return {...p,status,note,existingId,approve};
-      });
-      vendorsImportRows._nextP=maxP+1;
       renderVendorsImportPreview();openModal('vendors-import-modal');
     }catch(err){toast('خطأ في قراءة الملف','error');}
     e.target.value='';
   };
   reader.readAsArrayBuffer(file);
 }
-function toggleVendorApprove(i,v){vendorsImportRows[i].approve=v;renderVendorsImportPreview();}
 function renderVendorsImportPreview(){
-  const R=vendorsImportRows,c=s=>R.filter(r=>r.status===s).length;
-  const nImp=R.filter(r=>r.status==='جديد'||r.status==='تحديث'||(r.status==='مشابه'&&r.approve)).length;
-  let h=`<div style="margin-bottom:10px">جديد: <b>${c('جديد')}</b> &nbsp; هيتحدّث: <b>${c('تحديث')}</b> &nbsp; مشابه (محتاج موافقتك): <b style="color:#f59e0b">${c('مشابه')}</b> &nbsp; مكرر (هيتخطى): <b>${c('مكرر')}</b> &nbsp; خطأ: <b style="color:#ef4444">${c('خطأ')}</b></div>`;
-  h+='<div style="margin-bottom:10px;font-size:12px;color:var(--text2)">الصفوف "مشابه" مش هتتستورد إلا لو علّمت عليها (يعني هو فعلاً طرف مختلف). "مكرر" و"خطأ" بيتخطوا. الكود الفاضي بيتولد تلقائي (P-0001...).</div>';
-  h+='<div class="tbl-wrap" style="max-height:380px;overflow:auto"><table><thead><tr><th>صف</th><th>الحالة</th><th>استورد؟</th><th>الكود</th><th>الاسم</th><th>ملاحظة</th></tr></thead><tbody>';
-  const col={'جديد':'#10b981','تحديث':'#3b82f6','مشابه':'#f59e0b','مكرر':'#9ca3af','خطأ':'#ef4444'};
-  R.forEach((r,i)=>{
-    const chk=r.status==='مشابه'?`<input type="checkbox" ${r.approve?'checked':''} onchange="toggleVendorApprove(${i},this.checked)">`:'';
-    h+=`<tr><td>${r.line}</td><td style="color:${col[r.status]}">${r.status}</td><td>${chk}</td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td><td style="font-size:12px">${escHtml(r.note)}</td></tr>`;
-  });
+  const R=vendorsImportRows;
+  const nNew=R.filter(r=>r.status==='جديد').length,nUpd=R.filter(r=>r.status==='تحديث').length,nErr=R.filter(r=>r.status==='خطأ').length;
+  let h=`<div style="margin-bottom:10px">جديد: <b>${nNew}</b> &nbsp; هيتحدّث: <b>${nUpd}</b> &nbsp; فيه خطأ: <b style="color:#ef4444">${nErr}</b></div>`;
+  if(nErr)h+='<div class="msg error" style="margin-bottom:10px">الصفوف اللي فيها خطأ مش هتتستورد. صلّحها في الملف وارفعه تاني، أو كمّل بالباقي.</div>';
+  h+='<div class="tbl-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>صف</th><th>الحالة</th><th>الكود</th><th>الاسم</th><th>النوع</th><th>الهاتف</th><th>ملاحظة</th></tr></thead><tbody>';
+  R.forEach(r=>{h+=`<tr><td>${r.line}</td><td style="color:${r.status==='خطأ'?'#ef4444':r.status==='تحديث'?'#f59e0b':'#10b981'}">${r.status}</td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td><td>${escHtml(r.type||'')}</td><td>${escHtml(r.phone)}</td><td style="font-size:12px">${escHtml(r.err)}</td></tr>`;});
   h+='</tbody></table></div>';
   document.getElementById('vendors-import-preview').innerHTML=h;
-  const b=document.getElementById('vendors-import-confirm');
-  b.style.display=nImp?'inline-flex':'none';b.textContent='✅ تأكيد استيراد '+nImp;
+  document.getElementById('vendors-import-confirm').style.display=(nNew+nUpd)?'inline-flex':'none';
 }
 async function confirmVendorsImport(){
-  const ok=vendorsImportRows.filter(r=>r.status==='جديد'||r.status==='تحديث'||(r.status==='مشابه'&&r.approve));
+  const ok=vendorsImportRows.filter(r=>r.status!=='خطأ');
   if(!ok.length)return;
   const btn=document.getElementById('vendors-import-confirm');btn.disabled=true;
-  let next=vendorsImportRows._nextP||1,added=0,updated=0,failed=0,lastErr='';
-  const inserts=ok.filter(r=>!r.existingId).map(r=>({code:r.code||('P-'+String(next++).padStart(4,'0')),name:r.name,type:'مورد',phone:r.phone||null,notes:r.notes||null}));
+  let added=0,updated=0,failed=0,lastErr='';
+  const inserts=ok.filter(r=>!r.existingId).map(r=>({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}));
   for(let i=0;i<inserts.length;i+=200){
     const chunk=inserts.slice(i,i+200);
     const {error}=await sb.from('vendors').insert(chunk);
     if(error){failed+=chunk.length;lastErr=error.message;}else added+=chunk.length;
   }
   for(const r of ok.filter(r=>r.existingId)){
-    const {error}=await sb.from('vendors').update({name:r.name,phone:r.phone||null,notes:r.notes||null}).eq('id',r.existingId);
+    const {error}=await sb.from('vendors').update({code:r.code,name:r.name,type:r.type,phone:r.phone||null,notes:r.notes||null}).eq('id',r.existingId);
     if(error){failed++;lastErr=error.message;}else updated++;
   }
   btn.disabled=false;
@@ -5570,7 +5732,7 @@ function addPORow(){
 function clearPORows(){poBulkRows=[];addPORow();}
 
 function renderPORows(){
-  const venOpts=allVendors.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  const venOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
   let h='';
   poBulkRows.forEach((row,i)=>{
     h+=`<tr>
@@ -5839,6 +6001,7 @@ function showPage(name){
   if(name==='inventory') loadInventory();
   if(name==='analytics') loadAnalytics();
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
+  if(name==='ledger') loadLedger();
   if(name==='custody'||name==='custody-entry'||name==='custody-log') loadCustody();
   if(name==='expenses'||name==='expenses-entry'||name==='expenses-log') loadExpenses();
   if(name==='extracts'||name==='boqs'||name==='vouchers'||name==='cost-reports') loadExtractsData();
@@ -6131,7 +6294,7 @@ function initPQBulk(){
 function addPQRow(){pqRows.push({item_id:'',item_name:'',item_code:'',qty:'',unit:'',v1_id:'',v1_price:'',v2_id:'',v2_price:'',v3_id:'',v3_price:'',v4_id:'',v4_price:'',notes:''});renderPQRows();}
 function clearPQRows(){pqRows=[];addPQRow();}
 function renderPQRows(){
-  const venOpts=allVendors.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  const venOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
   let h='';
   pqRows.forEach((row,i)=>{
     h+=`<tr><td style="text-align:center;color:var(--text3);font-size:12px">${i+1}</td>
