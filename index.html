@@ -331,14 +331,6 @@ tr:hover td{background:#ffffff05;}
           <div class="hub-tile-icon">📒</div>
           <div class="hub-tile-title">دفتر التكاليف</div>
         </div>
-        <div class="hub-tile hub-amber" onclick="showPage('custody')">
-          <div class="hub-tile-icon">💵</div>
-          <div class="hub-tile-title">العهد النقدية</div>
-        </div>
-        <div class="hub-tile hub-rose" onclick="showPage('expenses')">
-          <div class="hub-tile-icon">🧾</div>
-          <div class="hub-tile-title">المصروفات</div>
-        </div>
         <div class="hub-tile hub-cyan" onclick="showPage('vendors')">
           <div class="hub-tile-icon">🤝</div>
           <div class="hub-tile-title">الأطراف والجهات</div>
@@ -364,8 +356,8 @@ tr:hover td{background:#ffffff05;}
       <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
         <div class="stat-card" style="cursor:pointer" onclick="showPage('inventory')"><div class="stat-icon" style="background:#3b82f620">📦</div><div><h3 id="mod-inventory-value" style="font-size:16px">-</h3><p>قيمة المخزون (ج)</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 id="mod-po-open" style="font-size:16px">-</h3><p>طلبات توريد مفتوحة</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="showPage('custody')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد المفتوحة (ج)</p></div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="showPage('expenses')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 id="mod-expenses-total" style="font-size:16px">-</h3><p>إجمالي المصروفات (ج)</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('ledger')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد - دفتر التكاليف (ج)</p></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="showPage('ledger')"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 id="mod-expenses-total" style="font-size:16px">-</h3><p>إجمالي المصروفات - دفتر التكاليف (ج)</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('extracts')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 id="mod-extracts-total" style="font-size:16px">-</h3><p>أعمال المستخلصات المعتمدة (ج)</p></div></div>
       </div>
 
@@ -862,7 +854,6 @@ tr:hover td{background:#ffffff05;}
       </div>
     </div>
 
-    <!-- CUSTODY: أرصدة العهد -->
     <!-- LEDGER: دفتر التكاليف -->
     <div class="page" id="page-ledger">
       <div class="page-header"><div><h2>دفتر التكاليف</h2><p>عهدة، مصروف، استحقاق، مستخلص، أصل في مكان واحد</p></div>
@@ -885,159 +876,6 @@ tr:hover td{background:#ffffff05;}
         </div>
         <div id="ledger-table"><div class="loading"><div class="spinner"></div></div></div>
         <div id="ledger-pager" style="padding:10px;text-align:center"></div>
-      </div>
-    </div>
-
-    <div class="page" id="page-custody">
-      <div class="page-header"><div><h2>أرصدة العهد</h2><p>متابعة عهد الموظفين والمشرفين - الرصيد الحالي لكل شخص</p></div></div>
-      <div class="card">
-        <div class="card-header"><h3>📋 أرصدة العهد الحالية</h3></div>
-        <div id="custody-summary"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- CUSTODY: تسجيل عهدة -->
-    <div class="page" id="page-custody-entry">
-      <div class="page-header"><div><h2>تسجيل عهدة</h2><p>صرف عهدة أو تسوية - سجل أكتر من صف في نفس القيد</p></div></div>
-      <div class="card">
-        <div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-ghost" onclick="downloadCustodyTemplate()">📥 تحميل Template Excel</button>
-          <button class="btn btn-ghost" onclick="document.getElementById('custody-import-file').click()">📤 رفع ملف Excel</button>
-          <input type="file" id="custody-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleCustodyImport(this)">
-          <span style="font-size:11px;color:var(--text3)">سجّل كذا قيد في الملف (كل صف ليه رقم القيد بتاعه) وارفعه، وهتراجع النتيجة قبل الحفظ</span>
-        </div>
-      </div>
-      <div class="card" id="custody-import-preview" style="display:none">
-        <div class="card-header"><h3>🔎 مراجعة الملف قبل الحفظ</h3></div>
-        <div id="custody-import-summary" style="padding:12px 14px;font-size:13px"></div>
-        <div id="custody-import-table"></div>
-        <div style="padding:10px;display:flex;gap:8px">
-          <button class="btn btn-success" id="custody-import-save" onclick="saveCustodyImport()">💾 حفظ الصفوف السليمة</button>
-          <button class="btn btn-ghost" onclick="cancelCustodyImport()">✖ إلغاء</button>
-        </div>
-      </div>
-      <div class="card">
-        <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border);margin-bottom:10px">
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم القيد *</label>
-            <input type="text" id="custody-entry-number" placeholder="رقم القيد..." style="width:160px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">لينك القيد (اختياري)</label>
-            <input type="text" id="custody-entry-link" placeholder="لينك جوجل درايف..." style="width:240px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">صاحب العهدة *</label>
-            <select id="custody-person" style="width:200px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر...</option></select>
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">النوع *</label>
-            <select id="custody-type" onchange="renderCustodyRows()" style="width:200px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-              <option value="صرف">⬆️ صرف عهدة (استلم فلوس)</option>
-              <option value="تسوية">⬇️ تسوية عهدة (رد فلوس/فواتير)</option>
-            </select>
-          </div>
-        </div>
-        <datalist id="exp-acc-list"></datalist>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr>
-              <th style="width:30px">#</th>
-              <th style="width:120px">المبلغ *</th>
-              <th id="custody-exp-acc-header" style="width:300px;display:none">حساب المصروف (اكتب واختار)</th>
-              <th style="width:160px">المشروع</th><th style="width:220px">مركز التكلفة</th>
-              <th>البيان</th>
-              <th style="width:40px"></th>
-            </tr></thead>
-            <tbody id="custody-rows-body"></tbody>
-          </table>
-        </div>
-        <div style="padding:10px;display:flex;gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="addCustodyRow()">➕ صف جديد</button>
-          <button class="btn btn-success" onclick="saveCustodyBatch()">💾 حفظ القيد</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- CUSTODY: سجل المعاملات -->
-    <div class="page" id="page-custody-log">
-      <div class="page-header"><div><h2>سجل معاملات العهد</h2><p>كل معاملات الصرف والتسوية</p></div></div>
-      <div class="card">
-        <div class="card-header"><h3>📜 آخر المعاملات</h3></div>
-        <div id="custody-log"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- EXPENSES: أرصدة الخزن -->
-    <div class="page" id="page-expenses">
-      <div class="page-header"><div><h2>أرصدة الخزن</h2><p>التغذية والمصروفات والرصيد لكل خزينة</p></div></div>
-      <div class="card">
-        <div class="card-header"><h3>🏦 أرصدة الخزن الحالية</h3></div>
-        <div id="xp-summary"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- EXPENSES: تسجيل مصروف -->
-    <div class="page" id="page-expenses-entry">
-      <div class="page-header"><div><h2>تسجيل مصروف</h2><p>مصروف من خزينة أو تغذية خزينة - سجل أكتر من صف في نفس القيد</p></div></div>
-      <div class="card">
-        <div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-ghost" onclick="downloadXpTemplate()">📥 تحميل Template Excel</button>
-          <button class="btn btn-ghost" onclick="document.getElementById('xp-import-file').click()">📤 رفع ملف Excel</button>
-          <input type="file" id="xp-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleXpImport(this)">
-          <span style="font-size:11px;color:var(--text3)">سجّل كذا قيد في الملف (كل صف ليه رقم القيد بتاعه) وارفعه، وهتراجع النتيجة قبل الحفظ</span>
-        </div>
-      </div>
-      <div class="card" id="xp-import-preview" style="display:none">
-        <div class="card-header"><h3>🔎 مراجعة الملف قبل الحفظ</h3></div>
-        <div id="xp-import-summary" style="padding:12px 14px;font-size:13px"></div>
-        <div id="xp-import-table"></div>
-        <div style="padding:10px;display:flex;gap:8px">
-          <button class="btn btn-success" id="xp-import-save" onclick="saveXpImport()">💾 حفظ الصفوف السليمة</button>
-          <button class="btn btn-ghost" onclick="cancelXpImport()">✖ إلغاء</button>
-        </div>
-      </div>
-      <div class="card">
-        <div style="padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border);margin-bottom:10px">
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم القيد *</label>
-            <input type="text" id="xp-entry-number" placeholder="رقم القيد..." style="width:160px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">لينك القيد (اختياري)</label>
-            <input type="text" id="xp-entry-link" placeholder="لينك جوجل درايف..." style="width:240px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">الخزينة *</label>
-            <select id="xp-treasury" style="width:260px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">اختر...</option></select>
-          </div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">النوع *</label>
-            <select id="xp-type" onchange="renderXpRows()" style="width:230px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none">
-              <option value="مصروف">⬇️ مصروف (دفع من الخزينة)</option>
-              <option value="تغذية">⬆️ تغذية الخزينة (فلوس دخلت)</option>
-            </select>
-          </div>
-        </div>
-        <datalist id="xp-acc-list"></datalist>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr>
-              <th style="width:30px">#</th>
-              <th style="width:120px">المبلغ *</th>
-              <th id="xp-acc-header" style="width:300px">حساب المصروف (اكتب واختار)</th>
-              <th style="width:160px">المشروع</th><th style="width:220px">مركز التكلفة</th>
-              <th>البيان</th>
-              <th style="width:40px"></th>
-            </tr></thead>
-            <tbody id="xp-rows-body"></tbody>
-          </table>
-        </div>
-        <div style="padding:10px;display:flex;gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="addXpRow()">➕ صف جديد</button>
-          <button class="btn btn-success" onclick="saveXpBatch()">💾 حفظ القيد</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- EXPENSES: سجل المصروفات -->
-    <div class="page" id="page-expenses-log">
-      <div class="page-header"><div><h2>سجل المصروفات</h2><p>كل حركات الخزن: مصروفات وتغذية</p></div></div>
-      <div class="card">
-        <div class="card-header"><h3>📜 آخر المعاملات</h3></div>
-        <div id="xp-log"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
 
@@ -1558,16 +1396,6 @@ const NAV_STRUCTURE=[
   {type:'module', key:'ledger-module', icon:'📒', label:'دفتر التكاليف', children:[
     {page:'ledger', icon:'📒', label:'دفتر التكاليف'},
   ]},
-  {type:'module', key:'custody-module', icon:'💵', label:'العهد النقدية', children:[
-    {page:'custody', icon:'📋', label:'أرصدة العهد'},
-    {page:'custody-entry', icon:'➕', label:'تسجيل عهدة'},
-    {page:'custody-log', icon:'📜', label:'سجل المعاملات'},
-  ]},
-  {type:'module', key:'expenses-module', icon:'🧾', label:'المصروفات', children:[
-    {page:'expenses', icon:'🏦', label:'أرصدة الخزن'},
-    {page:'expenses-entry', icon:'➕', label:'تسجيل مصروف'},
-    {page:'expenses-log', icon:'📜', label:'سجل المصروفات'},
-  ]},
   {type:'module', key:'setup', icon:'🤝', label:'الأطراف والتكويد', children:[
     {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
     {page:'projects', icon:'🏗️', label:'المشاريع والمخازن'},
@@ -1701,9 +1529,9 @@ async function loadDashboard(){
   (async()=>{
     const modCustody=document.getElementById('mod-custody-total');
     if(!modCustody)return;
-    const {data:custTx,error}=await sb.from('custody_transactions').select('amount,type');
-    if(error){modCustody.textContent='-';return;}
-    const total=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0);
+    const r=await pagedQuery(()=>sb.from('cost_ledger').select('total').eq('entry_type','عهدة'));
+    if(r.error){modCustody.textContent='-';return;}
+    const total=(r.data||[]).reduce((s,t)=>s+(t.total||0),0);
     modCustody.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
   })();
 
@@ -1711,9 +1539,9 @@ async function loadDashboard(){
   (async()=>{
     const modExp=document.getElementById('mod-expenses-total');
     if(!modExp)return;
-    const {data:xp,error}=await sb.from('expense_transactions').select('amount').eq('type','مصروف');
-    if(error){modExp.textContent='-';return;}
-    const total=(xp||[]).reduce((s,t)=>s+t.amount,0);
+    const r=await pagedQuery(()=>sb.from('cost_ledger').select('total').eq('entry_type','مصروف'));
+    if(r.error){modExp.textContent='-';return;}
+    const total=(r.data||[]).reduce((s,t)=>s+(t.total||0),0);
     modExp.textContent=total.toLocaleString('ar-EG',{minimumFractionDigits:0});
   })();
 
@@ -6283,8 +6111,6 @@ function showPage(name){
   if(name==='analytics') loadAnalytics();
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
   if(name==='ledger') loadLedger();
-  if(name==='custody'||name==='custody-entry'||name==='custody-log') loadCustody();
-  if(name==='expenses'||name==='expenses-entry'||name==='expenses-log') loadExpenses();
   if(name==='extracts'||name==='boqs'||name==='vouchers'||name==='cost-reports') loadExtractsData();
   if(name==='dashboard') loadDashboard();
   if(name==='reports'){
