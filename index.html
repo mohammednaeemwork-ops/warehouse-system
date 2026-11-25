@@ -1253,7 +1253,7 @@ document.addEventListener('DOMContentLoaded',applyCompanyLogo);
 
 // AUTO-UPDATE CHECK FOR CONTENT CHANGES
 // APP_VERSION must be bumped (and version.json updated to match) every time index.html is redeployed.
-const APP_VERSION='2026.08.27.18';
+const APP_VERSION='2026.08.27.19';
 document.addEventListener('DOMContentLoaded',()=>{
   const vt=document.getElementById('sidebar-version-tag');
   if(vt) vt.textContent='v'+APP_VERSION;
@@ -2959,6 +2959,44 @@ function validateCustodyImportRows(rawRows,ctx){
   });
   return out;
 }
+// @@CUSTODY-GROUP-START
+// تجميع صفوف الإكسيل في قيود: كل رقم قيد (مع السنة) قيد لوحده، والقيد بيتحفظ كله أو بيترفض كله
+function groupCustodyEntries(rows,existingKeys,nowYear){
+  const firstDate={};
+  rows.forEach(r=>{ if(r.created_at&&firstDate[r.entry_number]===undefined) firstDate[r.entry_number]=r.created_at; });
+  const entries=new Map();
+  rows.forEach(r=>{
+    const eff=r.created_at||firstDate[r.entry_number]||null;
+    r._eff_date=eff;
+    const year=eff?new Date(eff).getUTCFullYear():nowYear;
+    const key=(r.entry_number||'')+'|'+year;
+    let e=entries.get(key);
+    if(!e){ e={key,entry_number:r.entry_number||'',year,rows:[],errors:[],warnings:[],undated:!eff}; entries.set(key,e); }
+    e.rows.push(r);
+  });
+  const list=[...entries.values()];
+  list.forEach(e=>{
+    const rs=e.rows;
+    e.persons=[...new Set(rs.map(r=>r.person_name).filter(Boolean))];
+    e.types=[...new Set(rs.map(r=>r.type).filter(Boolean))];
+    e.date=rs.map(r=>r._eff_date).filter(Boolean).sort()[0]||null;
+    e.total=rs.reduce((t,r)=>t+(isNaN(r.amount)?0:r.amount),0);
+    const links=[...new Set(rs.map(r=>r.receipt_link).filter(Boolean))];
+    e.link=links[0]||null;
+    if(links.length>1) e.warnings.push('أكتر من لينك في نفس القيد (هيتاخد الأول)');
+    if(e.persons.length>1) e.warnings.push('القيد فيه أكتر من صاحب عهدة');
+    if(e.types.length>1) e.warnings.push('القيد فيه أكتر من نوع');
+    if(e.undated) e.warnings.push('مفيش تاريخ، هيتسجل بتاريخ النهارده');
+    const bad=rs.filter(r=>!r.ok).length;
+    if(bad) e.errors.push(bad+' صف فيه أخطاء');
+    if(!e.entry_number) e.errors.push('رقم القيد ناقص');
+    else if(existingKeys.has(e.key)) e.errors.push('رقم القيد ده موجود بالفعل في السيستم (نفس السنة)');
+    e.ok=e.errors.length===0;
+    rs.forEach(r=>{ if(!r.receipt_link&&e.link) r.receipt_link=e.link; if(!r.created_at&&r._eff_date) r.created_at=r._eff_date; });
+  });
+  return list;
+}
+// @@CUSTODY-GROUP-END
 async function downloadCustodyTemplate(){
   if(!custodyAccounts.length||!expenseAccounts.length) await loadCustody();
   const headers=['رقم القيد','التاريخ','النوع','صاحب العهدة','المبلغ','حساب المصروف','المشروع','مركز التكلفة','البيان','لينك القيد'];
@@ -2967,8 +3005,10 @@ async function downloadCustodyTemplate(){
   const expLabel=exp?exp.account_code+' - '+exp.account_name:'';
   const proj=allProjects.length?allProjects[0].name:'';
   const rows=[headers,
-    ['1001','2026-08-27','صرف',holder,5000,'','','','عهدة مصاريف الموقع',''],
-    ['1002','2026-08-28','تسوية',holder,1200,expLabel,proj,'','فاتورة أسمنت','']];
+    ['1001','2025-01-05','صرف',holder,5000,'','','','عهدة مصاريف الموقع',''],
+    ['1002','2025-01-12','تسوية',holder,1200,expLabel,proj,'','فاتورة أسمنت',''],
+    ['1002','2025-01-12','تسوية',holder,800,expLabel,proj,'','فاتورة رمل',''],
+    ['1003','2026-02-01','صرف',holder,3000,'','','','عهدة جديدة','']];
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:12},{wch:14},{wch:10},{wch:32},{wch:12},{wch:44},{wch:24},{wch:30},{wch:30},{wch:30}];
   const holders=custodyAccounts.map(a=>stripCustodyPrefix(a.account_name));
@@ -2983,65 +3023,103 @@ async function downloadCustodyTemplate(){
   wb.Workbook={Views:[{RTL:true}]};
   XLSX.utils.book_append_sheet(wb,ws,'العهد');
   XLSX.utils.book_append_sheet(wb,ws2,'قوائم للمراجعة');
+  const ws3=XLSX.utils.aoa_to_sheet([['تعليمات رفع العهد'],
+    ['كل صف في الورقة الأولى = حركة واحدة. تقدر ترفع سنين كتير في ملف واحد.'],
+    ['الصفوف اللي ليها نفس رقم القيد بتتجمّع في قيد واحد، وكل رقم قيد بيتحفظ لوحده.'],
+    ['القيد بيتحفظ كله أو بيترفض كله: لو فيه صف غلط، القيد كله مش بيتحفظ وبيظهر لك السبب.'],
+    ['رقم القيد اللي موجود بالفعل في السيستم (في نفس السنة) بيترفض عشان ميتكررش.'],
+    ['لو نفس رقم القيد اتكرر في سنة تانية، بيتعامل كقيد مستقل حسب تاريخ الصفوف.'],
+    ['التاريخ: yyyy-mm-dd أو dd/mm/yyyy. لو ناقص في بعض صفوف القيد بيتاخد من باقي صفوفه.'],
+    ['اللينك: لو مكتوب في صف واحد من القيد بيتطبق على كل صفوف القيد.'],
+    ['النوع: صرف أو تسوية. حساب المصروف مطلوب في التسوية.']]);
+  ws3['!cols']=[{wch:90}];
+  XLSX.utils.book_append_sheet(wb,ws3,'تعليمات');
   XLSX.writeFile(wb,'custody_template.xlsx');
 }
-let custodyImportRows=[];
+let custodyImportRows=[], custodyImportEntries=[], custodyImportFilter='all', custodyImportLimit=300;
 async function handleCustodyImport(input){
   const file=input.files&&input.files[0];
   if(!file) return;
   try{
-    if(!custodyAccounts.length||!expenseAccounts.length) await loadCustody();
+    await loadCustody(); // أحدث بيانات، عشان نكشف القيود اللي اتحفظت قبل كده
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array',cellDates:true});
     const ws=wb.Sheets[wb.SheetNames[0]];
     const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
     custodyImportRows=validateCustodyImportRows(raw,{custodyAccounts,expenseAccounts,projects:allProjects,costCenters:allCostCenters});
+    const keys=new Set(custodyTx.filter(t=>t.entry_number).map(t=>String(t.entry_number).trim()+'|'+new Date(t.created_at).getUTCFullYear()));
+    custodyImportEntries=groupCustodyEntries(custodyImportRows,keys,new Date().getUTCFullYear());
+    custodyImportFilter='all'; custodyImportLimit=300;
     renderCustodyImportPreview();
   }catch(e){
     toast('مقدرتش أقرا الملف: '+e.message,'error');
   }
   input.value='';
 }
+function setCustodyImportFilter(v){ custodyImportFilter=v; custodyImportLimit=300; renderCustodyImportPreview(); }
+function moreCustodyImport(){ custodyImportLimit+=300; renderCustodyImportPreview(); }
 function renderCustodyImportPreview(){
-  const card=document.getElementById('custody-import-preview');
-  const rows=custodyImportRows;
-  if(!rows.length){ card.style.display='none'; toast('الملف فاضي أو ملقتش فيه صفوف','error'); return; }
-  const ok=rows.filter(r=>r.ok).length, bad=rows.length-ok;
+  const card=document.getElementById('custody-import-preview'), E=custodyImportEntries, e=escHtml;
+  if(!E.length){ card.style.display='none'; toast('الملف فاضي أو ملقتش فيه صفوف','error'); return; }
+  const okE=E.filter(x=>x.ok), badE=E.filter(x=>!x.ok), cnt=a=>a.reduce((t,x)=>t+x.rows.length,0);
+  const f=n=>n.toLocaleString('ar-EG',{minimumFractionDigits:2});
+  const years={};
+  okE.forEach(x=>{const y=years[x.year]||(years[x.year]={n:0,rows:0,out:0,settle:0});y.n++;y.rows+=x.rows.length;x.rows.forEach(r=>{if(r.type==='صرف')y.out+=r.amount;else y.settle+=r.amount;});});
+  const sel=v=>custodyImportFilter===v?' selected':'';
   document.getElementById('custody-import-summary').innerHTML=
-    `<span style="color:#10b981;font-weight:700">✓ ${ok} صف سليم</span> &nbsp;|&nbsp; <span style="color:${bad?'#ef4444':'var(--text3)'};font-weight:700">✗ ${bad} صف فيه أخطاء</span>`+
-    (bad?'<div style="font-size:11px;color:var(--text3);margin-top:6px">الصفوف الغلط مش هتتحفظ. بعد ما تحفظ السليمة، صلّح الغلط في ملف جديد (من غير الصفوف اللي اتحفظت) وارفعه، عشان متتكررش.</div>':'');
-  let h='<div class="tbl-wrap"><table><thead><tr><th>سطر</th><th>الحالة</th><th>رقم القيد</th><th>النوع</th><th>صاحب العهدة</th><th>المبلغ</th><th>حساب المصروف</th><th>المشروع</th><th>الأخطاء</th></tr></thead><tbody>';
-  rows.forEach(r=>{
-    h+=`<tr style="background:${r.ok?'transparent':'#ef444410'}"><td>${r.row}</td><td>${r.ok?'✅':'❌'}</td><td>${escHtml(r.entry_number)}</td><td>${escHtml(r.type||'-')}</td><td>${escHtml(r.person_name)}</td><td style="font-weight:700">${isNaN(r.amount)?'-':r.amount.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td><td style="font-size:12px">${escHtml(r.expense_name||'-')}</td><td>${escHtml(r.project_name||'-')}</td><td style="color:#ef4444;font-size:12px">${escHtml(r.errors.join('، '))}</td></tr>`;
+    `<span style="color:#10b981;font-weight:700">✓ ${okE.length} قيد سليم (${cnt(okE)} صف)</span> &nbsp;|&nbsp; <span style="color:${badE.length?'#ef4444':'var(--text3)'};font-weight:700">✗ ${badE.length} قيد فيه أخطاء (${cnt(badE)} صف)</span>`
+    +'<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'+Object.keys(years).sort().map(y=>`<span class="badge" style="background:#3b82f620;color:#93c5fd;padding:4px 10px">${y}: ${years[y].n} قيد · ${years[y].rows} صف · صرف ${f(years[y].out)} · تسوية ${f(years[y].settle)}</span>`).join('')+'</div>'
+    +`<div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select onchange="setCustodyImportFilter(this.value)" style="padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:12px"><option value="all"${sel('all')}>كل القيود</option><option value="ok"${sel('ok')}>السليمة بس</option><option value="bad"${sel('bad')}>اللي فيها أخطاء بس</option></select><span style="font-size:11px;color:var(--text3)">كل رقم قيد بيتحفظ لوحده: القيد كله أو مفيش. القيود الغلط مش هتتحفظ، صلّحها في ملف جديد (من غير اللي اتحفظ).</span></div>`;
+  const list=E.filter(x=>custodyImportFilter==='all'||(custodyImportFilter==='ok'?x.ok:!x.ok));
+  let h='<div class="tbl-wrap"><table><thead><tr><th>الحالة</th><th>رقم القيد</th><th>التاريخ</th><th>صاحب العهدة</th><th>النوع</th><th>الصفوف</th><th>الإجمالي</th><th>ملاحظات</th></tr></thead><tbody>';
+  list.slice(0,custodyImportLimit).forEach(x=>{
+    const notes=[...x.errors.map(t=>`<span style="color:#ef4444">${e(t)}</span>`),...x.warnings.map(t=>`<span style="color:#f59e0b">⚠ ${e(t)}</span>`)].join('<br>');
+    h+=`<tr style="background:${x.ok?'transparent':'#ef444410'}"><td>${x.ok?'✅':'❌'}</td><td style="font-weight:700">${e(x.entry_number||'(بدون رقم)')}</td><td style="font-size:12px">${x.date?x.date.slice(0,10):'—'}</td><td>${e(x.persons.join('، ')||'-')}</td><td>${e(x.types.join('، ')||'-')}</td><td>${x.rows.length}</td><td style="font-weight:700">${f(x.total)}</td><td style="font-size:12px">${notes||'—'}</td></tr>`;
+    if(!x.ok){
+      const badRows=x.rows.filter(r=>!r.ok);
+      if(badRows.length) h+=`<tr style="background:#ef444408"><td></td><td colspan="7" style="font-size:12px;color:var(--text2)">${badRows.slice(0,6).map(r=>`سطر ${r.row}: ${e(r.errors.join('، '))}`).join('<br>')}${badRows.length>6?'<br>...':''}</td></tr>`;
+    }
   });
   h+='</tbody></table></div>';
+  if(list.length>custodyImportLimit) h+=`<div style="padding:10px"><button class="btn btn-ghost btn-sm" onclick="moreCustodyImport()">عرض ${Math.min(300,list.length-custodyImportLimit)} قيد كمان (باقي ${list.length-custodyImportLimit})</button></div>`;
   document.getElementById('custody-import-table').innerHTML=h;
   const btn=document.getElementById('custody-import-save');
-  btn.disabled=ok===0; btn.textContent=`💾 حفظ ${ok} صف سليم`;
+  btn.disabled=okE.length===0; btn.textContent=`💾 حفظ ${okE.length} قيد (${cnt(okE)} صف)`;
   card.style.display='block';
   card.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function cancelCustodyImport(){
-  custodyImportRows=[];
+  custodyImportRows=[]; custodyImportEntries=[];
   document.getElementById('custody-import-preview').style.display='none';
 }
 async function saveCustodyImport(){
-  const good=custodyImportRows.filter(r=>r.ok);
-  if(!good.length){toast('مفيش صفوف سليمة تتحفظ','error');return;}
+  const good=custodyImportEntries.filter(x=>x.ok);
+  if(!good.length){toast('مفيش قيود سليمة تتحفظ','error');return;}
   const nowIso=new Date().toISOString();
-  const payload=good.map(r=>({
-    account_code:r.account_code, type:r.type, amount:r.amount,
-    expense_account_code:r.type==='تسوية'?r.expense_account_code:null,
-    project_id:r.project_id, description:r.description, receipt_link:r.receipt_link,
-    entry_number:r.entry_number, created_at:r.created_at||nowIso, created_by:CU?.id||null
-  }));
-  if(good.some(r=>r.cost_center_id)) payload.forEach((p,k)=>{p.cost_center_id=good[k].cost_center_id||null;});
+  const anyCC=good.some(x=>x.rows.some(r=>r.cost_center_id));
+  const chunks=[]; let cur=[], n=0;
+  good.forEach(x=>{ if(n+x.rows.length>500&&cur.length){chunks.push(cur);cur=[];n=0;} cur.push(x); n+=x.rows.length; });
+  if(cur.length) chunks.push(cur);
   const btn=document.getElementById('custody-import-save'); btn.disabled=true;
-  for(let i=0;i<payload.length;i+=500){
-    const {error}=await sb.from('custody_transactions').insert(payload.slice(i,i+500));
-    if(error){ toast('خطأ في الحفظ: '+error.message,'error'); btn.disabled=false; return; }
+  let savedEntries=0, savedRows=0;
+  for(const ch of chunks){
+    const payload=[];
+    ch.forEach(x=>x.rows.forEach(r=>{
+      const o={account_code:r.account_code,type:r.type,amount:r.amount,
+        expense_account_code:r.type==='تسوية'?r.expense_account_code:null,
+        project_id:r.project_id,description:r.description,receipt_link:r.receipt_link,
+        entry_number:r.entry_number,created_at:r.created_at||nowIso,created_by:CU?.id||null};
+      if(anyCC) o.cost_center_id=r.cost_center_id||null;
+      payload.push(o);
+    }));
+    const {error}=await sb.from('custody_transactions').insert(payload);
+    if(error){
+      toast(`خطأ في الحفظ بعد ما اتحفظ ${savedEntries} قيد: ${error.message}. ارفع الملف تاني والقيود اللي اتحفظت هتظهر "موجودة بالفعل".`,'error');
+      btn.disabled=false; await loadCustody(); return;
+    }
+    savedEntries+=ch.length; savedRows+=payload.length;
   }
-  toast(`✅ تم حفظ ${payload.length} صف من الملف`,'success');
+  toast(`✅ تم حفظ ${savedEntries} قيد (${savedRows} صف)`,'success');
   cancelCustodyImport();
   await loadCustody();
 }
