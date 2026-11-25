@@ -6,6 +6,7 @@
 <title>شركة العمار للتوسع العمراني - نظام المخازن</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -4357,20 +4358,19 @@ function renderCostReport(){
 }
 function exportCostReport(){
   if(!crState){toast('اعرض التقرير الأول','error');return;}
-  const R=crState.report;
+  const R=crState.report, t=R.tot, pc=v=>v===null||v===undefined?'':+(+v).toFixed(2);
   const head=['مركز التكلفة','المقدّر','المتعاقد عليه','انحراف التعاقد','مستخلصات','مخزن','مصروفات','عهد','إجمالي الفعلي','الانحراف','نسبة الانحراف %'];
-  const rows=R.rows.map(r=>[r.name,r.est,r.contracted,r.var_contract,r.extracts,r.warehouse,r.expenses,r.custody,r.actual,r.var_actual,r.var_pct===null?'':+r.var_pct.toFixed(2)]);
-  const t=R.tot; rows.push(['الإجمالي',t.est,t.contracted,t.var_contract,t.extracts,t.warehouse,t.expenses,t.custody,t.actual,t.var_actual,t.var_pct===null?'':+t.var_pct.toFixed(2)]);
-  const ws=XLSX.utils.aoa_to_sheet([head,...rows]); ws['!cols']=[{wch:34}].concat(head.slice(1).map(()=>({wch:16})));
+  const rows=R.rows.map(r=>[r.name,+r.est||0,+r.contracted||0,+r.var_contract||0,+r.extracts||0,+r.warehouse||0,+r.expenses||0,+r.custody||0,+r.actual||0,+r.var_actual||0,pc(r.var_pct)]);
+  const total=['الإجمالي',+t.est||0,+t.contracted||0,+t.var_contract||0,+t.extracts||0,+t.warehouse||0,+t.expenses||0,+t.custody||0,+t.actual||0,+t.var_actual||0,pc(t.var_pct)];
   const ih=['القسم','م','البند','الوحدة','إجمالي الكمية','سعر تقديري','المقدّر','المتعاقد عليه','انحراف التعاقد','المنفذ (مستخلصات)','الفلل','المقاولين'];
-  const ws2=XLSX.utils.aoa_to_sheet([ih,...R.items.map(i=>[i.section,i.seq,i.description,i.unit||'',i.total_qty,i.unit_price,i.est,i.contracted,i.var_contract,i.executed,i.villas.join('، '),i.contractors.join('، ')])]);
-  ws2['!cols']=[{wch:16},{wch:6},{wch:34},{wch:8},{wch:14},{wch:14},{wch:16},{wch:16},{wch:16},{wch:18},{wch:34},{wch:34}];
+  const irows=R.items.map(i=>[i.section,i.seq,i.description,i.unit||'',+i.total_qty||0,+i.unit_price||0,+i.est||0,+i.contracted||0,+i.var_contract||0,+i.executed||0,i.villas.join('، '),i.contractors.join('، ')]);
   const sh=['القسم','عدد البنود','المقدّر','المتعاقد عليه','انحراف التعاقد','المنفذ (مستخلصات)'];
-  const ws3=XLSX.utils.aoa_to_sheet([sh,...R.sections.map(x=>[x.name,x.count,x.est,x.contracted,x.var_contract,x.executed])]);
-  ws3['!cols']=[{wch:20},{wch:12},{wch:16},{wch:16},{wch:16},{wch:18}];
-  const wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
-  XLSX.utils.book_append_sheet(wb,ws,'مراكز التكلفة'); XLSX.utils.book_append_sheet(wb,ws3,'الأقسام'); XLSX.utils.book_append_sheet(wb,ws2,'البنود');
-  XLSX.writeFile(wb,'cost_report_'+crState.project.replace(/[\\/:*?"<>|\s]+/g,'_')+'.xlsx');
+  const srows=R.sections.map(x=>[x.name,+x.count||0,+x.est||0,+x.contracted||0,+x.var_contract||0,+x.executed||0]);
+  const pn=crState.project;
+  xlsxPretty('cost_report_'+pn.replace(/[\\/:*?"<>|\s]+/g,'_')+'.xlsx',[
+    {name:'مراكز التكلفة',title:'تقرير التكلفة - '+pn,headers:head,rows,total},
+    {name:'الأقسام',title:'الأقسام - '+pn,headers:sh,rows:srows},
+    {name:'البنود',title:'البنود - '+pn,headers:ih,rows:irows}]);
 }
 
 // ===== مركز التكلفة على العهد والمصروفات =====
@@ -4784,6 +4784,84 @@ async function renderPOFulfillment(){
   });
 }
 
+// ===== تصدير Excel منسّق (ExcelJS): عناوين ملوّنة، حدود، عرض أعمدة، أرقام وتواريخ، RTL، وإجمالي في الآخر =====
+const XL_SKIP_TOTAL=/سعر|رصيد|%|نسبة|كود|رقم|حد |الحد|تراكمي|م$|^م$|الانحراف|الكود|التقدير|السنة/;
+function xlsxBuild(sheets){
+  const wb=new ExcelJS.Workbook(); wb.creator='نظام المخزن'; wb.views=[{rightToLeft:true}];
+  const thin={style:'thin',color:{argb:'FFBFBFBF'}};
+  const border={top:thin,left:thin,bottom:thin,right:thin};
+  sheets.forEach(sh=>{
+    const nm=String(sh.name||'تقرير').replace(/[\\\/\?\*\[\]:]/g,'-').slice(0,31)||'تقرير';
+    const ws=wb.addWorksheet(nm,{views:[{rightToLeft:true,state:'frozen',ySplit:2}]});
+    const H=sh.headers, n=H.length;
+    const isDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v);
+    // أعمدة رقمية / تواريخ
+    const numCol=H.map((h,c)=>{const vs=sh.rows.map(r=>r[c]).filter(v=>v!==''&&v!==null&&v!==undefined);return vs.length>0&&vs.every(v=>typeof v==='number');});
+    const intCol=H.map((h,c)=>numCol[c]&&sh.rows.every(r=>typeof r[c]!=='number'||Math.abs(r[c]-Math.round(r[c]))<1e-9));
+    let total=sh.total;
+    if(!total&&sh.autoTotal!==false){
+      const t=H.map((h,c)=>(numCol[c]&&!XL_SKIP_TOTAL.test(h))?sh.rows.reduce((s,r)=>s+(typeof r[c]==='number'?r[c]:0),0):'');
+      if(t.some(v=>v!=='')){ const fi=H.findIndex((h,c)=>!numCol[c]); t[fi>=0?fi:0]=(fi>=0?'الإجمالي':''); total=t; }
+    }
+    // عنوان
+    ws.mergeCells(1,1,1,Math.max(1,n));
+    const tc=ws.getCell(1,1); tc.value=sh.title||nm; tc.font={bold:true,size:14,color:{argb:'FF1F3864'}}; tc.alignment={horizontal:'right',vertical:'middle'}; ws.getRow(1).height=26;
+    // هيدر
+    const hr=ws.getRow(2); hr.height=30;
+    H.forEach((h,c)=>{const cell=hr.getCell(c+1);cell.value=h;cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}};cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};cell.border=border;});
+    // صفوف
+    sh.rows.forEach((r,ri)=>{
+      const row=ws.getRow(3+ri);
+      H.forEach((h,c)=>{
+        let v=r[c]; const cell=row.getCell(c+1);
+        if(v===undefined||v===null||v==='') v=null;
+        else if(isDate(v)){const p=v.split('-');v=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));cell.numFmt='yyyy-mm-dd';}
+        cell.value=v; cell.border=border;
+        if(typeof v==='number'){cell.numFmt=intCol[c]?'#,##0':'#,##0.00';cell.alignment={horizontal:'right',vertical:'middle'};}
+        else if(v instanceof Date){cell.alignment={horizontal:'center',vertical:'middle'};}
+        else cell.alignment={horizontal:'right',vertical:'middle',wrapText:true};
+        if(ri%2===1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF3F6FB'}};
+      });
+    });
+    // إجمالي
+    let last=2+sh.rows.length;
+    if(total){
+      last++; const tr=ws.getRow(last); tr.height=22;
+      H.forEach((h,c)=>{
+        let v=total[c]; const cell=tr.getCell(c+1);
+        if(v===undefined||v===null||v==='') v=null;
+        cell.value=v; cell.font={bold:true,size:11};
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFE699'}};
+        cell.border={top:{style:'medium',color:{argb:'FF1F3864'}},left:thin,right:thin,bottom:{style:'medium',color:{argb:'FF1F3864'}}};
+        if(typeof v==='number'){cell.numFmt=(Math.abs(v-Math.round(v))<1e-9&&intCol[c])?'#,##0':'#,##0.00';cell.alignment={horizontal:'right',vertical:'middle'};}
+        else cell.alignment={horizontal:'right',vertical:'middle',wrapText:true};
+      });
+    }
+    // عرض الأعمدة
+    H.forEach((h,c)=>{
+      let w=String(h).length+4;
+      sh.rows.slice(0,500).forEach(r=>{const v=r[c];const len=v===null||v===undefined?0:(typeof v==='number'?(v.toLocaleString('en-US',{maximumFractionDigits:2}).length+2):String(v).length);if(len+2>w)w=len+2;});
+      ws.getColumn(c+1).width=Math.min(52,Math.max(11,w));
+    });
+    if(sh.rows.length) ws.autoFilter={from:{row:2,column:1},to:{row:2+sh.rows.length,column:n}};
+    ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+  });
+  return wb;
+}
+async function xlsxPretty(filename,sheets){
+  if(typeof ExcelJS==='undefined'){
+    // احتياطي لو مكتبة التنسيق مش محمّلة: ملف عادي
+    const wb=XLSX.utils.book_new();
+    sheets.forEach(sh=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([sh.headers].concat(sh.rows,sh.total?[sh.total]:[])),String(sh.name||'تقرير').slice(0,31)));
+    XLSX.writeFile(wb,filename); return;
+  }
+  const wb=xlsxBuild(sheets);
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+
 // ================= REPORTS (v12): تقارير كل قسم جوه قسمه + التقارير المجمّعة =================
 const REP_LAST={};
 const REP_SECS={
@@ -4884,7 +4962,7 @@ function movLabel(m){
 }
 
 // ---- كل الحركات المالية في شكل موحّد (دفتر + مخزن + مستخلصات) ----
-const REP_COST_KINDS=['مصروف','مستخلص','صرف مخزن','مرتجع مخزن','مستخلص (موديول)'];
+const REP_COST_KINDS=['مصروف','عهدة','مستخلص','صرف مخزن','مرتجع مخزن','مستخلص (موديول)'];
 async function unifiedEntries(f,use){
   use=use||{ledger:true,wh:true,ex:true};
   await repNeedCOA();
@@ -4893,7 +4971,7 @@ async function unifiedEntries(f,use){
     await repNeedLedger();
     allLedger.forEach(r=>{
       if(!repOkD(r.entry_date,f)||!repOkP(r.project_id,f)) return;
-      out.push({src:'دفتر',kind:r.entry_type,date:r.entry_date,project_id:r.project_id,cc_id:r.cost_center2_id||r.cost_center_id,account_code:r.account_code||'',holder_code:r.holder_code||'',party_id:r.vendor_id,party_name:repVen(r.vendor_id,r.vendor_name),doc:r.entry_number||r.doc_number||'',desc:r.description||'',amount:+r.total||0,review:r.needs_review});
+      out.push({src:'دفتر',kind:r.entry_type,date:r.entry_date,project_id:r.project_id,cc_id:r.cost_center2_id||r.cost_center_id,account_code:r.account_code||'',holder_code:r.holder_code||'',party_id:r.vendor_id,party_name:repVen(r.vendor_id,r.vendor_name),doc:r.entry_number||r.doc_number||'',doc_raw:r.doc_number||'',desc:r.description||'',amount:+r.total||0,review:r.needs_review});
     });
   }
   if(use.wh){
@@ -4921,6 +4999,16 @@ async function unifiedEntries(f,use){
       const amt=(+x.current_qty||0)*(+bi.unit_price||0); if(!amt) return;
       if(!repOkD(e.extract_date,f)||!repOkP(b.project_id,f)) return;
       out.push({src:'مستخلصات',kind:'مستخلص (موديول)',date:e.extract_date,project_id:b.project_id,cc_id:b.cost_center_id,account_code:bi.account_code||'',party_id:b.vendor_id,party_name:repVen(b.vendor_id,b.vendors?.name),doc:'مستخلص رقم '+e.extract_number,desc:bi.description||'',amount:amt});
+    });
+  }
+  if(use.ledger&&use.ex){
+    // قاعدة: مستخلص له مقايسة = مرجعه موديول المستخلصات. قيد دفتر نوع مستخلص بنفس المقاول ونفس رقم المستخلص يتعلّم مكرر ومش بيدخل الإجمالي.
+    const have=new Set(out.filter(e=>e.kind==='مستخلص (موديول)').map(e=>String(e.party_id)+'|'+String(e.doc).replace(/\D/g,'')));
+    out.forEach(e=>{
+      if(e.src==='دفتر'&&e.kind==='مستخلص'&&e.party_id){
+        const m=String(e.doc_raw||'').match(/\d+/);
+        if(m&&have.has(String(e.party_id)+'|'+m[0])){e.kind='مستخلص (مكرر)';}
+      }
     });
   }
   return out;
@@ -5100,7 +5188,7 @@ REPORTS.lg.push({id:'tree',icon:'🌳',title:'الإجمالي حسب الحسا
   if(none.some(x=>x)) rows.push(['بدون حساب','—'].concat(none));
   return {headers:['الحساب','الكود'].concat(LG_TYPES),rows,title:'الإجمالي حسب الحساب',note:'إجمالي الأب = مجموع الفروع. المستحقات والأصول بره المصروفات.'};
 }});
-REPORTS.lg.push({id:'holder',icon:'💵',title:'رصيد كل عهدة',run:async f=>{
+REPORTS.lg.push({id:'holder',icon:'💵',title:'المصروف حسب صاحب العهدة / الخزينة',run:async f=>{
   await repNeedCOA(); await repNeedLedger();
   const G={};
   lgRows(f).filter(r=>r.holder_code||r.holder_name).forEach(r=>{
@@ -5108,8 +5196,8 @@ REPORTS.lg.push({id:'holder',icon:'💵',title:'رصيد كل عهدة',run:asyn
     const g=G[k]||(G[k]={code:r.holder_code||'',name:r.holder_code?repAN(r.holder_code):r.holder_name,h:0,x:0});
     if(r.entry_type==='عهدة') g.h+=+r.total||0; else if(r.entry_type==='مصروف') g.x+=+r.total||0;
   });
-  const rows=Object.values(G).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')).map(g=>[g.code,g.name,g.h,g.x,g.h-g.x]);
-  return {headers:['كود الحساب','صاحب العهدة / الخزينة','عهدة','مصروف','الفرق (عهدة - مصروف)'],rows,total:['','الإجمالي',rows.reduce((s,r)=>s+r[2],0),rows.reduce((s,r)=>s+r[3],0),rows.reduce((s,r)=>s+r[4],0)],title:'رصيد العهد'};
+  const rows=Object.values(G).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')).map(g=>[g.code,g.name,g.h,g.x,g.h+g.x]);
+  return {headers:['كود الحساب','صاحب العهدة / الخزينة','مصروف عهدة (شخص)','مصروف خزينة (مباشر)','الإجمالي'],rows,total:['','الإجمالي',rows.reduce((s,r)=>s+r[2],0),rows.reduce((s,r)=>s+r[3],0),rows.reduce((s,r)=>s+r[4],0)],title:'المصروف حسب صاحب العهدة / الخزينة',note:'الاتنين مصروف فعلي. الفرق بس مين دفع. الرصيد الافتتاحي والتمويل مش في الداتا.'};
 }});
 REPORTS.lg.push({id:'vendor',icon:'🤝',title:'حسب المورد / المقاول',run:async f=>{
   await repNeedLedger();
@@ -5170,25 +5258,26 @@ REPORTS.lg.push({id:'rev',icon:'🔎',title:'مراجعة: قيود بدون ح�
 // ===== المجمّعة =====
 REPORTS.all.push({id:'tree',icon:'🌳',title:'تقرير التكلفة الإجمالي بالشجرة',hint:'الدفتر + صرف المخزن + المستخلصات',run:async f=>{
   const E=await unifiedEntries(f);
-  const cols=['مصروف دفتر','مستخلصات دفتر','صرف مخزن (صافي)','مستخلصات (موديول)'];
-  const colOf=e=>e.kind==='مصروف'?0:(e.kind==='مستخلص'?1:((e.kind==='صرف مخزن'||e.kind==='مرتجع مخزن')?2:(e.kind==='مستخلص (موديول)'?3:-1)));
-  const oth=['عهدة','استحقاق','أصل'];
+  const cols=['مصروف خزينة (دفتر)','مصروف عهدة (دفتر)','مستخلصات دفتر','صرف مخزن (صافي)','مستخلصات (موديول)'];
+  const colOf=e=>e.kind==='مصروف'?0:(e.kind==='عهدة'?1:(e.kind==='مستخلص'?2:((e.kind==='صرف مخزن'||e.kind==='مرتجع مخزن')?3:(e.kind==='مستخلص (موديول)'?4:-1))));
+  const oth=['استحقاق','أصل'];
   const M={}, none=[0,0,0,0,0,0,0], mk=()=>[0,0,0,0,0,0,0];
+  const NC=5;
   E.forEach(e=>{
     const ci=colOf(e), oi=oth.indexOf(e.kind);
-    const idx=ci>=0?ci:(oi>=0?4+oi:-1); if(idx<0) return;
+    const idx=ci>=0?ci:(oi>=0?NC+oi:-1); if(idx<0) return;
     if(!e.account_code){none[idx]+=e.amount;return;}
     repAncestors(e.account_code).forEach(k=>{(M[k]||(M[k]=mk()))[idx]+=e.amount;});
   });
-  const fin=v=>[v[0],v[1],v[2],v[3],v[0]+v[1]+v[2]+v[3],v[4],v[5],v[6]];
+  const fin=v=>[v[0],v[1],v[2],v[3],v[4],v[0]+v[1]+v[2]+v[3]+v[4],v[5],v[6]];
   const rows=[];
   (allCOA||[]).slice().sort((a,b)=>a.account_code.localeCompare(b.account_code)).forEach(a=>{
     const v=M[a.account_code]; if(!v||v.every(x=>!x)) return;
     rows.push(['— '.repeat(Math.max(0,(a.level||1)-1))+a.account_name,a.account_code].concat(fin(v)));
   });
   if(none.some(x=>x)) rows.push(['بدون حساب','—'].concat(fin(none)));
-  const tot=mk(); E.forEach(e=>{const ci=colOf(e),oi=oth.indexOf(e.kind);const idx=ci>=0?ci:(oi>=0?4+oi:-1);if(idx>=0)tot[idx]+=e.amount;});
-  return {headers:['الحساب','الكود'].concat(cols,['إجمالي التكلفة','عهدة (خارج الإجمالي)','استحقاق (خارج الإجمالي)','أصل (خارج الإجمالي)']),rows,total:['الإجمالي الكلي',''].concat(fin(tot)),title:'تقرير التكلفة الإجمالي بالشجرة',note:'إجمالي التكلفة = مصروف + مستخلصات الدفتر + صرف المخزن (بعد المرتجعات) + مستخلصات الموديول المعتمدة. العهدة والاستحقاق والأصل منفصلة. لو نفس المستخلص متسجل في الدفتر وفي الموديول هيتحسب مرتين، راجع عمودي المستخلصات.'};
+  const tot=mk(); E.forEach(e=>{const ci=colOf(e),oi=oth.indexOf(e.kind);const idx=ci>=0?ci:(oi>=0?NC+oi:-1);if(idx>=0)tot[idx]+=e.amount;});
+  return {headers:['الحساب','الكود'].concat(cols,['إجمالي التكلفة','استحقاق (خارج الإجمالي)','أصل (خارج الإجمالي)']),rows,total:['الإجمالي الكلي',''].concat(fin(tot)),title:'تقرير التكلفة الإجمالي بالشجرة',note:'إجمالي التكلفة = مصروف الخزينة + مصروف العهد + مستخلصات الدفتر + صرف المخزن (بعد المرتجعات) + مستخلصات الموديول المعتمدة. الاستحقاق والأصل منفصلة. المستخلص اللي له مقايسة مرجعه موديول المستخلصات، واللي مالوش مقايسة مرجعه الدفتر؛ وقيد الدفتر اللي له نفس المقاول ونفس رقم مستخلص معتمد في الموديول بيتعلّم مكرر ومش بيتحسب.'};
 }});
 REPORTS.all.push({id:'party',icon:'🤝',title:'كشف حساب موحد لمورد / مقاول',hint:'اختر الطرف فوق',run:async f=>{
   if(!f.party) throw new Error('اختر المورد / المقاول من الخانة فوق');
@@ -5211,17 +5300,17 @@ REPORTS.all.push({id:'proj',icon:'🏗️',title:'ملخص تكلفة كل مش�
     else if(e.kind==='عهدة') g.h+=e.amount; else if(e.kind==='استحقاق') g.a+=e.amount; else if(e.kind==='أصل') g.s+=e.amount;
   });
   const rows=Object.entries(G).map(([pid,g])=>{
-    const mb=+pid?masterBoqOf(+pid):null, est=mb?boqTotal(mb.id):0, tot=g.m+g.x+g.w+g.e2;
-    return [+pid?repPN(+pid):'بدون مشروع',est,g.m,g.x,g.w,g.e2,tot,est?tot-est:'',g.h,g.a,g.s];
+    const mb=+pid?masterBoqOf(+pid):null, est=mb?boqTotal(mb.id):0, tot=g.m+g.h+g.x+g.w+g.e2;
+    return [+pid?repPN(+pid):'بدون مشروع',est,g.m,g.h,g.x,g.w,g.e2,tot,est?tot-est:'',g.a,g.s];
   }).sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ar'));
   const sm=i=>rows.reduce((s,r)=>s+(+r[i]||0),0);
-  return {headers:['المشروع','التقدير (المقايسة الرئيسية)','مصروف دفتر','مستخلصات دفتر','صرف مخزن','مستخلصات موديول','إجمالي التكلفة','الانحراف عن التقدير','عهدة','استحقاق','أصل'],rows,total:['الإجمالي',sm(1),sm(2),sm(3),sm(4),sm(5),sm(6),'',sm(8),sm(9),sm(10)],title:'ملخص تكلفة المشاريع'};
+  return {headers:['المشروع','التقدير (المقايسة الرئيسية)','مصروف خزينة','مصروف عهد','مستخلصات دفتر','صرف مخزن','مستخلصات موديول','إجمالي التكلفة','الانحراف عن التقدير','استحقاق','أصل'],rows,total:['الإجمالي',sm(1),sm(2),sm(3),sm(4),sm(5),sm(6),sm(7),'',sm(9),sm(10)],title:'ملخص تكلفة المشاريع'};
 }});
 REPORTS.all.push({id:'dash',icon:'📈',title:'لوحة إجمالية: عهد، مصروفات، مخزون، مستحقات',run:async f=>{
   const E=await unifiedEntries(f);
   const S=k=>E.filter(e=>e.kind===k).reduce((s,e)=>s+e.amount,0);
   let inv=0; try{ inv=(await repView('item_balances_v2','')).reduce((s,r)=>s+Math.max(0,+r.fifo_value||0),0);}catch(e){inv=0;}
-  const rows=[['عهدة (الدفتر)',S('عهدة')],['مصروفات (الدفتر)',S('مصروف')],['مستخلصات (الدفتر)',S('مستخلص')],['مستخلصات معتمدة (موديول)',S('مستخلص (موديول)')],['صرف المخزن (صافي المرتجعات)',S('صرف مخزن')+S('مرتجع مخزن')],['مستحقات (الدفتر)',S('استحقاق')],['أصول (الدفتر)',S('أصل')],['قيمة المخزون الحالية (FIFO، كل المخازن)',inv]];
+  const rows=[['مصروف عهد (الدفتر)',S('عهدة')],['مصروف خزينة (الدفتر)',S('مصروف')],['مستخلصات (الدفتر)',S('مستخلص')],['مستخلصات معتمدة (موديول)',S('مستخلص (موديول)')],['صرف المخزن (صافي المرتجعات)',S('صرف مخزن')+S('مرتجع مخزن')],['مستحقات (الدفتر)',S('استحقاق')],['أصول (الدفتر)',S('أصل')],['قيمة المخزون الحالية (FIFO، كل المخازن)',inv]];
   return {headers:['البند','المبلغ'],rows,title:'اللوحة الإجمالية',note:'المخزون الحالي لحظي ومش بيتأثر بفلتر التاريخ.'};
 }});
 
@@ -5254,11 +5343,7 @@ function repShow(sec,res){
 }
 function repExport(sec){
   const res=REP_LAST[sec]; if(!res){toast('اعرض تقرير الأول','error');return;}
-  const aoa=[res.headers].concat(res.rows); if(res.total) aoa.push(res.total);
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
-  const wb=XLSX.utils.book_new(); if(wb.Workbook===undefined) wb.Workbook={Views:[{RTL:true}]};
-  XLSX.utils.book_append_sheet(wb,ws,'تقرير');
-  XLSX.writeFile(wb,String(res.title).replace(/[\\/:*?"<>|]/g,'-').slice(0,80)+'.xlsx');
+  xlsxPretty(String(res.title).replace(/[\\/:*?"<>|]/g,'-').slice(0,80)+'.xlsx',[{name:String(res.title).slice(0,31),title:res.title,headers:res.headers,rows:res.rows,total:res.total}]);
 }
 // كشف الحساب الموحد: يقرا الدفتر + صرف المخزن + المستخلصات
 async function showAccountStatement(accountCode){
@@ -5854,7 +5939,7 @@ async function lgiDeleteBatch(k){
 }
 function lgiDownloadReview(){
   const rows=lgiBuild(null).filter(o=>o.payload.needs_review).map(o=>({'صف في الشيت':o.row,'النوع':o.payload.entry_type,'التاريخ':o.payload.entry_date||'','القسم':o.payload.section_raw||'','المورد':o.payload.vendor_name||'','البيان':o.payload.description||'','الإجمالي':o.payload.total,'رقم القيد':o.payload.entry_number||'','سبب المراجعة':o.payload.review_reason}));
-  const ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'للمراجعة'); XLSX.writeFile(wb,'ledger_review_rows.xlsx');
+  const hd=rows.length?Object.keys(rows[0]):['لا يوجد'];xlsxPretty('ledger_review_rows.xlsx',[{name:'للمراجعة',title:'قيود دفتر التكاليف للمراجعة',headers:hd,rows:rows.map(o=>hd.map(k=>o[k]===undefined?'':o[k]))}]);
 }
 function lgiPickTest(fresh){
   const pick=new Set(); const cnt={};
@@ -6575,11 +6660,9 @@ function copyBulkRow(i){bulkRows.splice(i+1,0,{...bulkRows[i]});renderBulkRows()
 
 // Inventory export & print
 async function exportInventoryExcel(){
-  const rows=[['الكود','الصنف','المجموعة','اسم التكلفة','الوحدة','وارد','صادر','مرتجع','تحويل','الرصيد','القيمة (ج)','الحالة']];
-  allInventory.forEach(i=>rows.push([i.code||'',i.name,i.group_name||'',i.cost_center||'',i.unit||'',i.qty_in||0,i.qty_out||0,i.qty_ret||0,i.qty_trans||0,i.qty,i.fifo_value||0,i.qty<=0?'صفر':i.qty<=(i.min_qty||0)&&i.min_qty>0?'منخفض':'متوفر']));
-  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=rows[0].map(()=>({wch:18}));
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'أرصدة المخزون');
-  XLSX.writeFile(wb,'أرصدة_المخزون_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  const rows=allInventory.map(i=>[i.code||'',i.name,i.group_name||'',i.cost_center||'',i.unit||'',+i.qty_in||0,+i.qty_out||0,+i.qty_ret||0,+i.qty_trans||0,+i.qty||0,+i.fifo_value||0,i.qty<=0?'صفر':i.qty<=(i.min_qty||0)&&i.min_qty>0?'منخفض':'متوفر']);
+  const sm=c=>rows.reduce((x,r)=>x+r[c],0);
+  xlsxPretty('أرصدة_المخزون_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx',[{name:'أرصدة المخزون',title:'أرصدة المخزون (الإجمالي)',headers:['الكود','الصنف','المجموعة','اسم التكلفة','الوحدة','وارد','صادر','مرتجع','تحويل','الرصيد','القيمة (ج)','الحالة'],rows,total:['','الإجمالي','','','',sm(5),sm(6),sm(7),sm(8),sm(9),sm(10),'']}]);
   toast('✅ تم تصدير Excel','success');
 }
 function printInventory(){
