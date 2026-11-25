@@ -17,7 +17,7 @@ function createWindow() {
       contextIsolation: true,
       devTools: true,
     },
-    title: 'نظام المخازن - شركة العمار للتوسع العمراني',
+    title: 'نظام العمار المتكامل - شركة العمار للتوسع العمراني',
     show: false,
   });
 
