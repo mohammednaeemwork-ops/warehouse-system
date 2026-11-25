@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شركة العمار للتوسع العمراني - نظام المخازن</title>
+<title>نظام العمار المتكامل - شركة العمار للتوسع العمراني</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -240,7 +240,7 @@ tr:hover td{background:#ffffff05;}
     <div class="auth-logo">
       <img id="auth-logo-img" alt="شعار الشركة" style="width:72px;height:72px;object-fit:contain;margin:0 auto 8px;display:block">
       <h1>شركة العمار للتوسع العمراني</h1>
-      <p>نظام إدارة المخازن</p>
+      <p>نظام العمار المتكامل</p>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchTab('login')">تسجيل الدخول</button>
@@ -291,7 +291,7 @@ tr:hover td{background:#ffffff05;}
   <div class="sidebar">
     <div class="sidebar-logo">
       <h2><img id="sidebar-logo-img" alt="" style="height:22px;width:22px;object-fit:contain;vertical-align:-4px;margin-left:4px"> العمار للتوسع العمراني</h2>
-      <span>نظام المخازن</span>
+      <span>نظام العمار المتكامل</span>
       <div id="sidebar-version-tag" style="font-size:9px;color:var(--text3);opacity:0.6;margin-top:4px;font-family:monospace"></div>
     </div>
     <div class="user-info">
@@ -309,7 +309,7 @@ tr:hover td{background:#ffffff05;}
       <div class="hub-header">
         <img id="hub-logo-img" alt="شعار الشركة" class="hub-logo">
         <h1>شركة العمار للتوسع العمراني</h1>
-        <p>نظام إدارة المخازن والتكاليف</p>
+        <p>نظام العمار المتكامل</p>
       </div>
       <div class="hub-grid">
         <div class="hub-tile hub-indigo" onclick="showPage('coa')">
@@ -348,13 +348,51 @@ tr:hover td{background:#ffffff05;}
     </div>
 
     <div class="page" id="page-dashboard">
-      <div class="page-header"><div><h2>لوحة التحكم والمراقبة</h2><p>شركة العمار للتوسع العمراني - ملخص شامل لكل الموديولات</p></div>
-        <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">🔄 تحديث</button>
+      <style>
+        .dp-hero{background:linear-gradient(135deg,#1e3a8a 0%,#3730a3 55%,#5b21b6 100%);border-radius:18px;padding:22px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 8px 28px rgba(30,58,138,.35)}
+        .dp-hero h2{font-size:24px;font-weight:900;color:#fff;margin-bottom:2px}
+        .dp-hero p{font-size:13px;color:#c7d2fe}
+        .dp-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+        .dp-filters select{padding:8px 12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-family:Cairo,sans-serif;font-size:13px;outline:none}
+        .dp-filters select option{color:#111}
+        .dp-filters button{padding:8px 14px;background:#fff;border:0;border-radius:10px;color:#3730a3;font-family:Cairo,sans-serif;font-weight:700;font-size:13px;cursor:pointer}
+        .dp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-bottom:18px}
+        .dp-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:.15s}
+        .dp-kpi:hover{transform:translateY(-2px);border-color:var(--accent)}
+        .dp-kpi:before{content:'';position:absolute;top:0;right:0;left:0;height:4px;background:var(--c,#3b82f6)}
+        .dp-kpi .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;background:color-mix(in srgb,var(--c,#3b82f6) 18%,transparent);margin-bottom:10px}
+        .dp-kpi .lb{font-size:12px;color:var(--text2);margin-bottom:2px}
+        .dp-kpi .vl{font-size:22px;font-weight:900;color:var(--text);letter-spacing:.2px}
+        .dp-kpi .sb{font-size:11px;color:var(--text3);margin-top:3px}
+        .dp-kpi.dpmain{background:linear-gradient(135deg,#0f2a5c,#1e3a8a);border-color:#3b82f6}
+        .dp-kpi.dpmain .vl{color:#fff;font-size:26px}.dp-kpi.dpmain .lb,.dp-kpi.dpmain .sb{color:#bfdbfe}
+        .dp-grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:14px}
+        .dp-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px}
+        .dp-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+        .dp-card h4{font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+        .dp-card h4 small{font-size:11px;font-weight:400;color:var(--text3)}
+        .dp-chart{position:relative;height:250px}
+        .dp-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+        .dp-row:last-child{border-bottom:0}
+        .dp-row b{font-weight:800}
+        .dp-bar{height:7px;border-radius:6px;background:var(--bg3);overflow:hidden;margin-top:4px}
+        .dp-bar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#6366f1)}
+        .dp-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+        .dp-sec{font-size:13px;font-weight:800;color:var(--text2);margin:20px 2px 10px}
+        @media(max-width:900px){.dp-grid2{grid-template-columns:1fr}}
+      </style>
+      <div class="dp-hero">
+        <div><h2 id="dp-title">لوحة التحكم</h2><p id="dp-sub"></p></div>
+        <div class="dp-filters">
+          <select id="dash-period" onchange="loadDashPro()"><option value="all">كل الفترات</option><option value="month">الشهر الحالي</option><option value="q">آخر 3 شهور</option><option value="year">السنة الحالية</option></select>
+          <select id="dash-project" onchange="loadDashPro()"><option value="">كل المشاريع</option></select>
+          <button onclick="loadDashboard()">🔄 تحديث</button>
+        </div>
       </div>
-
-      <!-- ملخص الموديولات -->
-      <div style="margin-bottom:6px"><h4 style="font-size:13px;color:var(--text2)">📋 ملخص الموديولات</h4></div>
-      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
+      <div id="dp-root"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="dp-sec">📦 المخزن: متابعة وتنبيهات</div>
+      <div style="display:none">
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
         <div class="stat-card" style="cursor:pointer" onclick="showPage('inventory')"><div class="stat-icon" style="background:#3b82f620">📦</div><div><h3 id="mod-inventory-value" style="font-size:16px">-</h3><p>قيمة المخزون (ج)</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 id="mod-po-open" style="font-size:16px">-</h3><p>طلبات توريد مفتوحة</p></div></div>
         <div class="stat-card" style="cursor:pointer" onclick="showPage('ledger')"><div class="stat-icon" style="background:#f59e0b20">💵</div><div><h3 id="mod-custody-total" style="font-size:16px">-</h3><p>إجمالي العهد - دفتر التكاليف (ج)</p></div></div>
@@ -362,6 +400,7 @@ tr:hover td{background:#ffffff05;}
         <div class="stat-card" style="cursor:pointer" onclick="showPage('extracts')"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 id="mod-extracts-total" style="font-size:16px">-</h3><p>أعمال المستخلصات المعتمدة (ج)</p></div></div>
       </div>
 
+      </div>
       <!-- تفاصيل المخزون -->
       <div style="margin-bottom:6px"><h4 style="font-size:13px;color:var(--text2)">📦 تفاصيل المخزون</h4></div>
       <!-- العدادات الستة -->
@@ -1490,6 +1529,7 @@ function onBulkSupplierChange(){
 
 // DASHBOARD
 async function loadDashboard(){
+  try{ if(typeof loadDashPro==="function") loadDashPro(); }catch(e){console.warn(e);}
   const [{count:ic},{count:inc},{count:outc},{count:pc},{count:openPOc}]=await Promise.all([
     sb.from('items').select('*',{count:'exact',head:true}),
     sb.from('movements').select('*',{count:'exact',head:true}).eq('type','وارد'),
@@ -4787,7 +4827,7 @@ async function renderPOFulfillment(){
 // ===== تصدير Excel منسّق (ExcelJS): عناوين ملوّنة، حدود، عرض أعمدة، أرقام وتواريخ، RTL، وإجمالي في الآخر =====
 const XL_SKIP_TOTAL=/سعر|رصيد|%|نسبة|كود|رقم|حد |الحد|تراكمي|م$|^م$|الانحراف|الكود|التقدير|السنة/;
 function xlsxBuild(sheets){
-  const wb=new ExcelJS.Workbook(); wb.creator='نظام المخزن'; wb.views=[{rightToLeft:true}];
+  const wb=new ExcelJS.Workbook(); wb.creator='نظام العمار المتكامل'; wb.views=[{rightToLeft:true}];
   const thin={style:'thin',color:{argb:'FFBFBFBF'}};
   const border={top:thin,left:thin,bottom:thin,right:thin};
   sheets.forEach(sh=>{
@@ -4860,6 +4900,97 @@ async function xlsxPretty(filename,sheets){
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+
+// ================= لوحة التحكم الاحترافية =================
+const APP_NAME='نظام العمار المتكامل';   // اسم السيستم: غيّره من هنا بس
+let DASH_CH={};
+function dashRange(){
+  const p=document.getElementById('dash-period')?.value||'all', d=new Date(), pad=n=>String(n).padStart(2,'0');
+  const iso=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
+  if(p==='month') return {from:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01',to:''};
+  if(p==='q'){const x=new Date(d.getFullYear(),d.getMonth()-2,1);return {from:iso(x),to:''};}
+  if(p==='year') return {from:d.getFullYear()+'-01-01',to:''};
+  return {from:'',to:''};
+}
+function dashMk(id,cfg){ if(DASH_CH[id]){DASH_CH[id].destroy();} const el=document.getElementById(id); if(!el||typeof Chart==='undefined') return; DASH_CH[id]=new Chart(el,cfg); }
+async function loadDashPro(){
+  const root=document.getElementById('dp-root'); if(!root) return;
+  document.getElementById('dp-title').textContent=APP_NAME;
+  document.getElementById('dp-sub').textContent=COMPANY_NAME+' | نظرة شاملة: التكاليف، المخزن، المستخلصات، العهد، المستحقات والأصول';
+  const sel=document.getElementById('dash-project');
+  if(sel&&sel.options.length<=1) allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o);});
+  root.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const rg=dashRange(), f={from:rg.from,to:rg.to,project:sel?.value||''};
+    const E=await unifiedEntries(f);
+    const S=k=>E.filter(e=>e.kind===k).reduce((s,e)=>s+e.amount,0);
+    const N=k=>E.filter(e=>e.kind===k).length;
+    const treasury=S('مصروف'), custody=S('عهدة'), wh=S('صرف مخزن')+S('مرتجع مخزن'), exLg=S('مستخلص'), exMod=S('مستخلص (موديول)'), accr=S('استحقاق'), assets=S('أصل');
+    const total=treasury+custody+wh+exLg+exMod;
+    let inv=0,low=0,zero=0,items=0;
+    try{const v=await repView('item_balances_v2','');items=v.length;v.forEach(r=>{inv+=Math.max(0,+r.fifo_value||0);const q=+r.qty||0;if(q<=0)zero++;else if((+r.min_qty||0)>0&&q<=(+r.min_qty))low++;});}catch(e){}
+    const pc=(v)=>total?Math.round(v/total*100)+'%':'0%';
+    const fm=n=>REP_NUM(Math.round(n));
+    const kpi=(cls,c,ic,lb,vl,sb,go)=>`<div class="dp-kpi ${cls}" style="--c:${c}" onclick="${go}"><div class="ic">${ic}</div><div class="lb">${lb}</div><div class="vl">${vl}</div><div class="sb">${sb}</div></div>`;
+    let h='<div class="dp-kpis">'+
+      kpi('dpmain','#3b82f6','💰','إجمالي التكلفة (ج)',fm(total),'دفتر + مخزن + مستخلصات',"showPage('reports')")+
+      kpi('','#f43f5e','🧾','مصروف الخزينة',fm(treasury),pc(treasury)+' من الإجمالي - '+N('مصروف')+' قيد',"showPage('rep-lg')")+
+      kpi('','#f59e0b','💵','مصروف العهد',fm(custody),pc(custody)+' من الإجمالي - '+N('عهدة')+' قيد',"showPage('rep-lg')")+
+      kpi('','#10b981','📦','صرف المخزن (صافي)',fm(wh),pc(wh)+' من الإجمالي',"showPage('rep-wh')")+
+      kpi('','#a855f7','📋','المستخلصات',fm(exLg+exMod),'موديول '+fm(exMod)+' | دفتر '+fm(exLg),"showPage('rep-ex')")+
+      kpi('','#06b6d4','🏦','المستحقات',fm(accr),N('استحقاق')+' قيد - خارج الإجمالي',"showPage('rep-lg')")+
+      kpi('','#84cc16','🏢','الأصول',fm(assets),N('أصل')+' قيد - خارج الإجمالي',"showPage('rep-lg')")+
+      kpi('','#6366f1','🗄️','قيمة المخزون الحالية',fm(inv),items+' صنف | '+zero+' رصيد صفر | '+low+' منخفض',"showPage('inventory')")+
+    '</div>';
+    h+='<div class="dp-grid2"><div class="dp-card"><h4>📈 التكلفة الشهرية حسب المصدر <small>آخر 12 شهر</small></h4><div class="dp-chart"><canvas id="dp-ch-month"></canvas></div></div>'+
+       '<div class="dp-card"><h4>🥧 تركيب التكلفة</h4><div class="dp-chart"><canvas id="dp-ch-mix"></canvas></div></div></div>';
+    h+='<div class="dp-grid2"><div class="dp-card"><h4>🏗️ أعلى المشاريع تكلفة</h4><div class="dp-chart"><canvas id="dp-ch-proj"></canvas></div></div>'+
+       '<div class="dp-card"><h4>🌳 أعلى الحسابات تكلفة <small>على مستوى الفئة</small></h4><div class="dp-chart"><canvas id="dp-ch-acc"></canvas></div></div></div>';
+    // مستخلصات
+    let exHtml='<div style="color:var(--text3);font-size:12px">المستخلصات مش جاهزة</div>';
+    try{
+      await repNeedEx();
+      const apr=allExtracts.filter(e=>e.status==='معتمد'), drf=allExtracts.filter(e=>e.status!=='معتمد');
+      const paid=allVouchers.reduce((s,v)=>s+(+v.amount||0),0);
+      let due=0; const lastBy={};
+      apr.forEach(e=>{if(!lastBy[e.boq_id]||lastBy[e.boq_id].extract_number<e.extract_number)lastBy[e.boq_id]=e;});
+      Object.values(lastBy).forEach(e=>{try{due+=extractModel(e).net_tot;}catch(x){}});
+      exHtml=`<div class="dp-row"><span>مستخلصات معتمدة</span><b>${apr.length}</b></div><div class="dp-row"><span>مسودة / معلقة</span><b style="color:#f59e0b">${drf.length}</b></div><div class="dp-row"><span>صافي المستحق التراكمي</span><b>${fm(due)}</b></div><div class="dp-row"><span>المنصرف (أذون صرف)</span><b>${fm(paid)}</b></div><div class="dp-row"><span>المتبقي للصرف</span><b style="color:#ef4444">${fm(due-paid)}</b></div>`;
+    }catch(e){}
+    // جودة البيانات
+    const unl=allGroups.filter(g=>!g.account_code).length;
+    const noAcc=E.filter(e=>!e.account_code&&REP_COST_KINDS.includes(e.kind)).length;
+    const rev=E.filter(e=>e.review).length, dupl=N('مستخلص (مكرر)');
+    const dq=(lb,n,go)=>`<div class="dp-row" style="cursor:pointer" onclick="${go}"><span>${lb}</span><span class="dp-pill" style="background:${n?'#f59e0b25':'#10b98125'};color:${n?'#f59e0b':'#10b981'}">${n?n:'سليم'}</span></div>`;
+    const dqHtml=dq('قيود الدفتر للمراجعة',rev,"showPage('rep-lg')")+dq('تكاليف بدون حساب',noAcc,"showPage('rep-lg')")+dq('مجموعات أصناف غير مربوطة بحساب',unl,"showPage('groups')")+dq('مستخلصات دفتر مكررة (مستبعدة)',dupl,"showPage('rep-lg')");
+    // أعلى الأطراف
+    const P={}; E.filter(e=>REP_COST_KINDS.includes(e.kind)&&e.party_name).forEach(e=>P[e.party_name]=(P[e.party_name]||0)+e.amount);
+    const top=Object.entries(P).sort((a,b)=>b[1]-a[1]).slice(0,6), mx=top.length?top[0][1]:1;
+    const pHtml=top.map(([n,v])=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${escHtml(n)}</span><b>${fm(v)}</b></div><div class="dp-bar"><i style="width:${Math.max(3,v/mx*100)}%"></i></div></div>`).join('')||'<div style="color:var(--text3);font-size:12px">لا توجد بيانات</div>';
+    h+=`<div class="dp-grid3"><div class="dp-card"><h4>📋 موقف المستخلصات</h4>${exHtml}</div><div class="dp-card"><h4>🤝 أعلى المقاولين والموردين</h4>${pHtml}</div><div class="dp-card"><h4>🔎 جودة البيانات</h4>${dqHtml}</div></div>`;
+    // آخر النشاط
+    const recent=E.filter(e=>e.date).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8);
+    h+='<div class="dp-card" style="margin-bottom:14px"><h4>🕒 آخر الحركات المالية</h4><div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>المصدر</th><th>النوع</th><th>المشروع</th><th>الطرف</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>'+
+      (recent.map(e=>`<tr><td>${escHtml(String(e.date).slice(0,10))}</td><td>${escHtml(e.src)}</td><td>${escHtml(e.kind)}</td><td>${escHtml(repPN(e.project_id))}</td><td>${escHtml(e.party_name||'')}</td><td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(e.desc||e.doc||'')}</td><td style="font-weight:700">${fm(e.amount)}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text3)">لا توجد حركات</td></tr>')+'</tbody></table></div></div>';
+    root.innerHTML=h;
+    // Charts
+    const COST=REP_COST_KINDS, srcOf=e=>e.kind==='مصروف'?0:e.kind==='عهدة'?1:(e.kind==='صرف مخزن'||e.kind==='مرتجع مخزن')?2:(e.kind==='مستخلص'||e.kind==='مستخلص (موديول)')?3:-1;
+    const srcNames=['مصروف خزينة','مصروف عهد','صرف مخزن','مستخلصات'], srcCols=['#f43f5e','#f59e0b','#10b981','#a855f7'];
+    const months=[]; const now=new Date(); for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+    const MD=srcNames.map(()=>months.map(()=>0));
+    E.forEach(e=>{const si=srcOf(e);if(si<0||!e.date)return;const mi=months.indexOf(String(e.date).slice(0,7));if(mi>=0)MD[si][mi]+=e.amount;});
+    Chart.defaults.color='#94a3b8'; Chart.defaults.font.family='Cairo';
+    const grid={color:'rgba(148,163,184,.12)'};
+    dashMk('dp-ch-month',{type:'bar',data:{labels:months,datasets:srcNames.map((n,i)=>({label:n,data:MD[i],backgroundColor:srcCols[i],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid}},plugins:{legend:{position:'bottom'}}}});
+    dashMk('dp-ch-mix',{type:'doughnut',data:{labels:srcNames,datasets:[{data:[treasury,custody,wh,exLg+exMod].map(v=>Math.max(0,v)),backgroundColor:srcCols,borderColor:'#161b27',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom'}}}});
+    const PJ={}; E.filter(e=>COST.includes(e.kind)).forEach(e=>{const n=e.project_id?repPN(e.project_id):'بدون مشروع';PJ[n]=(PJ[n]||0)+e.amount;});
+    const pj=Object.entries(PJ).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    dashMk('dp-ch-proj',{type:'bar',data:{labels:pj.map(x=>x[0]),datasets:[{data:pj.map(x=>x[1]),backgroundColor:'#3b82f6',borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{grid},y:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+    const AC={}; E.filter(e=>COST.includes(e.kind)).forEach(e=>{const c=e.account_code||'';const k=c.length>=6?c.slice(0,6).padEnd(c.length,'0'):c;const n=k?repAN(k):'بدون حساب';AC[n]=(AC[n]||0)+e.amount;});
+    const ac=Object.entries(AC).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    dashMk('dp-ch-acc',{type:'bar',data:{labels:ac.map(x=>x[0]),datasets:[{data:ac.map(x=>x[1]),backgroundColor:['#6366f1','#3b82f6','#06b6d4','#10b981','#84cc16','#f59e0b','#f43f5e','#a855f7'],borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{grid},y:{grid:{display:false}}},plugins:{legend:{display:false}}}});
+  }catch(e){ root.innerHTML='<div class="dp-card" style="color:#fcd34d;font-size:13px">⚠️ تعذّر تحميل اللوحة: '+escHtml(e.message||String(e))+'</div>'; }
 }
 
 // ================= REPORTS (v12): تقارير كل قسم جوه قسمه + التقارير المجمّعة =================
