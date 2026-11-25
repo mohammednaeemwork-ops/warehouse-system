@@ -563,6 +563,7 @@ tr:hover td{background:#ffffff05;}
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">رقم المستند</label><div style="display:flex;gap:6px"><input type="text" id="bulk-doc" placeholder="INV-001" style="flex:1;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><button class="btn btn-ghost btn-sm" onclick="autoGenDocNum()" title="توليد تلقائي">🔢</button></div></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ الحركة</label><input type="date" id="bulk-date" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
           <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">ملاحظة عامة</label><input type="text" id="bulk-general-notes" placeholder="ملاحظة على كل الإذن..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
+          <div id="bulk-retkind-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">نوع المرتجع *</label><select id="bulk-return-kind" onchange="updateBulkType()" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="للمخزن">مرتجع للمخزن (من مقاول)</option><option value="للمورد">مرتجع للمورد</option></select></div>
           <div id="bulk-supplier-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المورد *</label><select id="bulk-supplier" onchange="onBulkSupplierChange()" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"><option value="">اختر المورد</option><option value="__other__">أخرى...</option></select></div>
           <div id="bulk-supplier-other-wrap" style="display:none"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">اسم المورد</label><input type="text" id="bulk-supplier-other" placeholder="اكتب اسم المورد..." style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
         </div>
@@ -601,6 +602,7 @@ tr:hover td{background:#ffffff05;}
         <div class="card-header"><h3>الأرصدة</h3>
           <div class="card-actions" style="flex-wrap:wrap;gap:8px">
             <input type="text" id="inv-search" placeholder="بحث بالاسم أو الكود..." oninput="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;width:180px">
+            <select id="inv-wh-f" onchange="refreshInvWh()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المخازن (الإجمالي)</option></select>
             <select id="inv-grp-f" onchange="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المجموعات</option></select>
             <select id="inv-status-f" onchange="filterInv()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل الحالات</option><option value="ok">متوفر</option><option value="low">منخفض</option><option value="zero">رصيد صفر</option></select>
           </div>
@@ -1164,7 +1166,7 @@ tr:hover td{background:#ffffff05;}
       <div class="form-group"><label>كود المجموعة</label><input type="text" id="gm-code"></div>
       <div class="form-group"><label>اسم المجموعة *</label><input type="text" id="gm-name"></div>
       <div class="form-group"><label>الحساب المرتبط في شجرة الحسابات</label>
-        <select id="gm-account"><option value="">بدون ربط</option></select>
+        <select id="gm-account"><option value="">اختر الحساب *</option></select>
         <p style="font-size:11px;color:var(--text3);margin-top:4px">أي صرف من أصناف المجموعة دي هيتحسب على الحساب ده في التقارير الموحدة</p>
       </div>
     </div>
@@ -1496,8 +1498,8 @@ function populateSelects(){
   // Populate the single document-level supplier dropdown for وارد
   const bulkSup=document.getElementById('bulk-supplier');
   if(bulkSup){
-    const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
-    bulkSup.innerHTML='<option value="">اختر المورد</option>'+supOpts+'<option value="__other__">أخرى...</option>';
+    const supOpts=allVendors.filter(v=>v.type==='مورد').map(v=>`<option value="${v.id}">${v.name}${v.code?' ('+v.code+')':''}</option>`).join('');
+    bulkSup.innerHTML='<option value="">اختر المورد</option>'+supOpts;
   }
   updateBulkType();
 }
@@ -1559,7 +1561,8 @@ async function loadDashboard(){
   {
     let balData=[], fb=0, balErr=null;
     while(true){
-      const {data:page,error}=await sb.from('item_balances').select('*').order('item_id',{ascending:true}).range(fb,fb+999);
+      let {data:page,error}=await sb.from('item_balances_v2').select('*').order('item_id',{ascending:true}).range(fb,fb+999);
+      if(error&&fb===0){({data:page,error}=await sb.from('item_balances').select('*').order('item_id',{ascending:true}).range(fb,fb+999));}
       if(error){balErr=error;break;}
       if(!page||!page.length)break;
       balData=[...balData,...page];
@@ -1572,13 +1575,13 @@ async function loadDashboard(){
       let items=[], fi=0;
       while(true){const {data}=await sb.from('items').select('id,name,code,min_qty').order('id',{ascending:true}).range(fi,fi+999);if(!data||!data.length)break;items=[...items,...data];if(data.length<1000)break;fi+=1000;}
       let movsAll=[], fm=0;
-      while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,projects(name)').order('id',{ascending:true}).range(fm,fm+999);if(!data||!data.length)break;movsAll=[...movsAll,...data];if(data.length<1000)break;fm+=1000;}
+      while(true){const {data}=await sb.from('movements').select('item_id,type,qty,unit_price,fifo_cost,project_id,move_kind,projects(name)').order('id',{ascending:true}).range(fm,fm+999);if(!data||!data.length)break;movsAll=[...movsAll,...data];if(data.length<1000)break;fm+=1000;}
       items.forEach(i=>inv[i.id]={...i,qty:0,value:0,projects:new Set(),hasMoved:false});
       movsAll.forEach(m=>{
         if(!inv[m.item_id])return;
         inv[m.item_id].hasMoved=true;
-        if(m.type==='وارد'||m.type==='مرتجع'){inv[m.item_id].qty+=m.qty;inv[m.item_id].value+=(m.qty*(m.unit_price||0));}
-        else if(m.type==='صادر'||m.type==='تحويل'){inv[m.item_id].qty-=m.qty;inv[m.item_id].value-=(m.fifo_cost||m.qty*(m.unit_price||0));}
+        if(isInMov(m)){inv[m.item_id].qty+=m.qty;inv[m.item_id].value+=(m.qty*(m.unit_price||0));}
+        else if(m.type==='صادر'||m.type==='تحويل'||m.type==='مرتجع'){inv[m.item_id].qty-=m.qty;inv[m.item_id].value-=(m.fifo_cost||m.qty*(m.unit_price||0));}
         if(m.projects?.name) inv[m.item_id].projects.add(m.projects.name);
       });
     } else {
@@ -1850,8 +1853,10 @@ function updateBulkType(){
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
   const hidePrice=isIn&&CP?.role==='أمين مخزن';
+  const retKind=document.getElementById('bulk-return-kind')?.value||'للمخزن';
+  const rkw=document.getElementById('bulk-retkind-wrap'); if(rkw) rkw.style.display=isRet?'block':'none';
   const supWrap=document.getElementById('bulk-supplier-wrap');
-  if(supWrap) supWrap.style.display=isIn?'block':'none';
+  if(supWrap) supWrap.style.display=(isIn||(isRet&&retKind==='للمورد'))?'block':'none';
   if(!isIn){
     const otherWrap=document.getElementById('bulk-supplier-other-wrap');
     if(otherWrap) otherWrap.style.display='none';
@@ -1862,7 +1867,7 @@ function updateBulkType(){
     headers+='<th style="width:100px">الوحدة</th><th style="width:110px">حد الصرف</th><th style="width:180px">طلب التوريد</th>';
   }
   if(isOut) headers+='<th style="width:160px">المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
-  if(isRet) headers+='<th style="width:160px">اسم المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
+  if(isRet&&retKind!=='للمورد') headers+='<th style="width:160px">المقاول</th><th style="width:150px">م.تكلفة 1</th><th style="width:150px">م.تكلفة 2</th>';
   if(isTrans) headers+='<th style="width:160px">من مخزن</th><th style="width:160px">إلى مخزن</th>';
   headers+='<th style="width:180px">البيان</th><th style="width:40px"></th></tr>';
   document.getElementById('bulk-thead').innerHTML=headers;
@@ -1938,11 +1943,10 @@ function renderBulkRows(){
       </select></td>`;
     }
     if(isOut){
-      const conOpts=allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+      const conOpts=allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.id}"${String(v.id)===String(row.vendor_id)?' selected':''}>${v.name}${v.code?' ('+v.code+')':''}</option>`).join('');
       h+=`
-      <td><select onchange="bulkRows[${i}].supplier=this.value" style="width:100%">
+      <td><select onchange="setRowVendor(${i},this.value)" style="width:100%">
         <option value="">اختر المقاول</option>${conOpts}
-        <option value="__other__">أخرى...</option>
       </select></td>
       <td><select onchange="bulkRows[${i}].cost_center_id=this.value;filterCC2(${i},this.value)" id="bulk-cc1-${i}">
         <option value="">م.تكلفة 1</option>${mkCC1Options(row.cost_center_id)}
@@ -1951,14 +1955,18 @@ function renderBulkRows(){
         <option value="">م.تكلفة 2</option>${mkCC2Options(row.cost_center2_id,row.cost_center_id)}
       </select></td>`;
     }
-    if(isRet) h+=`
-      <td><input type="text" value="${row.supplier||''}" placeholder="اسم المقاول" oninput="bulkRows[${i}].supplier=this.value"></td>
+    const retToSupplier=isRet&&(document.getElementById('bulk-return-kind')?.value==='للمورد');
+    if(isRet&&!retToSupplier){
+      const conOptsR=allVendors.filter(v=>v.type==='مقاول').map(v=>`<option value="${v.id}"${String(v.id)===String(row.vendor_id)?' selected':''}>${v.name}${v.code?' ('+v.code+')':''}</option>`).join('');
+      h+=`
+      <td><select onchange="setRowVendor(${i},this.value)" style="width:100%"><option value="">اختر المقاول</option>${conOptsR}</select></td>
       <td><select onchange="bulkRows[${i}].cost_center_id=this.value;filterCC2(${i},this.value)" id="bulk-cc1-${i}">
         <option value="">م.تكلفة 1</option>${mkCC1Options(row.cost_center_id)}
       </select></td>
       <td><select onchange="bulkRows[${i}].cost_center2_id=this.value" id="bulk-cc2-${i}">
         <option value="">م.تكلفة 2</option>${mkCC2Options(row.cost_center2_id,row.cost_center_id)}
       </select></td>`;
+    }
     if(isTrans) h+=`
       <td><select onchange="bulkRows[${i}].from_project_id=this.value">
         <option value="">من مخزن</option>${projOpts}
@@ -1979,7 +1987,7 @@ function balanceLabel(itemId){
   const qty=inv?.qty??0;
   const unit=item?.unit||'';
   const color=qty<=0?'#ef4444':'#10b981';
-  return `<span style="color:${color};font-weight:700">المتاح حالياً: ${qty.toLocaleString('ar-EG')} ${unit}</span>`;
+  return `<span style="color:${color};font-weight:700">إجمالي كل المخازن: ${qty.toLocaleString('ar-EG')} ${unit} (رصيد المخزن المختار بيتفحص وقت الحفظ)</span>`;
 }
 function searchBulkItem(input,i){
   const q=input.value.trim();
@@ -2031,45 +2039,62 @@ function selectBulkItem(i,id,name,code){
 function closeBulkDropdown(i){document.getElementById(`bulk-dd-${i}`)?.classList.remove('open');}
 
 // FIFO FUNCTIONS
-async function addFIFOLayer(item_id, movement_id, qty, unit_price){
-  // Add a new FIFO layer when receiving stock (وارد)
-  await sb.from('fifo_layers').insert({
-    item_id, movement_id, qty_original:qty, qty_remaining:qty, unit_price
-  });
+function isInMov(m){return m.type==='وارد'||(m.type==='مرتجع'&&m.move_kind!=='للمورد');}
+function setRowVendor(i,vid){
+  const v=allVendors.find(x=>String(x.id)===String(vid));
+  bulkRows[i].vendor_id=v?v.id:'';
+  bulkRows[i].supplier=v?v.name:'';
 }
-
-async function consumeFIFO(item_id, qty_needed){
-  // Consume FIFO layers for outgoing movements
-  // Returns array of {qty, unit_price, layer_id} consumed
-  const {data:layers}=await sb.from('fifo_layers')
-    .select('*')
-    .eq('item_id', item_id)
-    .gt('qty_remaining', 0)
-    .order('created_at', {ascending:true});
-  
-  if(!layers||!layers.length) return [{qty:qty_needed, unit_price:0}];
-  
+function groupAccountOf(itemId){
+  const it=allItems.find(x=>x.id===itemId);
+  const g=it?allGroups.find(x=>x.id===it.group_id):null;
+  return (g&&g.account_code)||null;
+}
+function schemaHint(msg){
+  return /vendor_id|account_code|move_kind|project_id/.test(msg||'')?' — شغّل ملف warehouse-upgrade.sql في Supabase الأول':'';
+}
+// رصيد الصنف في مخزن معيّن (من view item_balances_wh) - لو الـ view مش موجود يرجع للرصيد الكلي
+async function whQty(itemId,pid){
+  if(!pid) return allInventory.find(i=>i.id===itemId)?.qty??null;
+  const {data,error}=await sb.from('item_balances_wh').select('qty').eq('item_id',itemId).eq('project_id',pid).maybeSingle();
+  if(error){return allInventory.find(i=>i.id===itemId)?.qty??null;}
+  return data?(data.qty||0):0;
+}
+// كمية طبقات التكلفة المتاحة في المخزن + المتوسط المرجح
+async function fifoInfo(item_id,project_id){
+  let q=sb.from('fifo_layers').select('qty_remaining,unit_price,created_at').eq('item_id',item_id).gt('qty_remaining',0).order('created_at',{ascending:true});
+  if(project_id) q=q.eq('project_id',project_id);
+  const {data}=await q;
+  const L=data||[];
+  const qty=L.reduce((a,l)=>a+l.qty_remaining,0);
+  const val=L.reduce((a,l)=>a+l.qty_remaining*l.unit_price,0);
+  return {qty, avg:qty>0?val/qty:0, last:L.length?L[L.length-1].unit_price:0};
+}
+async function addFIFOLayer(item_id, movement_id, qty, unit_price, project_id){
+  // طبقة تكلفة جديدة (وارد / تحويل وارد / مرتجع للمخزن) داخل مخزن معيّن
+  const row={item_id, movement_id, qty_original:qty, qty_remaining:qty, unit_price, project_id:project_id||null};
+  let {error}=await sb.from('fifo_layers').insert(row);
+  if(error&&/project_id/.test(error.message||'')){delete row.project_id;({error}=await sb.from('fifo_layers').insert(row));}
+  if(error) console.warn('FIFO layer error',error.message);
+}
+async function consumeFIFO(item_id, qty_needed, project_id){
+  // يخصم من طبقات التكلفة (الأقدم الأول) داخل نفس المخزن
+  let q=sb.from('fifo_layers').select('*').eq('item_id', item_id).gt('qty_remaining', 0).order('created_at', {ascending:true});
+  if(project_id) q=q.eq('project_id',project_id);
+  const {data:layers}=await q;
   const consumed=[];
   let remaining=qty_needed;
-  
-  for(const layer of layers){
+  for(const layer of (layers||[])){
     if(remaining<=0) break;
     const take=Math.min(layer.qty_remaining, remaining);
     consumed.push({qty:take, unit_price:layer.unit_price, layer_id:layer.id});
     remaining-=take;
-    
-    // Update layer remaining qty
-    const newRemaining=layer.qty_remaining-take;
-    await sb.from('fifo_layers').update({qty_remaining:newRemaining}).eq('id',layer.id);
+    await sb.from('fifo_layers').update({qty_remaining:layer.qty_remaining-take}).eq('id',layer.id);
   }
-  
-  // If still remaining (not enough stock in FIFO layers - can happen in rare timing races
-  // between two users; the balance check before this call catches the normal case)
   if(remaining>0){
-    console.warn(`⚠️ FIFO: نقص في طبقات التكلفة للصنف ${item_id} - ${remaining} وحدة اتسجلت بسعر 0 (تزامن محتمل بين مستخدمين)`);
+    console.warn('FIFO: نقص في طبقات التكلفة للصنف '+item_id+' - '+remaining+' وحدة بسعر 0');
     consumed.push({qty:remaining, unit_price:0});
   }
-  
   return consumed;
 }
 
@@ -2335,11 +2360,18 @@ async function saveBulkMovements(){
   const isRetType=type==='مرتجع';
   const isTransType=type==='تحويل';
   const isInType=type==='وارد';
-  let docSupplier=null;
+  let docSupplier=null,docVendorId=null;
   if(isInType){
     const supSel=document.getElementById('bulk-supplier')?.value||'';
-    docSupplier=supSel==='__other__'?(document.getElementById('bulk-supplier-other')?.value.trim()||''):supSel;
+    const sv=allVendors.find(v=>String(v.id)===String(supSel));
+    docSupplier=sv?sv.name:'';docVendorId=sv?sv.id:null;
     if(!docSupplier){toast('اختر المورد أولاً (فوق، جنب رقم المستند)','error');return;}
+  }
+  const retKind=isRetType?(document.getElementById('bulk-return-kind')?.value||'للمخزن'):null;
+  if(isRetType&&retKind==='للمورد'){
+    const sv=allVendors.find(v=>String(v.id)===String(document.getElementById('bulk-supplier')?.value||''));
+    if(!sv){toast('اختر المورد اللي هيتم الإرجاع له','error');return;}
+    docSupplier=sv.name;docVendorId=sv.id;
   }
   const validRows=bulkRows.filter(r=>r.item_id&&r.qty>0);
   if(!validRows.length){toast('أضف أصناف أولاً','error');return;}
@@ -2365,14 +2397,15 @@ async function saveBulkMovements(){
         unit_price:price,
         qty,
         supplier:docSupplier,
+        vendor_id:docVendorId,
         max_qty:parseFloat(row.max_qty)||0,
         unit:row.unit||null,
         notes:row.notes||general_notes||null,
         po_id:parseInt(row.po_id)||null
       }).eq('id',row._movId);
-      if(error){toast('خطأ في تحديث الإذن: '+error.message,'error');return;}
+      if(error){toast('خطأ في تحديث الإذن: '+error.message+schemaHint(error.message),'error');return;}
       if(price>0&&!row._hasFifo){
-        await addFIFOLayer(parseInt(row.item_id), row._movId, qty, price);
+        await addFIFOLayer(parseInt(row.item_id), row._movId, qty, price, project_id);
       }
       updated++;
     }
@@ -2407,20 +2440,25 @@ async function saveBulkMovements(){
       const toProjId=parseInt(row.to_project_id)||null;
       if(!fromProjId||!toProjId){toast('اختر المخزن المصدر والمخزن المستقبل','error');return;}
       if(fromProjId===toProjId){toast('المخزن المصدر والمستقبل لا يمكن أن يكونا نفسهم','error');return;}
-      // OUT from source warehouse
+      const stockFrom=await whQty(itemId,fromProjId);
+      if(stockFrom!==null&&qty>stockFrom){errors.push(`الصنف "${row.item_name}": رصيد المخزن المصدر (${stockFrom}) لا يكفي للتحويل (${qty})`);continue;}
+      const infoT=await fifoInfo(itemId,fromProjId);
+      if(infoT.qty<qty&&!confirm(`الصنف "${row.item_name}": جزء من الكمية في المخزن المصدر ملهوش سعر تكلفة، هيتحوّل بسعر صفر للجزء ده.\nتكمّل؟`)){errors.push(`الصنف "${row.item_name}": اتلغى بناءً على طلبك`);continue;}
+      const consT=await consumeFIFO(itemId,qty,fromProjId);
+      const costT=calcFIFOCost(consT);
+      const avgT=qty>0?costT/qty:0;
       toInsert.push({
-        item_id:itemId, type:'صادر', qty,
-        doc_number:doc_number||null, notes:row.notes||null,
+        item_id:itemId, type:'صادر', qty, move_kind:'تحويل',
+        doc_number:doc_number||null, notes:`تحويل إلى ${allProjects.find(p=>p.id===toProjId)?.name||''} - ${row.notes||''}`,
         project_id:fromProjId, created_by:CU.id,
-        supplier:null, unit_price:0, max_qty:0,
+        supplier:null, unit_price:avgT, fifo_cost:costT||null, max_qty:0,
         ...(created_at_val&&{created_at:created_at_val})
       });
-      // IN to destination warehouse
       toInsert.push({
-        item_id:itemId, type:'وارد', qty,
+        item_id:itemId, type:'وارد', qty, move_kind:'تحويل',
         doc_number:doc_number||null, notes:`تحويل من ${allProjects.find(p=>p.id===fromProjId)?.name||''} - ${row.notes||''}`,
         project_id:toProjId, created_by:CU.id,
-        supplier:null, unit_price:0, max_qty:0,
+        supplier:null, unit_price:avgT, max_qty:0,
         ...(created_at_val&&{created_at:created_at_val})
       });
     } else {
@@ -2430,19 +2468,31 @@ async function saveBulkMovements(){
 
       // Check stock balance for صادر BEFORE touching FIFO layers - prevent negative balance
       // AND prevent depleting FIFO cost layers for a movement that ends up being rejected/skipped
-      if(isOutType){
-        const currentBalance=allInventory.find(i=>i.id===itemId)?.qty??null;
+      const retToSup=isRetType&&retKind==='للمورد';
+      const retToWh=isRetType&&retKind!=='للمورد';
+      let rowAccount=null;
+      if(isOutType||retToWh){
+        rowAccount=groupAccountOf(itemId);
+        if(!rowAccount){errors.push(`الصنف "${row.item_name}": مجموعته مش مربوطة بحساب من الشجرة (اربطها من صفحة المجموعات)`);continue;}
+        if(!row.vendor_id){errors.push(`الصنف "${row.item_name}": اختر المقاول`);continue;}
+      }
+      if(isOutType||retToSup){
+        const currentBalance=await whQty(itemId,project_id);
         if(currentBalance!==null && qty>currentBalance){
-          errors.push(`الصنف "${row.item_name}": الرصيد الحالي (${currentBalance}) لا يكفي للصرف (${qty})`);
+          errors.push(`الصنف "${row.item_name}": رصيد المخزن (${currentBalance}) لا يكفي (${qty})`);
           continue;
         }
-      }
-
-      // For صادر/مرتجع/تحويل - use FIFO pricing
-      if(isOutType||isRetType||isTransType){
-        fifo_consumed=await consumeFIFO(itemId, qty);
+        const info=await fifoInfo(itemId,project_id);
+        if(info.qty<qty&&!confirm(`الصنف "${row.item_name}": جزء من الكمية ملوش سعر تكلفة في المخزن ده، هيتسجل بتكلفة صفر للجزء ده.\nتكمّل؟`)){
+          errors.push(`الصنف "${row.item_name}": اتلغى بناءً على طلبك`);continue;
+        }
+        fifo_consumed=await consumeFIFO(itemId, qty, project_id);
         fifo_cost=calcFIFOCost(fifo_consumed);
         unit_price_calc=qty>0?fifo_cost/qty:0;
+      }
+      if(retToWh){
+        const info=await fifoInfo(itemId,project_id);
+        unit_price_calc=info.avg||info.last||0;
       }
       
       const payload={
@@ -2450,21 +2500,24 @@ async function saveBulkMovements(){
         type, qty,
         unit_price:parseFloat(row.price)||unit_price_calc,
         fifo_cost:fifo_cost||null,
-        supplier:isInType?docSupplier:((isOutType||isRetType)?(row.supplier||null):null),
+        supplier:(isInType||retToSup)?docSupplier:((isOutType||retToWh)?(row.supplier||null):null),
+        vendor_id:(isInType||retToSup)?docVendorId:((isOutType||retToWh)?(parseInt(row.vendor_id)||null):null),
+        account_code:rowAccount,
+        move_kind:isRetType?retKind:null,
         max_qty:type==='وارد'?(parseFloat(row.max_qty)||0):0,
         unit:type==='وارد'?(row.unit||null):null,
         doc_number:doc_number||null,
         notes:row.notes||(general_notes||null),
         project_id,
-        cost_center_id:(isOutType||isRetType)?(parseInt(row.cost_center_id)||null):null,
-        cost_center2_id:(isOutType||isRetType)?(parseInt(row.cost_center2_id)||null):null,
+        cost_center_id:(isOutType||retToWh)?(parseInt(row.cost_center_id)||null):null,
+        cost_center2_id:(isOutType||retToWh)?(parseInt(row.cost_center2_id)||null):null,
         created_by:CU.id,
         ...(created_at_val&&{created_at:created_at_val}),
         po_id:type==='وارد'?(parseInt(row.po_id)||null):null
       };
       
       // Apply global CC if row doesn't have one
-      if((isOutType||isRetType)&&!payload.cost_center_id){
+      if((isOutType||retToWh)&&!payload.cost_center_id){
         const globalCC=parseInt(document.getElementById('bulk-cc')?.value)||null;
         if(globalCC) payload.cost_center_id=globalCC;
       }
@@ -2491,21 +2544,22 @@ async function saveBulkMovements(){
     }
   }
   
+  if(!toInsert.length){toast('⚠️ مفيش حاجة اتسجلت: '+(errors[0]||''),'error');errors.forEach(e=>console.warn(e));return;}
   const {error,data:insertedMovs}=await sb.from('movements').insert(toInsert).select();
-  if(error){toast('خطأ في الحفظ: '+error.message,'error');return;}
+  if(error){toast('خطأ في الحفظ: '+error.message+schemaHint(error.message),'error');return;}
   
   // Add FIFO layers for وارد movements
   if(insertedMovs){
     for(const mov of insertedMovs){
-      if(mov.type==='وارد'&&mov.unit_price>0){
-        await addFIFOLayer(mov.item_id, mov.id, mov.qty, mov.unit_price);
+      if(isInMov(mov)&&mov.unit_price>0){
+        await addFIFOLayer(mov.item_id, mov.id, mov.qty, mov.unit_price, mov.project_id);
       }
     }
   }
   
   // Show stock errors if any
   if(errors.length>0){
-    toast('⚠️ تم تخطي '+errors.length+' صنف: '+errors[0],'warning');
+    toast('⚠️ تم تخطي '+errors.length+' صنف: '+errors.join(' | '),'warning');
     errors.forEach(e=>console.warn(e));
   }
 
@@ -2547,9 +2601,25 @@ async function saveBulkMovements(){
 
 // MOVEMENTS LOG
 async function deleteMov(id){
-  if(!confirm('هل تريد حذف هذه الحركة؟ سيتم خصمها من الرصيد فوراً'))return;
+  const {data:mv,error:e0}=await sb.from('movements').select('*').eq('id',id).maybeSingle();
+  if(e0||!mv){toast('تعذّر قراءة الحركة','error');return;}
+  const inflow=isInMov(mv);
+  let layers=[];
+  if(inflow){
+    const {data:ly}=await sb.from('fifo_layers').select('id,qty_original,qty_remaining').eq('movement_id',id);
+    layers=ly||[];
+    if(layers.some(l=>l.qty_remaining<l.qty_original-0.0001)){
+      toast('مينفعش تحذف الحركة دي: جزء من الكمية اتصرف فعلاً. احذف حركات الصرف اللي بعدها الأول.','error');return;
+    }
+  }
+  const extra=mv.move_kind==='تحويل'?'\n\n⚠️ دي نص عملية تحويل. لازم تحذف النص التاني (في المخزن التاني) بنفسك.':'';
+  if(!confirm('هل تريد حذف هذه الحركة؟ سيتم خصمها من الرصيد فوراً'+extra))return;
+  if(layers.length){await sb.from('fifo_layers').delete().eq('movement_id',id);}
   const {error}=await sb.from('movements').delete().eq('id',id);
   if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
+  if(!inflow&&mv.fifo_cost>0&&mv.qty>0){
+    await addFIFOLayer(mv.item_id,null,mv.qty,mv.fifo_cost/mv.qty,mv.project_id);
+  }
   toast('تم حذف الحركة ✅','success');
   await loadMovements();
   await loadInventory();
@@ -4260,8 +4330,9 @@ async function runCostReport(){
   const approved=new Set(allExtracts.filter(e=>subIds.has(e.boq_id)&&e.status==='معتمد').map(e=>e.id));
   const contractorOf={}; subs.forEach(b=>contractorOf[b.id]=(b.vendors&&b.vendors.name)||'');
   const warnings=[];
-  const mv=await pagedQuery(()=>sb.from('movements').select('qty,unit_price,fifo_cost,cost_center_id,cost_center2_id').eq('type','صادر').eq('project_id',pid));
+  const mv=await pagedQuery(()=>sb.from('movements').select('qty,unit_price,fifo_cost,cost_center_id,cost_center2_id,type,move_kind').in('type',['صادر','مرتجع']).eq('project_id',pid));
   if(mv.error) warnings.push('تعذّر تحميل صادر المخزن: '+mv.error.message);
+  else mv.data=(mv.data||[]).filter(m=>m.move_kind!=='تحويل'&&(m.type==='صادر'||m.move_kind==='للمخزن')).map(m=>m.type==='مرتجع'?{...m,qty:-m.qty,fifo_cost:null}:m);
   const cu=await pagedQuery(()=>sb.from('custody_transactions').select('amount,cost_center_id').eq('type','تسوية').eq('project_id',pid));
   if(cu.error) warnings.push('العهد: عمود مركز التكلفة مش موجود لسه (شغّل master_boq_upgrade.sql)');
   const xp=await pagedQuery(()=>sb.from('expense_transactions').select('amount,cost_center_id').eq('type','مصروف').eq('project_id',pid));
@@ -4877,13 +4948,13 @@ async function genReport(type){
 
   } else if(type==='zero'){
     const {data:items}=await sb.from('items').select('*,groups(name)');
-    const {data:movs}=await sb.from('movements').select('item_id,type,qty');
+    const {data:movs}=await sb.from('movements').select('item_id,type,qty,move_kind');
     const inv={};
     (items||[]).forEach(i=>inv[i.id]={name:i.name,code:i.code,group:i.groups?.name||'-',cost:i.cost_center||'-',unit:i.unit||'-',qty:0,group_id:i.group_id});
     (movs||[]).forEach(m=>{
       if(!inv[m.item_id])return;
-      if(m.type==='وارد'||m.type==='مرتجع') inv[m.item_id].qty+=m.qty;
-      else if(m.type==='صادر') inv[m.item_id].qty-=m.qty;
+      if(isInMov(m)) inv[m.item_id].qty+=m.qty;
+      else inv[m.item_id].qty-=m.qty;
     });
     const zeros=Object.values(inv).filter(i=>i.qty<=0&&(!fGroup||String(i.group_id)===fGroup));
     renderReport('الأصناف برصيد صفر'+(fGroup?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر بالمجموعة)</span>':''),['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','الرصيد'],
@@ -4974,7 +5045,7 @@ async function genReport(type){
     const {data}=await q;
     let bal=0;
     const rows=(data||[]).map(m=>{
-      if(m.type==='وارد'||m.type==='مرتجع')bal+=m.qty;else bal-=m.qty;
+      if(isInMov(m))bal+=m.qty;else bal-=m.qty;
       return [fmtDate(m.created_at),m.type,m.qty,item.unit||'-',m.unit_price||0,((m.qty||0)*(m.unit_price||0)).toFixed(2),bal,m.projects?.name||'-',m.doc_number||'-',m.notes||'-'];
     });
     renderReport('حركة الصنف: '+item.name+activeFiltersNote,['التاريخ','النوع','الكمية','الوحدة','السعر','القيمة','الرصيد التراكمي','المشروع','المستند','البيان'],rows);
@@ -4988,12 +5059,12 @@ async function genReport(type){
   } else if(type==='snapshot'){
     const snapDate=document.getElementById('rep-snapshot-date')?.value;
     if(!snapDate){toast('اختر تاريخ الـ Snapshot','error');return;}
-    const {data:movs}=await sb.from('movements').select('item_id,type,qty,unit_price,items(name,code,unit,groups(name))').lte('created_at',new Date(snapDate+'T23:59:59').toISOString());
+    const {data:movs}=await sb.from('movements').select('item_id,type,qty,unit_price,move_kind,items(name,code,unit,groups(name))').lte('created_at',new Date(snapDate+'T23:59:59').toISOString());
     const snap={};
     (movs||[]).forEach(m=>{
       if(!snap[m.item_id])snap[m.item_id]={name:m.items?.name||'-',code:m.items?.code||'-',group:m.items?.groups?.name||'-',unit:m.items?.unit||'-',qty:0,value:0};
-      if(m.type==='وارد'||m.type==='مرتجع'){snap[m.item_id].qty+=m.qty;snap[m.item_id].value+=(m.qty*(m.unit_price||0));}
-      else if(m.type==='صادر'||m.type==='تحويل'){snap[m.item_id].qty-=m.qty;snap[m.item_id].value-=(m.qty*(m.unit_price||0));}
+      if(isInMov(m)){snap[m.item_id].qty+=m.qty;snap[m.item_id].value+=(m.qty*(m.unit_price||0));}
+      else if(m.type==='صادر'||m.type==='تحويل'||m.type==='مرتجع'){snap[m.item_id].qty-=m.qty;snap[m.item_id].value-=(m.qty*(m.unit_price||0));}
     });
     const rows=Object.values(snap).filter(i=>i.qty>0).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>[i.code,i.name,i.group,i.unit,i.qty,Math.max(0,i.value).toFixed(2)]);
     renderReport('Snapshot المخزون بتاريخ '+new Date(snapDate).toLocaleDateString('ar-EG'),['الكود','الصنف','المجموعة','الوحدة','الرصيد','القيمة (ج)'],rows);
@@ -5040,7 +5111,7 @@ async function openGroupModal(id=null){
   if(accSel&&accSel.options.length<=1){
     const {data:accs,error}=await sb.from('chart_of_accounts').select('account_code,account_name,level').order('account_code');
     if(!error&&accs){
-      accSel.innerHTML='<option value="">بدون ربط</option>'+accs.map(a=>`<option value="${a.account_code}">${'— '.repeat(a.level-1)}${a.account_name} (${a.account_code})</option>`).join('');
+      accSel.innerHTML='<option value="">اختر الحساب *</option>'+accs.map(a=>`<option value="${a.account_code}">${'— '.repeat(a.level-1)}${a.account_name} (${a.account_code})</option>`).join('');
     }
   }
   if(id){
@@ -5060,6 +5131,7 @@ async function saveGroup(){
   const name=document.getElementById('gm-name').value.trim();
   const account_code=document.getElementById('gm-account')?.value||null;
   if(!name){toast('أدخل اسم المجموعة','error');return;}
+  if(!account_code){toast('اختر الحساب من شجرة الحسابات (إجباري)','error');return;}
   const {error}=editGroupId?await sb.from('groups').update({code,name,account_code}).eq('id',editGroupId):await sb.from('groups').insert({code,name,account_code});
   if(error){toast('خطأ: '+error.message,'error');return;}
   toast('تم الحفظ ✅','success');closeModal('group-modal');await loadGroups();populateSelects();
@@ -6244,9 +6316,9 @@ async function loadDocForEdit(explicitDocNum){
   const loadedSupplier=data[0].supplier||'';
   const supSel=document.getElementById('bulk-supplier');
   if(supSel){
-    const known=[...supSel.options].some(o=>o.value===loadedSupplier);
-    if(known){supSel.value=loadedSupplier;}
-    else if(loadedSupplier){supSel.value='__other__';onBulkSupplierChange();const otherInput=document.getElementById('bulk-supplier-other');if(otherInput)otherInput.value=loadedSupplier;}
+    const lv=allVendors.find(v=>String(v.id)===String(data[0].vendor_id))||allVendors.find(v=>v.name===loadedSupplier);
+    if(lv) supSel.value=String(lv.id);
+    else if(loadedSupplier) toast('اسم المورد القديم ("'+loadedSupplier+'") مش موجود في قائمة الموردين، اختار المورد الصحيح قبل الحفظ','warning');
   }
   const banner=document.getElementById('bulk-edit-banner');
   const bannerText=document.getElementById('bulk-edit-banner-text');
@@ -6539,10 +6611,13 @@ sb.auth.onAuthStateChange((event)=>{
   const {data:{session}}=await sb.auth.getSession();
   if(session?.user&&!inPasswordRecovery) await loadProfile(session.user);
 })();
+let invViewName='item_balances_v2';
+let invWhRows=null;
 async function loadInventory(){
   let data=[], fp=0, viewError=null;
   while(true){
-    const {data:page,error}=await sb.from('item_balances').select('*').order('item_id',{ascending:true}).range(fp,fp+999);
+    let {data:page,error}=await sb.from(invViewName).select('*').order('item_id',{ascending:true}).range(fp,fp+999);
+    if(error&&invViewName==='item_balances_v2'){invViewName='item_balances';({data:page,error}=await sb.from(invViewName).select('*').order('item_id',{ascending:true}).range(fp,fp+999));}
     if(error){viewError=error;break;}
     if(!page||!page.length)break;
     data=[...data,...page];
@@ -6574,6 +6649,27 @@ async function loadInventory(){
   setStat('inv-stat-low',low.toLocaleString('ar-EG'));
   setStat('inv-stat-zero',zero.toLocaleString('ar-EG'));
   setStat('inv-stat-value',totalVal.toLocaleString('ar-EG',{minimumFractionDigits:0})+' ج');
+  const whF=document.getElementById('inv-wh-f');
+  if(whF&&whF.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=(p.warehouse_name||p.name);whF.appendChild(o);});
+  await refreshInvWh();
+}
+async function refreshInvWh(){
+  const pid=document.getElementById('inv-wh-f')?.value||'';
+  invWhRows=null;
+  if(pid){
+    let data=[],fp=0,err=null;
+    while(true){
+      const {data:page,error}=await sb.from('item_balances_wh').select('*').eq('project_id',pid).order('item_id',{ascending:true}).range(fp,fp+999);
+      if(error){err=error;break;}
+      if(!page||!page.length)break;
+      data=[...data,...page];if(page.length<1000)break;fp+=1000;
+    }
+    if(err){toast('تعذّر تحميل رصيد المخزن (شغّل warehouse-upgrade.sql): '+err.message,'error');}
+    else{
+      const gm={};allGroups.forEach(g=>gm[g.id]=g.name);
+      invWhRows=data.map(r=>({id:r.item_id,name:r.name,code:r.code,unit:r.unit,cost_center:r.cost_center,group_id:r.group_id,min_qty:r.min_qty,qty:r.qty||0,fifo_value:Math.max(0,r.fifo_value||0),qty_in:r.qty_in||0,qty_out:r.qty_out||0,qty_ret:r.qty_ret||0,qty_trans:r.qty_trans||0,group_name:gm[r.group_id]||'-'}));
+    }
+  }
   filterInv();
 }
 // Legacy full-scan version - kept as an automatic fallback until performance_upgrade.sql is run in Supabase
@@ -6613,7 +6709,7 @@ function filterInv(){
   const s=document.getElementById('inv-search')?.value?.toLowerCase()||'';
   const g=document.getElementById('inv-grp-f')?.value||'';
   const st=document.getElementById('inv-status-f')?.value||'';
-  invFiltered=allInventory.filter(i=>{
+  invFiltered=(invWhRows||allInventory).filter(i=>{
     if(s&&!i.name.toLowerCase().includes(s)&&!(i.code||'').toLowerCase().includes(s))return false;
     if(g&&String(i.group_id)!==g)return false;
     if(st==='ok'&&!(i.qty>(i.min_qty||0)))return false;
