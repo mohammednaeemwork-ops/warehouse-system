@@ -1405,9 +1405,9 @@ const PERM_DEFAULTS={};
 (function(){
   const set=(r,m,a)=>{const o={};PERM_ACTIONS.forEach(x=>o['can_'+x[0]]=a.includes(x[0]));PERM_DEFAULTS[r+'|'+m]=o;};
   set('أمين مخزن','warehouse',['view','add','edit','import','export']);
-  set('محاسب تكاليف','extracts',['view','add','edit','export']);
-  set('محاسب تكاليف','ledger_extracts',['view','add','edit','export']);
-  set('محاسب عهد','ledger_general',['view','add','edit','export']);
+  set('محاسب تكاليف','extracts',['view','add','edit','import','export']);
+  set('محاسب تكاليف','ledger_extracts',['view','add','edit','import','export']);
+  set('محاسب عهد','ledger_general',['view','add','edit','import','export']);
   set('مدير مالي','reports',['view','export']);
   set('مدير مالي','dashboard',['view','export']);
   set('مدير مالي','warehouse_prices',['view']);
@@ -1445,9 +1445,10 @@ function canSeePage(p){
   if(CP.role==='مدير') return true;
   if(p==='perms'||p==='users') return false;
   if(p==='bulk-movement') return can('warehouse','add');
-  if(p==='price-quotes'||p==='rep-wh') return can('warehouse','view')&&can('warehouse_prices','view');
+  if(p==='price-quotes') return can('warehouse','view')&&can('warehouse_prices','view');
+  if(p==='rep-wh') return can('warehouse','view');
   if(p==='ledger') return can('ledger_general','view')||can('ledger_extracts','view');
-  if(p==='rep-lg') return can('ledger_general','view')&&can('ledger_extracts','view');
+  if(p==='rep-lg') return can('ledger_general','view')||can('ledger_extracts','view');
   const m=PAGE_MODULE[p]; return m?can(m,'view'):false;
 }
 // إخفاء أعمدة الأسعار والقيم لمن ليس له صلاحية "أسعار وقيم المخزن" (في جداول القراءة بس، مش الفورم)
@@ -1464,13 +1465,23 @@ function stripPriceCols(root){
     });
   });
 }
+function whNoPrice(){ return can('warehouse','view')&&!can('warehouse_prices','view'); }
+const PX2_RX=/^(سعر|السعر|سعره|القيمة|قيمة|إجمالي القيمة|اجمالي القيمة|التكلفة \(|الإجمالي|المبلغ)/;
+function stripSheetPrices(sh){
+  const idx=[]; sh.headers.forEach((h,i)=>{ if(PX2_RX.test(String(h).trim())) idx.push(i); });
+  if(!idx.length) return sh;
+  const keep=(arr)=>arr.filter((_,i)=>!idx.includes(i));
+  return Object.assign({},sh,{headers:keep(sh.headers),rows:sh.rows.map(keep),total:sh.total?keep(sh.total):sh.total});
+}
+// كل تقارير/تصدير المخزن لمن مالوش صلاحية الأسعار: بتتشال أعمدة الأسعار والقيم من البيانات نفسها
+function repAllowed(sec,r){ if(sec==='wh'&&whNoPrice()&&(r.id==='snap')) return false; return true; }
 let pxObserver=null;
 function applyPriceHiding(){
-  const hide=!can('warehouse_prices','view');
+  const hide=whNoPrice();
   document.body.classList.toggle('no-prices',hide);
   if(pxObserver){pxObserver.disconnect();pxObserver=null;}
   if(!hide) return;
-  const ids=['page-movements','page-inventory','page-purchase-orders','page-bulk-movement'];
+  const ids=['page-movements','page-inventory','page-purchase-orders','page-bulk-movement','page-rep-wh'];
   pxObserver=new MutationObserver(()=>{ ids.forEach(id=>{const el=document.getElementById(id); if(el) stripPriceCols(el);}); });
   ids.forEach(id=>{const el=document.getElementById(id); if(el) pxObserver.observe(el,{childList:true,subtree:true}); });
   ids.forEach(id=>{const el=document.getElementById(id); if(el) stripPriceCols(el);});
@@ -1485,8 +1496,12 @@ function applyHubTiles(){
   });
 }
 function applyActionButtons(){
-  const imp=can('ledger_general','import')&&can('ledger_extracts','import');
-  document.querySelectorAll('button[onclick*="ledger-import"],button[onclick*="lgiTemplate"]').forEach(b=>{b.style.display=imp?'':'none';});
+  const sel=(arr)=>arr.map(x=>'button[onclick*="'+x+'"]').join(',');
+  const set=(arr,ok)=>document.querySelectorAll(sel(arr)).forEach(b=>{b.style.display=ok?'':'none';});
+  set(['po-excel-import','downloadPOTemplate','excel-import','downloadBulkTemplate'],can('warehouse','import'));
+  set(['boq-import-file','downloadBoqTemplate'],can('extracts','import'));
+  set(['ledger-import','lgiTemplate'],lgAllowedTypes('import').length>0);
+  set(['downloadSetupTemplate','pickSetupImport','downloadVendorsTemplate','vendors-import-file','import-items','items-import-file'],can('coding','import'));
   const lgAdd=lgAllowedTypes('add').length>0;
   document.querySelectorAll('button[onclick*="openLedgerModal()"],button[onclick*="openLedgerModal(null)"]').forEach(b=>{b.style.display=lgAdd?'':'none';});
 }
@@ -5033,6 +5048,7 @@ function xlsxBuild(sheets){
   return wb;
 }
 async function xlsxPretty(filename,sheets){
+  if(whNoPrice()) sheets=sheets.map(stripSheetPrices);
   if(typeof ExcelJS==='undefined'){
     // احتياطي لو مكتبة التنسيق مش محمّلة: ملف عادي
     const wb=XLSX.utils.book_new();
@@ -5171,7 +5187,7 @@ function repInit(sec){
   if(cEl&&!cEl.dataset.done){
     cEl.dataset.done='1';
     cEl.innerHTML='<div class="rep-group-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:14px">'+
-      REPORTS[sec].map(r=>`<div class="stat-card rep-card" style="cursor:pointer" onclick="${r.go?r.go:`repRun('${sec}','${r.id}')`}"><div class="stat-icon" style="background:#3b82f620">${r.icon}</div><div><h3 style="font-size:14px">${r.title}</h3><p style="font-size:11px">${r.hint||''}</p></div></div>`).join('')+'</div>';
+      REPORTS[sec].filter(r=>repAllowed(sec,r)).map(r=>`<div class="stat-card rep-card" style="cursor:pointer" onclick="${r.go?r.go:`repRun('${sec}','${r.id}')`}"><div class="stat-icon" style="background:#3b82f620">${r.icon}</div><div><h3 style="font-size:14px">${r.title}</h3><p style="font-size:11px">${r.hint||''}</p></div></div>`).join('')+'</div>';
   }
 }
 function repF(sec){
@@ -5595,7 +5611,8 @@ async function repRun(sec,id){
   const out=document.getElementById('ro-'+sec); if(!out) return;
   out.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   try{
-    const res=await def.run(repF(sec));
+    let res=await def.run(repF(sec));
+    if(sec==='wh'&&whNoPrice()) res=stripSheetPrices(res);
     REP_LAST[sec]=res; repShow(sec,res);
   }catch(e){
     out.innerHTML='<div class="card" style="padding:14px;color:#fcd34d;font-size:13px">⚠️ '+escHtml(e.message||String(e))+'</div>';
@@ -6230,12 +6247,15 @@ function lgiPickTest(fresh){
   return fresh.filter((o,i)=>pick.has(i)).slice(0,20);
 }
 async function lgiRun(mode){
-  if(!(can('ledger_general','import')&&can('ledger_extracts','import'))){ toast('ليس لديك صلاحية استيراد الدفتر','error'); return; }
+  if(!lgAllowedTypes('import').length){ toast('ليس لديك صلاحية استيراد الدفتر','error'); return; }
   await loadLedger();
   const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
   const batch=(mode==='test'?'test-':'full-')+stamp;
   const all=lgiBuild(batch); const {fresh}=lgiNew(all);
-  const list=mode==='test'?lgiPickTest(fresh):fresh;
+  const _imp=lgAllowedTypes('import');
+  const _fresh=fresh.filter(o=>CP?.role==='مدير'||_imp.includes(o.payload.entry_type));
+  if(_fresh.length<fresh.length) toast('اتخطّى '+(fresh.length-_fresh.length)+' سطر من نوع مش مسموحلك ترفعه','info');
+  const list=mode==='test'?lgiPickTest(_fresh):_fresh;
   if(!list.length){ toast('مفيش سطور جديدة للرفع','error'); return; }
   if(mode==='full'&&!confirm('هترفع '+list.length+' سطر. لو حصل غلط تقدر تمسح الدفعة كلها من تحت. كمل؟')) return;
   const pr=document.getElementById('lgi-progress'); let done=0;
