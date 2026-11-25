@@ -1214,7 +1214,7 @@ tr:hover td{background:#ffffff05;}
     <div class="modal-header"><h3 id="lg-title">قيد جديد</h3><button class="modal-close" onclick="closeModal('ledger-modal')">✕</button></div>
     <div class="modal-body" style="max-height:72vh;overflow:auto">
       <div class="form-row">
-        <div class="form-group"><label>النوع *</label><select id="lg-type"></select></div>
+        <div class="form-group"><label>النوع *</label><select id="lg-type" onchange="lgHolderToggle()"></select></div>
         <div class="form-group"><label>التاريخ</label><input type="date" id="lg-date"></div>
       </div>
       <div class="form-row">
@@ -1227,7 +1227,7 @@ tr:hover td{background:#ffffff05;}
       </div>
       <div class="form-row">
         <div class="form-group"><label>المورد / المقاول</label><select id="lg-vendor"></select></div>
-        <div class="form-group"><label>صاحب العهدة / الخزينة</label><input type="text" id="lg-holder"></div>
+        <div class="form-group" id="lg-holder-wrap"><label>صاحب العهدة (للعهدة بس، من شجرة الحسابات)</label><select id="lg-holder" ></select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>رقم القيد</label><input type="text" id="lg-entry"></div>
@@ -1998,6 +1998,7 @@ async function saveCC(){
   if(level===2&&!parent_id){toast('اختر مركز التكلفة 1 التابع له','error');return;}
   const payload={code,name,project_id,level,parent_id};
   const {error}=editCCId?await sb.from('cost_centers').update(payload).eq('id',editCCId):await sb.from('cost_centers').insert(payload);
+  if(error&&/holder_code/.test(error.message)){toast('لازم تشغل سطر SQL الإضافي (holder_code) في Supabase الأول','error');return;}
   if(error){toast('خطأ: '+error.message,'error');return;}
   toast('تم الحفظ ✅','success');
   closeModal('cc-modal');await loadCostCenters();populateSelects();
@@ -5494,6 +5495,7 @@ async function openLedgerModal(id=null){
   set('lg-qty',r?.qty);set('lg-price',r?.unit_price);set('lg-pct',r?.pct);set('lg-amount',r?.amount);set('lg-vat',r?.vat);set('lg-total',r?.total);set('lg-wht',r?.wht_amount);
   set('lg-doctype',r?.doc_type);set('lg-taxst',r?.tax_status);set('lg-invdate',r?.invoice_date);set('lg-invurl',r?.invoice_url);set('lg-notes',r?.notes);
   document.getElementById('lg-review').checked=!!r?.needs_review;set('lg-reason',r?.review_reason);
+  await lgHolderFill(r?.holder_name);
   openModal('ledger-modal');
 }
 async function saveLedger(){
@@ -5501,15 +5503,15 @@ async function saveLedger(){
   const num=k=>{const v=parseFloat(g(k));return isNaN(v)?null:v;};
   const intv=k=>{const v=parseInt(g(k));return isNaN(v)?null:v;};
   const acc=g('lg-account');let code=null,name=null;
-  if(acc){const m=/^(\S+)\s+-\s+(.*)$/.exec(acc);if(m){code=m[1];name=m[2];}else{name=acc;}}
+  if(acc){const m=/^(\S+)\s+-\s+(.*)$/.exec(acc);const hit=m?allCOA.find(a=>String(a.account_code)===m[1]&&(a.level||0)>=4):null;if(hit){code=String(hit.account_code);name=hit.account_name;}else{toast('اختار الحساب من شجرة الحسابات (القايمة)','error');return;}}
   let amount=num('lg-amount'),vat=num('lg-vat'),total=num('lg-total');
   if(total==null&&(amount!=null||vat!=null))total=(amount||0)+(vat||0);
   if(total==null){toast('اكتب القيمة أو الإجمالي','error');return;}
   const payload={entry_type:g('lg-type'),entry_date:g('lg-date')||null,project_id:intv('lg-project'),cost_center_id:intv('lg-cc'),cost_center2_id:intv('lg-cc2'),
-    account_code:code,account_name:name,vendor_id:intv('lg-vendor'),holder_name:g('lg-holder')||null,entry_number:g('lg-entry')||null,doc_number:g('lg-doc')||null,
+    account_code:code,account_name:name,vendor_id:intv('lg-vendor'),holder_name:(g('lg-type')==='عهدة'?lgHolderVal():null),holder_code:(g('lg-type')==='عهدة'?((lgCust||[]).find(c=>c.name===lgHolderVal())||{}).code||null:null),entry_number:g('lg-entry')||null,doc_number:g('lg-doc')||null,
     description:g('lg-desc')||null,work_item:g('lg-work')||null,unit:g('lg-unit')||null,qty:num('lg-qty'),unit_price:num('lg-price'),pct:num('lg-pct'),
     amount,vat,total,wht_amount:num('lg-wht'),doc_type:g('lg-doctype')||null,tax_status:g('lg-taxst')||null,invoice_date:g('lg-invdate')||null,invoice_url:g('lg-invurl')||null,
-    notes:g('lg-notes')||null,needs_review:document.getElementById('lg-review').checked,review_reason:g('lg-reason')||null};
+    notes:g('lg-notes')||null,needs_review:(document.getElementById('lg-review').checked||!code),review_reason:g('lg-reason')||(!code?'بدون حساب':null)};
   if(!editLedgerId)payload.created_by=CU?.id||null;
   const {error}=editLedgerId?await sb.from('cost_ledger').update(payload).eq('id',editLedgerId):await sb.from('cost_ledger').insert(payload);
   if(error){toast('خطأ: '+error.message,'error');return;}
@@ -5522,8 +5524,33 @@ async function deleteLedger(id){
   toast('تم الحذف','success');await loadLedger();
 }
 
+function lgHolderToggle(){ const w=document.getElementById('lg-holder-wrap'); if(w) w.style.display=document.getElementById('lg-type').value==='عهدة'?'':'none'; }
+async function lgHolderFill(cur){
+  const cs=await lgLoadCust(); const sel=document.getElementById('lg-holder'); const names=cs.map(a=>a.name);
+  let o='<option value="">— اختار —</option>'+names.map(n=>`<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  
+  sel.innerHTML=o; sel.value=cur||''; lgHolderToggle();
+}
+function lgHolderVal(){ return document.getElementById('lg-holder').value||''; }
 // LEDGER IMPORT: استيراد دفتر التكاليف من الإكسل
-let lgiLines=[], lgiMeta={sections:{},ccs:{},skipped:0,file:''}, lgiMap={sec:{},cc:{}}, lgiBuilt=[], lgiFlagOnly=false;
+let lgCust=null;
+async function lgLoadCust(){
+  if(lgCust) return lgCust;
+  try{ const {data,error}=await sb.from('chart_of_accounts').select('account_code,account_name').eq('parent_code','120502000000').order('account_name');
+    lgCust=error?[]:(data||[]).map(a=>({code:a.account_code,name:String(a.account_name||'').replace(/^عهد[ةه]?\s*-?\s*/,'').trim()})); }catch(e){ lgCust=[]; }
+  return lgCust;
+}
+function lgiHolderKey(sec){ return lgiIsAssumed(sec)?sec:''; }
+function lgiHolderDefault(key){
+  if(!key) return '';
+  const n=normAr(key); const cs=lgCust||[];
+  let m=cs.find(a=>normAr(a.name)===n);
+  if(!m){ const w=n.split(' ').filter(x=>x.length>1); m=cs.find(a=>{const an=normAr(a.name); return w.length>=2&&w.every(x=>an.indexOf(x)>=0);}); }
+  if(!m){ m=cs.find(a=>{const an=normAr(a.name).split(' ').filter(x=>x.length>1); return an.length>=2&&an.every(x=>n.indexOf(x)>=0);}); }
+  return m?m.name:'';
+}
+function lgiHolderFor(key){ if(lgiMap.holder[key]===undefined) lgiMap.holder[key]=lgiHolderDefault(key); return lgiMap.holder[key]; }
+let lgiLines=[], lgiMeta={sections:{},ccs:{},skipped:0,file:''}, lgiMap={sec:{},cc:{},holder:{}}, lgiBuilt=[], lgiFlagOnly=false;
 function lgiDate(v){
   if(v==null||v==='') return {v:null};
   let d=null;
@@ -5549,6 +5576,15 @@ function lgiDefaultType(sec){
   return 'عهدة';
 }
 function lgiIsAssumed(sec){ const n=normAr(sec); return !!n && ['مصاريف','مصروفات','مصروف','عهد','عهده','استحقاق','استحقاقات','مستخلصات','مستخلص','الاصول','اصول','اصل'].indexOf(n)<0; }
+function lgiLeafCOA(){ return (allCOA||[]).filter(a=>(a.level||0)>=4); }
+function lgiNormAcc(x){ return normAr(x).replace(/^(تكاليف|م\.|م)\s*[-.]?\s*/,'').trim(); }
+function lgiMatchAcc(name){
+  const leaf=lgiLeafCOA(); const n=normAr(name);
+  let m=leaf.filter(a=>normAr(a.account_name)===n); if(m.length>=1) return m[0].account_code;
+  const n2=lgiNormAcc(name); if(!n2) return '';
+  m=leaf.filter(a=>lgiNormAcc(a.account_name)===n2); if(m.length===1) return m[0].account_code;
+  return '';
+}
 function lgiMatchCC(name,alt1,alt2){
   const cands=[name,alt1,alt2].map(normAr).filter(Boolean);
   for(const n of cands){
@@ -5565,23 +5601,25 @@ async function handleLedgerImport(input){
   const file=input.files&&input.files[0]; if(!file) return;
   try{
     if(!allCostCenters.length||!allProjects.length||!allVendors.length||!allCOA.length){ try{ await loadCOA(); }catch(e){} }
-    await loadLedger();
+    await loadLedger(); await lgLoadCust();
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array',cellDates:true});
     const wsName=wb.SheetNames.find(n=>n.trim().toLowerCase()==='entry')||wb.SheetNames[0];
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[wsName],{header:1,defval:'',raw:true});
-    lgiLines=[]; let skipped=0; const secs={},ccs={};
+    lgiLines=[]; let skipped=0; const secs={},ccs={},accs={};
     for(let i=1;i<rows.length;i++){
       const r=rows[i];
       const mny=(lgiNum(r[14])||0)!==0||(lgiNum(r[16])||0)!==0;
       if(!mny&&!lgiTxt(r[9])&&!lgiTxt(r[7])&&!lgiTxt(r[5])){ skipped++; continue; }
       const sec=lgiTxt(r[4]), pj=lgiTxt(r[1]);
       lgiLines.push({row:i+1,r});
+      const an=lgiTxt(r[5]); const ae=accs[an]||(accs[an]={n:0,total:0}); ae.n++; ae.total+=lgiNum(r[16])||lgiNum(r[14])||0;
       const s=secs[sec]||(secs[sec]={n:0,total:0}); s.n++; s.total+=lgiNum(r[16])||lgiNum(r[14])||0;
       const c=ccs[pj]||(ccs[pj]={n:0,total:0,c1:lgiTxt(r[2]),c2:lgiTxt(r[3])}); c.n++; c.total+=lgiNum(r[16])||lgiNum(r[14])||0;
     }
-    lgiMeta={sections:secs,ccs,skipped,file:file.name,sheet:wsName};
-    lgiMap={sec:{},cc:{}};
+    lgiMeta={sections:secs,ccs,accs,skipped,file:file.name,sheet:wsName};
+    lgiMap={sec:{},cc:{},holder:{},acc:{}};
+    Object.keys(accs).forEach(a=>{lgiMap.acc[a]=a?lgiMatchAcc(a):'';});
     Object.keys(secs).forEach(s=>{lgiMap.sec[s]=lgiDefaultType(s);});
     Object.keys(ccs).forEach(p=>{lgiMap.cc[p]=p?lgiMatchCC(p,ccs[p].c2,ccs[p].c1):'';});
     lgiFlagOnly=false;
@@ -5600,10 +5638,10 @@ function lgiResolveCC(sel){
 }
 function lgiBuild(batch){
   const vmap=new Map(); allVendors.forEach(v=>{const k=normAr(v.name); if(k&&!vmap.has(k)) vmap.set(k,v);});
-  const amap=new Map(); allCOA.forEach(a=>{const k=normAr(a.account_name); if(k&&!amap.has(k)) amap.set(k,a);});
+  const cmap=new Map(); allCOA.forEach(a=>cmap.set(String(a.account_code),a));
   const out=[];
   for(const {row,r} of lgiLines){
-    const why=[]; const sec=lgiTxt(r[4]); const type=lgiMap.sec[sec]||lgiDefaultType(sec);
+    const why=[], raw=[]; const sec=lgiTxt(r[4]); const type=lgiMap.sec[sec]||lgiDefaultType(sec);
     const d=lgiDate(r[0]); if(d.v==null) why.push(d.bad?'تاريخ غير صالح'+(d.raw?' ('+d.raw+')':''):'بدون تاريخ');
     const pj=lgiTxt(r[1]); const cc=lgiResolveCC(lgiMap.cc[pj]);
     if(!pj) why.push('بدون مشروع/فرع'); else if(!lgiMap.cc[pj]) why.push('مركز التكلفة غير مربوط ('+pj+')');
@@ -5617,14 +5655,14 @@ function lgiBuild(batch){
     if(qty!=null&&price!=null&&amount!=null){ const b=qty*price, p=pct==null?1:pct; if(Math.abs(b*p-amount)>1&&Math.abs(b*p/100-amount)>1&&Math.abs(b-amount)>1) why.push('الكمية×السعر لا تساوي القيمة'); }
     const vname=lgiTxt(r[7]); let vendor=vname?vmap.get(normAr(vname)):null;
     if(!vname&&type==='مستخلص') why.push('مستخلص بدون مقاول');
-    const acn=lgiTxt(r[5]); const acc=acn?amap.get(normAr(acn)):null;
+    const acn=lgiTxt(r[5]); const acc=lgiMap.acc[acn]?cmap.get(lgiMap.acc[acn]):null; if(!acn) why.push('بدون حساب'); else if(!acc){ why.push('الحساب غير موجود في الشجرة'); raw.push('الحساب بالشيت: '+acn); }
     let en=lgiTxt(r[17]); if(/^\d{4}-\d{2}-\d{2}/.test(en)||r[17] instanceof Date){ why.push('رقم القيد تالف ('+(r[17] instanceof Date?'تاريخ':en)+')'); en=''; }
     const inv=lgiDate(r[19]); if(inv.bad) why.push('تاريخ المستند غير صالح');
-    const holder=(type==='عهدة'&&lgiIsAssumed(sec))?sec:null;
+    const hKey=lgiHolderKey(sec); const holder=type==='عهدة'?(lgiHolderFor(hKey)||null):null; if(type==='عهدة'&&hKey&&!holder){ why.push('صاحب العهدة غير موجود في الشجرة'); raw.push('صاحب العهدة بالشيت: '+hKey); }
     out.push({row,payload:{entry_type:type,entry_date:d.v,project_id:cc.project_id||null,cost_center_id:cc.cost_center_id||null,cost_center2_id:cc.cost_center2_id||null,section_raw:sec||null,
-      account_code:acc?acc.account_code:null,account_name:acn||null,work_item:lgiTxt(r[6])||null,vendor_id:vendor?vendor.id:null,vendor_name:vname||null,holder_name:holder,
+      account_code:acc?acc.account_code:null,account_name:acc?acc.account_name:null,work_item:lgiTxt(r[6])||null,vendor_id:vendor?vendor.id:null,vendor_name:vname||null,holder_name:holder,holder_code:holder?((lgCust||[]).find(c=>c.name===holder)||{}).code||null:null,
       entry_number:en||null,doc_number:lgiTxt(r[8])||null,description:lgiTxt(r[9])||null,unit:lgiTxt(r[10])||null,qty,unit_price:price,pct,amount,vat,total,
-      wht_amount:lgiNum(r[21]),doc_type:lgiTxt(r[18])||null,tax_status:lgiTxt(r[20])||null,invoice_date:inv.v,invoice_url:lgiTxt(r[22])||null,notes:lgiTxt(r[23])||null,
+      wht_amount:lgiNum(r[21]),doc_type:lgiTxt(r[18])||null,tax_status:lgiTxt(r[20])||null,invoice_date:inv.v,invoice_url:lgiTxt(r[22])||null,notes:raw.concat(lgiTxt(r[23])?[lgiTxt(r[23])]:[]).join(' | ')||null,
       needs_review:why.length>0,review_reason:why.length?why.join('، '):null,source_row:row,import_batch:batch||null,created_by:(typeof CU!=='undefined'&&CU)?CU.id:null}});
   }
   // تكرار محتمل داخل الملف
@@ -5651,16 +5689,35 @@ function lgiRender(){
   const th='style="text-align:right;padding:6px;border-bottom:1px solid var(--border)"', td='style="padding:6px;border-bottom:1px solid var(--border)"';
   const secKeys=Object.keys(lgiMeta.sections).sort((a,b)=>lgiMeta.sections[b].n-lgiMeta.sections[a].n);
   const ccKeys=Object.keys(lgiMeta.ccs).sort((a,b)=>lgiMeta.ccs[b].n-lgiMeta.ccs[a].n);
+  const hAgg={}; secKeys.forEach(sc=>{ if((lgiMap.sec[sc]||lgiDefaultType(sc))==='عهدة'){ const k=lgiHolderKey(sc); const e=hAgg[k]||(hAgg[k]={n:0,t:0}); e.n+=lgiMeta.sections[sc].n; e.t+=lgiMeta.sections[sc].total; } });
+  const hKeys=Object.keys(hAgg).sort((a,b)=>hAgg[b].n-hAgg[a].n);
+  const hOpt=(cur,key)=>{ const names=(lgCust||[]).map(a=>a.name); let o='<option value="">— بلانك (بدون صاحب) —</option>'+names.map(nm=>`<option value="${escHtml(nm)}" ${cur===nm?'selected':''}>${escHtml(nm)}</option>`).join(''); return o; };
+  const hh=`<h4 style="margin:14px 0 4px">2) أصحاب العهد (كل اسم شخص في القسم = صاحب عهدة)</h4>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:4px">اختار لكل اسم صاحب العهدة من حسابات العهد في الشجرة. الأتوماتيك بيطابق بالاسم. اللي مش موجود في الشجرة بيتسجل بلانك ومعلّم للمراجعة (والاسم الأصلي بيتحفظ في الملاحظات). عهد من غير اسم تفضل بدون صاحب.</div>
+  <table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th ${th}>الاسم في الشيت</th><th ${th}>السطور</th><th ${th}>الإجمالي</th><th ${th}>صاحب العهدة</th></tr>`+
+  (hKeys.length?hKeys.map((k,i)=>`<tr><td ${td}>${k?escHtml(k):'عهد (من غير اسم في الشيت)'}</td><td ${td}>${hAgg[k].n}</td><td ${td}>${fnum(hAgg[k].t)}</td><td ${td}><select style="max-width:300px" onchange="lgiMap.holder[lgiHolderKeys[${i}]]=this.value;lgiRender()">${hOpt(lgiHolderFor(k),k)}</select>${k&&!lgiHolderFor(k)?' <span style="color:#d97706">(مش لاقيه في الشجرة، هيتسجل بلانك ومعلّم للمراجعة)</span>':''}${lgCust&&lgCust.length===0?' <span style="color:#d97706">(مفيش حسابات عهد في الشجرة)</span>':''}</td></tr>`).join(''):'<tr><td '+td+' colspan="4">مفيش عهد</td></tr>')+`</table>`;
+  window.lgiHolderKeys=hKeys;
+  const accKeys=Object.keys(lgiMeta.accs).sort((a,b)=>lgiMeta.accs[b].n-lgiMeta.accs[a].n);
+  const leaf=lgiLeafCOA(); const accLab=c=>{const a=leaf.find(x=>String(x.account_code)===String(c)); return a?a.account_code+' - '+a.account_name:'';};
+  const unAcc=accKeys.filter(k=>k&&!lgiMap.acc[k]); const unAccRows=unAcc.reduce((t,k)=>t+lgiMeta.accs[k].n,0);
+  const ah=`<h4 style="margin:14px 0 4px">4) الحسابات (لازم حساب من شجرة الحسابات)</h4>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:4px">${accKeys.length} اسم حساب في الشيت، منهم <b>${unAcc.length}</b> مش لاقيهم في الشجرة (${unAccRows} سطر). اكتب في الخانة أو اختار الحساب الصح من القايمة، واللي يفضل فاضي بيتسجل بلانك ومعلّم للمراجعة. الاسم الأصلي بيتحفظ في الملاحظات.</div>
+  <datalist id="lgi-coa-list">${leaf.map(a=>`<option value="${escHtml(a.account_code+' - '+a.account_name)}">`).join('')}</datalist>
+  <table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th ${th}>الحساب في الشيت</th><th ${th}>السطور</th><th ${th}>حساب الشجرة</th></tr>`+
+  accKeys.slice().sort((a,b)=>((!!lgiMap.acc[a])-(!!lgiMap.acc[b]))||(lgiMeta.accs[b].n-lgiMeta.accs[a].n)).map(k=>{const i=accKeys.indexOf(k);return `<tr><td ${td}>${k?escHtml(k):'بلانك'}</td><td ${td}>${lgiMeta.accs[k].n}</td><td ${td}>${k?`<input list="lgi-coa-list" style="min-width:280px" value="${escHtml(accLab(lgiMap.acc[k]))}" onchange="lgiSetAcc(${i},this.value)">${lgiMap.acc[k]?'':' <span style="color:#d97706">⚠️</span>'}`:'—'}</td></tr>`;}).join('')+`</table>`;
+  window.lgiAccKeys=accKeys;
   const unm=ccKeys.filter(k=>k&&!lgiMap.cc[k]).length;
   let h=`<div style="font-size:13px;line-height:1.9"><b>${escHtml(lgiMeta.file)}</b> (تاب ${escHtml(lgiMeta.sheet)}): قريت <b>${lgiLines.length}</b> سطر، وتجاهلت <b>${lgiMeta.skipped}</b> سطر فاضي.<br>
   جاهز للرفع: <b>${fresh.length}</b> سطر في <b>${groups.size}</b> قيد (السطور اللي ليها نفس رقم القيد بتتجمع في قيد واحد). موجود قبل كده ومش هيتكرر: <b>${dup.length}</b>. محتاج مراجعة: <b>${rev}</b>. مراكز تكلفة مش مربوطة: <b>${unm}</b>.</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">${LEDGER_TYPES.map(t=>`<div style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px"><div style="font-size:12px;color:var(--text3)">${t} (${byType[t].n})</div><div style="font-weight:700">${fnum(byType[t].t)}</div></div>`).join('')}</div>
   <h4 style="margin:12px 0 4px">1) كل قيمة في عمود "القسم" تروح فين؟</h4>
   <table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th ${th}>القسم في الشيت</th><th ${th}>عدد السطور</th><th ${th}>الإجمالي</th><th ${th}>يتسجل كـ</th></tr>`+
-  secKeys.map((s,i)=>`<tr><td ${td}>${s?escHtml(s):'بلانك'}${lgiIsAssumed(s)&&s?' <span style="color:#d97706">(افتراض: اسم شخص/خزينة، أكّد)</span>':''}${!s?' <span style="color:#d97706">(هيتعلّم للمراجعة)</span>':''}</td><td ${td}>${lgiMeta.sections[s].n}</td><td ${td}>${fnum(lgiMeta.sections[s].total)}</td><td ${td}><select onchange="lgiMap.sec[lgiSecKeys[${i}]]=this.value;lgiRender()">${secOpts(lgiMap.sec[s])}</select></td></tr>`).join('')+`</table>
-  <h4 style="margin:14px 0 4px">2) كل مشروع/فرع في الشيت يتربط بأنهي مركز تكلفة؟</h4>
+  secKeys.map((s,i)=>`<tr><td ${td}>${s?escHtml(s):'بلانك'}${lgiIsAssumed(s)&&s?' <span style="color:#d97706">(اسم شخص: عهدة على الشخص ده)</span>':''}${!s?' <span style="color:#d97706">(هيتعلّم للمراجعة)</span>':''}</td><td ${td}>${lgiMeta.sections[s].n}</td><td ${td}>${fnum(lgiMeta.sections[s].total)}</td><td ${td}><select onchange="lgiMap.sec[lgiSecKeys[${i}]]=this.value;lgiRender()">${secOpts(lgiMap.sec[s])}</select></td></tr>`).join('')+`</table>
+  ${hh}
+  <h4 style="margin:14px 0 4px">3) كل مشروع/فرع في الشيت يتربط بأنهي مركز تكلفة؟</h4>
   <table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th ${th}>الاسم في الشيت</th><th ${th}>السطور</th><th ${th}>مربوط بـ</th></tr>`+
   ccKeys.map((p,i)=>`<tr><td ${td}>${p?escHtml(p):'بلانك'}</td><td ${td}>${lgiMeta.ccs[p].n}</td><td ${td}>${p?`<select style="max-width:300px" onchange="lgiMap.cc[lgiCcKeys[${i}]]=this.value;lgiRender()">${ccOpt(lgiMap.cc[p])}</select>`:'—'}</td></tr>`).join('')+`</table>
+  ${ah}
   <div style="margin:14px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <button class="btn btn-ghost" onclick="lgiDownloadReview()">📥 نزّل ملف المراجعة (${rev})</button>
     <button class="btn btn-accent" onclick="lgiRun('test')">🧪 جرّب 20 سطر بس</button>
@@ -5710,6 +5767,7 @@ async function lgiRun(mode){
   for(let i=0;i<list.length;i+=200){
     const chunk=list.slice(i,i+200).map(o=>o.payload);
     const {error}=await sb.from('cost_ledger').insert(chunk);
+    if(error&&/holder_code/.test(error.message)){ pr.innerHTML='<span style="color:#dc2626">لازم تشغل سطر SQL الإضافي (holder_code) في Supabase الأول.</span>'; return; }
     if(error){ pr.innerHTML='<span style="color:#dc2626">وقف بعد ما رفع '+done+' سطر: '+escHtml(error.message)+'. الدفعة '+batch+' (تقدر تمسحها من تحت).</span>'; await loadLedger(); lgiRenderBatches(); return; }
     done+=chunk.length; pr.textContent='اترفع '+done+' من '+list.length+'...';
   }
@@ -5719,11 +5777,19 @@ async function lgiRun(mode){
 }
 function lgiTemplate(){
   const H=['التاريخ','اسم المشروع/الفرع','مركز تكلفة 1','مركز تكلفة 2','القسم','اسم الحساب','بند الاعمال','اسم المقاول/المورد','رقم المستخلص/اذن الصرف','البيان','الوحده','الكمية','السعر','نسبة الصرف','القيمة','ض.ق.م','الاجمالي','رقم القيد','نوع المستند','تاريخ المستند','موقف ضريبة الخصم','قيمة الضريبة','رابط الفاتورة','ملاحظات'];
-  const ex1=['2026-01-15','مشروع شورز','','','مصاريف','مصروفات نثرية','','اسم المورد','','شراء مستلزمات','عدد',2,500,1,1000,140,1140,'3001/1','فاتورة','2026-01-14','','','',''];
-  const ex2=['2026-01-20','مقرات','','','عهد','','','','','عهدة للمهندس فلان','',1,2000,1,2000,0,2000,'3001/2','إذن صرف','','','','',''];
+  const ex1=['2026-01-15','مشروع شورز','','','مصاريف','مصروفات نثرية (اسم حساب من الشجرة)','','اسم المورد','','شراء مستلزمات','عدد',2,500,1,1000,140,1140,'3001/1','فاتورة','2026-01-14','','','',''];
+  const ex2=['2026-01-20','مقرات','','','اسم صاحب العهدة','','','','','عهدة','',1,2000,1,2000,0,2000,'3001/2','إذن صرف','','','','',''];
   const ws=XLSX.utils.aoa_to_sheet([H,ex1,ex2]);
-  const ins=XLSX.utils.aoa_to_sheet([['تعليمات'],['1) السطر الأول عناوين الأعمدة، ماتغيرش ترتيبها ولا أسمائها.'],['2) عمود القسم يحدد النوع: مصاريف، عهد، استحقاق، مستخلصات، الأصول. (أي قيمة تانية هتسألك تختار نوعها قبل الرفع)'],['3) السطور اللي ليها نفس رقم القيد بتتجمع في قيد واحد.'],['4) اكتب التاريخ كده: 2026-01-15. اكتب الأرقام من غير فاصلة.'],['5) امسح سطري المثال قبل ما ترفع.'],['6) السطور الفاضية بتتجاهل. السطور الغلط بتترفع ومتعلّمة للمراجعة، مفيش حاجة بتتحذف.']]);
+  const ins=XLSX.utils.aoa_to_sheet([['تعليمات'],['1) السطر الأول عناوين الأعمدة، ماتغيرش ترتيبها ولا أسمائها.'],['2) عمود القسم يحدد النوع: مصاريف، عهد، استحقاق، مستخلصات، الأصول. (اسم الشخص = عهدة على الشخص ده. أي قيمة تانية هتسألك تختار نوعها قبل الرفع)'],['   لو القسم اسم شخص يتسجل عهدة على الشخص ده. كلمة عهد لوحدها معناها عهدة من غير صاحب (هتتعلّم للمراجعة).'],['3) السطور اللي ليها نفس رقم القيد بتتجمع في قيد واحد.'],['4) اكتب التاريخ كده: 2026-01-15. اكتب الأرقام من غير فاصلة.'],['   اسم الحساب لازم يكون زي اسمه في شجرة الحسابات. واللي مش مطابق هتختار له الحساب قبل الرفع.'],['5) امسح سطري المثال قبل ما ترفع.'],['6) السطور الفاضية بتتجاهل. السطور الغلط بتترفع ومتعلّمة للمراجعة، مفيش حاجة بتتحذف.']]);
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'entry'); XLSX.utils.book_append_sheet(wb,ins,'تعليمات'); XLSX.writeFile(wb,'cost_ledger_template.xlsx');
+}
+
+function lgiSetAcc(i,v){
+  const k=window.lgiAccKeys[i]; const m=/^(\S+)\s+-\s+/.exec((v||'').trim()); const leaf=lgiLeafCOA();
+  const hit=m?leaf.find(a=>String(a.account_code)===m[1]):null;
+  lgiMap.acc[k]=hit?String(hit.account_code):'';
+  if(v&&!hit) toast('اختار الحساب من القايمة (لازم يكون في الشجرة)','error');
+  lgiRender();
 }
 
 // VENDORS
