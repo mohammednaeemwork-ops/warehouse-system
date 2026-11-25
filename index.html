@@ -734,53 +734,28 @@ tr:hover td{background:#ffffff05;}
 
     <!-- REPORTS -->
     <div class="page" id="page-reports">
-      <div class="page-header"><div><h2>التقارير</h2><p>تقارير شاملة وقابلة للتصدير</p></div></div>
-      <div class="card" style="margin-bottom:16px;padding:16px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">من تاريخ</label><input type="date" id="rep-date-from" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">إلى تاريخ</label><input type="date" id="rep-date-to" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المشروع</label><select id="rep-project" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المشاريع</option></select></div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">المجموعة</label><select id="rep-group" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"><option value="">كل المجموعات</option></select></div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">بحث عن صنف</label><input type="text" id="rep-item-search" placeholder="اسم أو كود..." style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">تاريخ الـ Snapshot</label><input type="date" id="rep-snapshot-date" style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-        </div>
-      </div>
-      <div style="margin-bottom:12px"><input type="text" id="rep-card-search" placeholder="🔍 ابحث عن نوع التقرير..." oninput="filterReportCards()" style="width:100%;max-width:320px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none"></div>
-      <div id="report-cards-grid">
-        <div class="rep-group">
-          <h4 class="rep-group-title">📦 تقارير الحركة</h4>
-          <div class="rep-group-grid">
-            <div class="stat-card rep-card" data-label="أكثر الأصناف حركة وارد وصادر" style="cursor:pointer" onclick="genReport('top')"><div class="stat-icon" style="background:#3b82f620">🏆</div><div><h3 style="font-size:14px">أكثر الأصناف حركة</h3><p style="font-size:11px">وارد وصادر</p></div></div>
-            <div class="stat-card rep-card" data-label="حركة صنف معين كل حركات الصنف" style="cursor:pointer" onclick="genReport('item-movement')"><div class="stat-icon" style="background:#6366f120">🔍</div><div><h3 style="font-size:14px">حركة صنف معين</h3><p style="font-size:11px">كل حركات الصنف</p></div></div>
-            <div class="stat-card rep-card" data-label="تقرير شهري حركات الشهر" style="cursor:pointer" onclick="genReport('monthly')"><div class="stat-icon" style="background:#f59e0b20">📅</div><div><h3 style="font-size:14px">تقرير شهري</h3><p style="font-size:11px">حركات الشهر</p></div></div>
-            <div class="stat-card rep-card" data-label="تقرير بالمشاريع مفلتر بالمشروع" style="cursor:pointer" onclick="genReport('by-project')"><div class="stat-icon" style="background:#10b98120"><img class="company-logo-icon" style="width:22px;height:22px;object-fit:contain"></div><div><h3 style="font-size:14px">تقرير بالمشاريع</h3><p style="font-size:11px">مفلتر بالمشروع</p></div></div>
-          </div>
-        </div>
-        <div class="rep-group">
-          <h4 class="rep-group-title">🏬 تقارير المخزون</h4>
-          <div class="rep-group-grid">
-            <div class="stat-card rep-card" data-label="الأصناف الصفرية رصيد صفر" style="cursor:pointer" onclick="genReport('zero')"><div class="stat-icon" style="background:#ef444420">⚠️</div><div><h3 style="font-size:14px">الأصناف الصفرية</h3><p style="font-size:11px">رصيد صفر</p></div></div>
-            <div class="stat-card rep-card" data-label="قيمة المخزون إجمالي القيمة" style="cursor:pointer" onclick="genReport('inventory-value')"><div class="stat-icon" style="background:#10b98120">💎</div><div><h3 style="font-size:14px">قيمة المخزون</h3><p style="font-size:11px">إجمالي القيمة</p></div></div>
-            <div class="stat-card rep-card" data-label="Snapshot المخزون الرصيد في تاريخ" style="cursor:pointer" onclick="genReport('snapshot')"><div class="stat-icon" style="background:#3b82f620">📸</div><div><h3 style="font-size:14px">Snapshot المخزون</h3><p style="font-size:11px">الرصيد في تاريخ</p></div></div>
-          </div>
-        </div>
-        <div class="rep-group">
-          <h4 class="rep-group-title">💰 تقارير التكلفة</h4>
-          <div class="rep-group-grid">
-            <div class="stat-card rep-card" data-label="مراكز التكلفة عمارة شقة" style="cursor:pointer" onclick="genReport('cost-centers')"><div class="stat-icon" style="background:#6366f120">🏢</div><div><h3 style="font-size:14px">مراكز التكلفة</h3><p style="font-size:11px">عمارة ← شقة</p></div></div>
-            <div class="stat-card rep-card" data-label="اسم التكلفة صرف حسب التكلفة" style="cursor:pointer" onclick="genReport('cost-type')"><div class="stat-icon" style="background:#f59e0b20">💰</div><div><h3 style="font-size:14px">اسم التكلفة</h3><p style="font-size:11px">صرف حسب التكلفة</p></div></div>
-          </div>
-        </div>
-        <div class="rep-group">
-          <h4 class="rep-group-title">🛒 تقارير التوريد</h4>
-          <div class="rep-group-grid">
-            <div class="stat-card rep-card" data-label="طلبات التوريد مقارنة المطلوب" style="cursor:pointer" onclick="genReport('purchase-orders')"><div class="stat-icon" style="background:#10b98120">🛒</div><div><h3 style="font-size:14px">طلبات التوريد</h3><p style="font-size:11px">مقارنة المطلوب</p></div></div>
-          </div>
-        </div>
-      </div>
-      <div id="rep-card-noresults" style="display:none;text-align:center;color:var(--text3);padding:20px;font-size:13px">مفيش تقرير بالاسم ده</div>
-      <div id="report-out-placeholder" style="display:none"></div>
-      <div id="report-out"></div>
+      <div class="page-header"><div><h2>التقارير المجمّعة</h2><p>تقارير تجمع الدفتر والمخزن والمستخلصات. كل تقرير ليه تصدير Excel</p></div></div>
+      <div class="card" style="margin-bottom:16px;padding:16px"><div id="rf-all"></div></div>
+      <div id="rc-all"></div>
+      <div id="ro-all"></div>
+    </div>
+    <div class="page" id="page-rep-wh">
+      <div class="page-header"><div><h2>تقارير المخزن</h2><p>كل تقرير ليه تصدير Excel</p></div></div>
+      <div class="card" style="margin-bottom:16px;padding:16px"><div id="rf-wh"></div></div>
+      <div id="rc-wh"></div>
+      <div id="ro-wh"></div>
+    </div>
+    <div class="page" id="page-rep-ex">
+      <div class="page-header"><div><h2>تقارير المستخلصات</h2><p>كل تقرير ليه تصدير Excel</p></div></div>
+      <div class="card" style="margin-bottom:16px;padding:16px"><div id="rf-ex"></div></div>
+      <div id="rc-ex"></div>
+      <div id="ro-ex"></div>
+    </div>
+    <div class="page" id="page-rep-lg">
+      <div class="page-header"><div><h2>تقارير دفتر التكاليف</h2><p>كل تقرير ليه تصدير Excel</p></div></div>
+      <div class="card" style="margin-bottom:16px;padding:16px"><div id="rf-lg"></div></div>
+      <div id="rc-lg"></div>
+      <div id="ro-lg"></div>
     </div>
 
     <!-- ANALYTICS / CHARTS -->
@@ -1386,17 +1361,20 @@ const NAV_STRUCTURE=[
     {page:'bulk-movement', icon:'📋', label:'تسجيل الحركات'},
     {page:'movements', icon:'🔄', label:'سجل الحركات'},
     {page:'inventory', icon:'📦', label:'أرصدة المخزون'},
+    {page:'rep-wh', icon:'📑', label:'تقارير المخزن'},
   ]},
   {type:'module', key:'extracts-module', icon:'📋', label:'المستخلصات', children:[
     {page:'extracts', icon:'📋', label:'المستخلصات'},
     {page:'boqs', icon:'📑', label:'المقايسات'},
     {page:'vouchers', icon:'💸', label:'أذون الصرف'},
-    {page:'cost-reports', icon:'📊', label:'تقارير التكاليف'},
+    {page:'rep-ex', icon:'📑', label:'تقارير المستخلصات'},
+    {page:'cost-reports', icon:'📊', label:'تكلفة المقايسة'},
     {page:'extract-sheet', icon:'🧾', label:'شاشة المستخلص', hidden:true},
     {page:'extract-voucher', icon:'🧾', label:'إذن الصرف', hidden:true},
   ]},
   {type:'module', key:'ledger-module', icon:'📒', label:'دفتر التكاليف', children:[
     {page:'ledger', icon:'📒', label:'دفتر التكاليف'},
+    {page:'rep-lg', icon:'📑', label:'تقارير الدفتر'},
   ]},
   {type:'module', key:'setup', icon:'🤝', label:'الأطراف والتكويد', children:[
     {page:'vendors', icon:'🤝', label:'الأطراف والجهات'},
@@ -1406,7 +1384,7 @@ const NAV_STRUCTURE=[
     {page:'groups', icon:'📁', label:'المجموعات'},
   ]},
   {type:'module', key:'reports', icon:'📑', label:'التقارير', children:[
-    {page:'reports', icon:'📑', label:'التقارير'},
+    {page:'reports', icon:'📑', label:'التقارير المجمّعة'},
     {page:'analytics', icon:'📈', label:'التحليلات البيانية'},
   ]},
   {type:'module', key:'admin', icon:'👥', label:'الإدارة', children:[
@@ -2696,21 +2674,6 @@ function renderMovTable(data){
   document.getElementById('mov-pag').innerHTML=`<span>${total} حركة | صفحة ${movPage} من ${pages}</span><div class="page-btns"><button onclick="goMovPage(-1)" ${movPage<=1?'disabled':''}>السابق</button><button onclick="goMovPage(1)" ${movPage>=pages?'disabled':''}>التالي</button></div>`;
 }
 
-function filterReportCards(){
-  const q=document.getElementById('rep-card-search')?.value.trim().toLowerCase()||'';
-  let visibleCount=0;
-  document.querySelectorAll('.rep-group').forEach(group=>{
-    let groupVisible=0;
-    group.querySelectorAll('.rep-card').forEach(c=>{
-      const match=!q||(c.dataset.label||'').toLowerCase().includes(q);
-      c.style.display=match?'':'none';
-      if(match){groupVisible++;visibleCount++;}
-    });
-    group.style.display=groupVisible>0?'':'none';
-  });
-  const noRes=document.getElementById('rep-card-noresults');
-  if(noRes) noRes.style.display=visibleCount===0?'block':'none';
-}
 let analyticsCharts={};
 function destroyChart(id){if(analyticsCharts[id]){analyticsCharts[id].destroy();delete analyticsCharts[id];}}
 
@@ -4656,86 +4619,6 @@ function getDescendantCodes(accountCode){
   return allCOA.filter(a=>a.account_code.substring(0,plen)===prefix).map(a=>a.account_code);
 }
 
-// الكشف الموحّد: يجمع كل اللي اتسجل على حساب معيّن (وفروعه) من كل الموديولات مع بعض
-async function showAccountStatement(accountCode){
-  const acc=allCOA.find(a=>a.account_code===accountCode);
-  const card=document.getElementById('coa-statement-card');
-  const body=document.getElementById('coa-statement-body');
-  document.getElementById('coa-statement-title').textContent='📊 كشف الحساب: '+(acc?.account_name||accountCode)+' ('+accountCode+')';
-  card.style.display='block';
-  body.innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  card.scrollIntoView({behavior:'smooth',block:'nearest'});
-
-  const codes=getDescendantCodes(accountCode);
-
-  // 1) العهد النقدية - مربوطة مباشرة بالحساب
-  // (أ) حركات العهد على حساب الشخص نفسه: صرف - تسوية
-  const {data:custTx}=await sb.from('custody_transactions').select('amount,type').in('account_code',codes);
-  // (ب) تسويات العهد اللي اترمت على الحساب ده كمصروف (حساب المصروف)
-  const {data:custExp}=await sb.from('custody_transactions').select('amount').eq('type','تسوية').in('expense_account_code',codes);
-  const custodyTotal=(custTx||[]).reduce((s,t)=>s+(t.type==='صرف'?t.amount:-t.amount),0)
-    +(custExp||[]).reduce((s,t)=>s+t.amount,0);
-  const custodyCount=(custTx||[]).length+(custExp||[]).length;
-
-  // (ج) المصروفات: رصيد الخزينة (تغذية - مصروف) لو الحساب خزينة، + المصروفات اللي اترمت على الحساب ده
-  const {data:xpTre}=await sb.from('expense_transactions').select('amount,type').in('treasury_code',codes);
-  const {data:xpExp}=await sb.from('expense_transactions').select('amount').eq('type','مصروف').in('expense_account_code',codes);
-  const expensesTotal=(xpTre||[]).reduce((s,t)=>s+(t.type==='تغذية'?t.amount:-t.amount),0)
-    +(xpExp||[]).reduce((s,t)=>s+t.amount,0);
-  const expensesCount=(xpTre||[]).length+(xpExp||[]).length;
-
-  // 2) المخزون - عن طريق مجموعات الأصناف المربوطة بالحساب ده
-  const {data:linkedGroups}=await sb.from('groups').select('id,name').in('account_code',codes);
-  let warehouseTotal=0, warehouseCount=0, groupBreakdown=[];
-  if(linkedGroups&&linkedGroups.length){
-    const groupIds=linkedGroups.map(g=>g.id);
-    const {data:items}=await sb.from('items').select('id,group_id').in('group_id',groupIds);
-    const itemIds=(items||[]).map(i=>i.id);
-    if(itemIds.length){
-      let movs=[], from=0;
-      while(true){
-        const {data:page,error}=await sb.from('movements').select('qty,unit_price,fifo_cost,item_id').eq('type','صادر').in('item_id',itemIds).order('id',{ascending:true}).range(from,from+999);
-        if(error||!page||!page.length)break;
-        movs=[...movs,...page];
-        if(page.length<1000)break;
-        from+=1000;
-      }
-      const itemToGroup={};
-      (items||[]).forEach(i=>itemToGroup[i.id]=i.group_id);
-      const byGroup={};
-      movs.forEach(m=>{
-        const val=m.fifo_cost||(m.qty*(m.unit_price||0));
-        warehouseTotal+=val;
-        const gid=itemToGroup[m.item_id];
-        byGroup[gid]=(byGroup[gid]||0)+val;
-      });
-      warehouseCount=movs.length;
-      groupBreakdown=linkedGroups.map(g=>({name:g.name,total:byGroup[g.id]||0})).filter(g=>g.total!==0);
-    }
-  }
-
-  // (د) المستخلصات المعتمدة: قيمة الأعمال المرمية على الحساب ده (من حساب كل بند في المقايسة)
-  const {data:exRows}=await sb.from('extract_items').select('current_qty,boq_items!inner(unit_price,account_code),extracts!inner(status)').eq('extracts.status','معتمد').in('boq_items.account_code',codes);
-  const extractsTotal=(exRows||[]).reduce((s,r)=>s+(+r.current_qty||0)*(+r.boq_items.unit_price||0),0);
-  const extractsCount=(exRows||[]).filter(r=>+r.current_qty>0).length;
-  const grandTotal=custodyTotal+warehouseTotal+expensesTotal+extractsTotal;
-  let h=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
-    <div class="stat-card"><div class="stat-icon" style="background:#3b82f620">💰</div><div><h3 style="font-size:16px">${grandTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>الإجمالي الموحّد (ج)</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#f59e0b20">📦</div><div><h3 style="font-size:16px">${warehouseTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المخزون (${warehouseCount} حركة)</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#10b98120">💵</div><div><h3 style="font-size:16px">${custodyTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من العهد (${custodyCount} معاملة)</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#f43f5e20">🧾</div><div><h3 style="font-size:16px">${expensesTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المصروفات (${expensesCount} معاملة)</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#a855f720">📋</div><div><h3 style="font-size:16px">${extractsTotal.toLocaleString('ar-EG',{minimumFractionDigits:2})}</h3><p>من المستخلصات (${extractsCount} بند)</p></div></div>
-  </div>`;
-  if(groupBreakdown.length){
-    h+='<h4 style="font-size:13px;color:var(--text2);margin-bottom:8px">تفصيل المخزون حسب المجموعة</h4><div class="tbl-wrap"><table><thead><tr><th>المجموعة</th><th>القيمة (ج)</th></tr></thead><tbody>';
-    groupBreakdown.forEach(g=>{h+=`<tr><td>${g.name}</td><td style="font-weight:700">${g.total.toLocaleString('ar-EG',{minimumFractionDigits:2})}</td></tr>`;});
-    h+='</tbody></table></div>';
-  }
-  if(!custodyCount&&!warehouseCount&&!expensesCount&&!extractsCount){
-    h+='<div class="empty"><div class="ico">📭</div><p>مفيش حركات متسجلة على الحساب ده لحد دلوقتي من أي موديول</p></div>';
-  }
-  body.innerHTML=h;
-}
 
 async function loadAnalytics(){
   Chart.defaults.color='#94a3b8';
@@ -4901,188 +4784,510 @@ async function renderPOFulfillment(){
   });
 }
 
-async function genReport(type){
-  document.getElementById('report-out').innerHTML='<div class="loading"><div class="spinner"></div><br>جاري التوليد...</div>';
-
-  // Shared filters from the top of the Reports page
-  const fFrom=document.getElementById('rep-date-from')?.value||'';
-  const fTo=document.getElementById('rep-date-to')?.value||'';
-  const fProject=document.getElementById('rep-project')?.value||'';
-  const fGroup=document.getElementById('rep-group')?.value||'';
-  // Applies date-range + project filters directly on a movements query (group filter needs post-fetch since it's on the joined item)
-  function applyMovFilters(q){
-    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
-    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
-    if(fProject) q=q.eq('project_id',parseInt(fProject));
+// ================= REPORTS (v12): تقارير كل قسم جوه قسمه + التقارير المجمّعة =================
+const REP_LAST={};
+const REP_SECS={
+  wh:{title:'تقارير المخزن',fields:['from','to','project','item','snap'],projLabel:'المخزن / المشروع'},
+  ex:{title:'تقارير المستخلصات',fields:['from','to','project','q'],projLabel:'المشروع',qLabel:'بحث بالمقاول'},
+  lg:{title:'تقارير دفتر التكاليف',fields:['from','to','project','acc','q'],projLabel:'المشروع',qLabel:'بحث (بيان / مورد)'},
+  all:{title:'التقارير المجمّعة',fields:['from','to','project','party'],projLabel:'المشروع'}
+};
+const REP_NUM=n=>(+n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+function repCell(c){
+  if(c===null||c===undefined||c==='') return '<span style="color:var(--text3)">-</span>';
+  if(typeof c==='number') return REP_NUM(c);
+  return escHtml(c);
+}
+function repInit(sec){
+  const S=REP_SECS[sec]; if(!S) return;
+  const inp='style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px"';
+  const lab=t=>`<label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">${t}</label>`;
+  const id=n=>`rf-${sec}-${n}`;
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">';
+  if(S.fields.includes('from')) h+=`<div>${lab('من تاريخ')}<input type="date" id="${id('from')}" ${inp}></div>`;
+  if(S.fields.includes('to')) h+=`<div>${lab('إلى تاريخ')}<input type="date" id="${id('to')}" ${inp}></div>`;
+  if(S.fields.includes('project')) h+=`<div>${lab(S.projLabel)}<select id="${id('project')}" ${inp}><option value="">الكل</option>${allProjects.map(p=>`<option value="${p.id}">${escHtml(p.name+(sec==='wh'&&p.warehouse_name?' - '+p.warehouse_name:''))}</option>`).join('')}</select></div>`;
+  if(S.fields.includes('item')) h+=`<div>${lab('صنف (اسم أو كود) - لحركة صنف')}<input type="text" id="${id('item')}" placeholder="اسم أو كود..." ${inp}></div>`;
+  if(S.fields.includes('snap')) h+=`<div>${lab('تاريخ الرصيد (Snapshot)')}<input type="date" id="${id('snap')}" ${inp}></div>`;
+  if(S.fields.includes('acc')) h+=`<div>${lab('الحساب (لدفتر حساب معيّن)')}<input type="text" id="${id('acc')}" list="${id('acclist')}" placeholder="اسم أو رقم الحساب..." ${inp}><datalist id="${id('acclist')}">${(allCOA||[]).map(a=>`<option value="${escHtml(a.account_code+' - '+a.account_name)}"></option>`).join('')}</datalist></div>`;
+  if(S.fields.includes('q')) h+=`<div>${lab(S.qLabel||'بحث')}<input type="text" id="${id('q')}" placeholder="بحث..." ${inp}></div>`;
+  if(S.fields.includes('party')) h+=`<div>${lab('المورد / المقاول (لكشف الحساب الموحد)')}<select id="${id('party')}" ${inp}><option value="">اختر...</option>${allVendors.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')).map(v=>`<option value="${v.id}">${escHtml((v.code?v.code+' - ':'')+v.name)}</option>`).join('')}</select></div>`;
+  h+='</div>';
+  const fEl=document.getElementById('rf-'+sec); if(fEl&&!fEl.dataset.done){fEl.innerHTML=h;fEl.dataset.done='1';}
+  const cEl=document.getElementById('rc-'+sec);
+  if(cEl&&!cEl.dataset.done){
+    cEl.dataset.done='1';
+    cEl.innerHTML='<div class="rep-group-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:14px">'+
+      REPORTS[sec].map(r=>`<div class="stat-card rep-card" style="cursor:pointer" onclick="${r.go?r.go:`repRun('${sec}','${r.id}')`}"><div class="stat-icon" style="background:#3b82f620">${r.icon}</div><div><h3 style="font-size:14px">${r.title}</h3><p style="font-size:11px">${r.hint||''}</p></div></div>`).join('')+'</div>';
+  }
+}
+function repF(sec){
+  const g=n=>document.getElementById(`rf-${sec}-${n}`)?.value?.trim()||'';
+  return {from:g('from'),to:g('to'),project:g('project'),item:g('item'),snap:g('snap'),acc:g('acc'),q:g('q').toLowerCase(),party:g('party')};
+}
+function repOkD(d,f){
+  if(!f.from&&!f.to) return true;
+  const s=d?String(d).slice(0,10):'';
+  if(!s) return false;
+  if(f.from&&s<f.from) return false;
+  if(f.to&&s>f.to) return false;
+  return true;
+}
+function repOkP(pid,f){return !f.project||String(pid)===String(f.project);}
+function repAccCode(txt){
+  const v=(txt||'').trim(); if(!v) return '';
+  const a=(allCOA||[]).find(x=>(x.account_code+' - '+x.account_name)===v)||(allCOA||[]).find(x=>x.account_code===v)||(allCOA||[]).find(x=>x.account_name===v);
+  return a?a.account_code:'';
+}
+const repPN=id=>allProjects.find(p=>String(p.id)===String(id))?.name||'';
+const repCCN=id=>allCostCenters.find(c=>String(c.id)===String(id))?.name||'';
+const repAN=code=>code?((allCOA||[]).find(a=>a.account_code===code)?.account_name||code):'';
+function repVen(id,fb){const v=id?allVendors.find(x=>String(x.id)===String(id)):null;return v?v.name:(fb||'');}
+function repVenCode(id){const v=id?allVendors.find(x=>String(x.id)===String(id)):null;return v?(v.code||''):'';}
+const repVal=m=>(+m.fifo_cost)||((+m.qty||0)*(+m.unit_price||0));
+async function repNeedCOA(){ if(!allCOA||!allCOA.length) await loadCOA(); }
+async function repNeedLedger(){ if(!ledgerLoaded) await loadLedger(); if(!ledgerLoaded) throw new Error('دفتر التكاليف مش جاهز (شغّل SQL الدفتر)'); }
+async function repNeedEx(){ const ok=await loadExtractsData(); if(ok===false) throw new Error('المستخلصات مش جاهزة (شغّل SQL المستخلصات)'); }
+async function repMovs(f,opt){
+  opt=opt||{};
+  const r=await pagedQuery(()=>{
+    let q=sb.from('movements').select('id,item_id,type,qty,unit_price,fifo_cost,supplier,vendor_id,account_code,move_kind,project_id,cost_center_id,cost_center2_id,doc_number,notes,created_at,po_id');
+    if(!opt.noFrom&&f.from) q=q.gte('created_at',new Date(f.from+'T00:00:00').toISOString());
+    const to=opt.to||f.to;
+    if(to) q=q.lte('created_at',new Date(to+'T23:59:59').toISOString());
+    if(f.project) q=q.eq('project_id',parseInt(f.project));
+    if(opt.types) q=q.in('type',opt.types);
+    if(opt.itemIds) q=q.in('item_id',opt.itemIds);
     return q;
+  });
+  if(r.error) throw new Error(r.error.message+(/move_kind|vendor_id|account_code/.test(r.error.message)?' — شغّل warehouse-upgrade.sql':''));
+  return r.data;
+}
+async function repView(name,pid){
+  let out=[],from=0;
+  while(true){
+    let q=sb.from(name).select('*').order('item_id',{ascending:true}).range(from,from+999);
+    if(pid) q=q.eq('project_id',parseInt(pid));
+    const {data,error}=await q;
+    if(error) throw new Error(error.message+' — شغّل warehouse-upgrade.sql');
+    if(!data||!data.length) break;
+    out=out.concat(data); if(data.length<1000) break; from+=1000;
   }
-  // Applies the group filter after fetch (group lives on the joined items table; each query below selects items(...,group_id,...))
-  function applyGroupFilter(rows,getItem){
-    if(!fGroup) return rows;
-    return rows.filter(m=>String((getItem?getItem(m):m.items)?.group_id||'')===fGroup);
-  }
-  const activeFiltersNote=(fFrom||fTo||fProject||fGroup)?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر)</span>':'';
-
-  const commonHeaders=['التاريخ','الصنف','كود الصنف','المجموعة','اسم التكلفة','النوع','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','المشروع','المورد/المقاول','المستند','البيان'];
-  
-  function movRow(m){
-    const total=((m.qty||0)*(m.unit_price||0)).toFixed(2);
-    const fifo=m.fifo_cost?m.fifo_cost.toFixed(2):'-';
-    return [fmtDate(m.created_at),m.items?.name||'-',m.items?.code||'-',m.items?.groups?.name||'-',m.items?.cost_center||'-',m.type,m.qty,m.items?.unit||'-',m.unit_price||0,fifo,total,m.projects?.name||'-',m.supplier||'-',m.doc_number||'-',m.notes||'-'];
-  }
-
-  if(type==='top'){
-    let q=sb.from('movements').select('item_id,qty,unit_price,fifo_cost,project_id,items(id,name,code,unit,cost_center,group_id,groups(name))').eq('type','وارد');
-    q=applyMovFilters(q);
-    let {data}=await q;
-    data=applyGroupFilter(data||[],m=>m.items);
-    const agg={};
-    (data||[]).forEach(m=>{
-      if(!agg[m.item_id]) agg[m.item_id]={name:m.items?.name||'-',code:m.items?.code||'-',group:m.items?.groups?.name||'-',cost:m.items?.cost_center||'-',unit:m.items?.unit||'-',qty:0,val:0};
-      agg[m.item_id].qty+=m.qty;
-      agg[m.item_id].val+=(m.qty*(m.unit_price||0));
-    });
-    const rows=Object.values(agg).sort((a,b)=>b.qty-a.qty).slice(0,50);
-    renderReport('أكثر الأصناف وارداً'+activeFiltersNote,['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','إجمالي الكمية','إجمالي القيمة'],
-      rows.map(r=>[r.name,r.code,r.group,r.cost,r.unit,r.qty,r.val.toFixed(2)]));
-
-  } else if(type==='zero'){
-    const {data:items}=await sb.from('items').select('*,groups(name)');
-    const {data:movs}=await sb.from('movements').select('item_id,type,qty,move_kind');
-    const inv={};
-    (items||[]).forEach(i=>inv[i.id]={name:i.name,code:i.code,group:i.groups?.name||'-',cost:i.cost_center||'-',unit:i.unit||'-',qty:0,group_id:i.group_id});
-    (movs||[]).forEach(m=>{
-      if(!inv[m.item_id])return;
-      if(isInMov(m)) inv[m.item_id].qty+=m.qty;
-      else inv[m.item_id].qty-=m.qty;
-    });
-    const zeros=Object.values(inv).filter(i=>i.qty<=0&&(!fGroup||String(i.group_id)===fGroup));
-    renderReport('الأصناف برصيد صفر'+(fGroup?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر بالمجموعة)</span>':''),['الصنف','الكود','المجموعة','اسم التكلفة','الوحدة','الرصيد'],
-      zeros.map(r=>[r.name,r.code,r.group,r.cost,r.unit,r.qty]));
-
-  } else if(type==='monthly'){
-    const now=new Date();
-    const defaultFrom=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
-    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').order('created_at',{ascending:false});
-    q=fFrom?applyMovFilters(q):(fProject?applyMovFilters(q).gte('created_at',defaultFrom):q.gte('created_at',defaultFrom));
-    let {data}=await q;
-    data=applyGroupFilter(data||[]);
-    renderReport((fFrom||fTo?'حركات الفترة المحددة':'حركات '+now.toLocaleString('ar',{month:'long',year:'numeric'}))+activeFiltersNote,commonHeaders,(data||[]).map(movRow));
-
-  } else if(type==='by-project'){
-    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').order('created_at',{ascending:false});
-    q=applyMovFilters(q);
-    let {data}=await q;
-    data=applyGroupFilter(data||[]);
-    renderReport('تقرير بالمشاريع'+activeFiltersNote,commonHeaders,(data||[]).map(movRow));
-
-  } else if(type==='cost-centers'){
-    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name),cost_centers(name,level,parent_id)').in('type',['صادر','تحويل']);
-    q=applyMovFilters(q);
-    let {data:movs}=await q;
-    movs=applyGroupFilter(movs||[]);
-    const rows=[];
-    const cc1Map={};
-    (movs||[]).forEach(m=>{
-      const cc=m.cost_centers;
-      if(!cc)return;
-      const cc1=cc.level===1?cc:allCostCenters.find(x=>x.id===cc.parent_id);
-      const cc2=cc.level===2?cc:null;
-      const cc1Name=cc1?.name||'بدون تصنيف';
-      const cc2Name=cc2?.name||'-';
-      const key=cc1Name+'||'+cc2Name;
-      if(!cc1Map[key])cc1Map[key]={cc1:cc1Name,cc2:cc2Name,rows:[]};
-      const total=((m.qty||0)*(m.unit_price||0)).toFixed(2);
-      const fifo=m.fifo_cost?m.fifo_cost.toFixed(2):'-';
-      cc1Map[key].rows.push([cc1Name,cc2Name,m.items?.name||'-',m.items?.code||'-',m.items?.groups?.name||'-',m.items?.cost_center||'-',m.qty,m.items?.unit||'-',m.unit_price||0,fifo,total,fmtDate(m.created_at)]);
-    });
-    Object.values(cc1Map).forEach(g=>g.rows.forEach(r=>rows.push(r)));
-    renderReport('تقرير مراكز التكلفة'+activeFiltersNote,['م.تكلفة 1','م.تكلفة 2','الصنف','الكود','المجموعة','اسم التكلفة','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','التاريخ'],rows);
-
-  } else if(type==='cost-type'){
-    let q=sb.from('movements').select('*,items(id,name,code,unit,cost_center,group_id,groups(name)),projects(name)').in('type',['صادر']);
-    q=applyMovFilters(q);
-    let {data:movs}=await q;
-    movs=applyGroupFilter(movs||[]);
-    const rows=[];
-    const agg={};
-    (movs||[]).forEach(m=>{
-      const ct=m.items?.cost_center||'بدون تكلفة';
-      if(!agg[ct])agg[ct]=[];
-      const total=((m.qty||0)*(m.unit_price||0)).toFixed(2);
-      const fifo=m.fifo_cost?m.fifo_cost.toFixed(2):'-';
-      agg[ct].push([ct,m.items?.name||'-',m.items?.code||'-',m.items?.groups?.name||'-',m.qty,m.items?.unit||'-',m.unit_price||0,fifo,total,fmtDate(m.created_at)]);
-    });
-    Object.entries(agg).forEach(([ct,r])=>r.forEach(x=>rows.push(x)));
-    renderReport('تقرير اسم التكلفة',['اسم التكلفة','الصنف','الكود','المجموعة','الكمية','الوحدة','سعر الوحدة','تكلفة FIFO','الإجمالي','التاريخ'],rows);
-
-  } else if(type==='purchase-orders'){
-    let q=sb.from('purchase_orders').select('*,items(id,name,code,unit,group_id,groups(name)),projects(name),vendors(name)').order('created_at',{ascending:false});
-    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
-    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
-    if(fProject) q=q.eq('project_id',parseInt(fProject));
-    let {data}=await q;
-    data=applyGroupFilter(data||[]);
-    let tReq=0,tRec=0,tVal=0;
-    const rows=(data||[]).map(p=>{
-      const rem=p.qty_requested-p.qty_received;const pct=p.qty_requested>0?Math.round((p.qty_received/p.qty_requested)*100):0;
-      const expVal=(p.qty_requested*(p.expected_price||0));
-      tReq+=p.qty_requested;tRec+=p.qty_received;tVal+=expVal;
-      return [p.po_number||'-',fmtDate(p.created_at),p.items?.name||'-',p.items?.code||'-',p.items?.groups?.name||'-',p.projects?.name||'-',p.vendors?.name||'-',p.qty_requested,p.qty_received,rem,pct+'%',p.expected_price?p.expected_price.toFixed(2):'-',expVal>0?expVal.toFixed(2):'-',p.status,p.notes||'-'];
-    });
-    rows.push(['','','','','','','الإجمالي',tReq,tRec,tReq-tRec,'','',tVal.toFixed(2),'','']);
-    renderReport('تقرير مقارنة طلبات التوريد'+activeFiltersNote,['رقم الطلب','التاريخ','الصنف','الكود','المجموعة','المشروع','المورد','المطلوب','الواصل','الفرق','%','السعر المتوقع','قيمة الطلب','الحالة','البيان'],rows);
-
-  } else if(type==='item-movement'){
-    const search=document.getElementById('rep-item-search')?.value?.trim()||'';
-    if(!search){toast('أدخل اسم أو كود الصنف في خانة البحث','error');return;}
-    const item=allItems.find(x=>x.name.toLowerCase().includes(search.toLowerCase())||(x.code||'').includes(search));
-    if(!item){toast('الصنف غير موجود','error');return;}
-    let q=sb.from('movements').select('*,projects(name),cost_centers:cost_center_id(name)').eq('item_id',item.id).order('created_at',{ascending:true});
-    if(fFrom) q=q.gte('created_at',new Date(fFrom+'T00:00:00').toISOString());
-    if(fTo) q=q.lte('created_at',new Date(fTo+'T23:59:59').toISOString());
-    if(fProject) q=q.eq('project_id',parseInt(fProject));
-    const {data}=await q;
-    let bal=0;
-    const rows=(data||[]).map(m=>{
-      if(isInMov(m))bal+=m.qty;else bal-=m.qty;
-      return [fmtDate(m.created_at),m.type,m.qty,item.unit||'-',m.unit_price||0,((m.qty||0)*(m.unit_price||0)).toFixed(2),bal,m.projects?.name||'-',m.doc_number||'-',m.notes||'-'];
-    });
-    renderReport('حركة الصنف: '+item.name+activeFiltersNote,['التاريخ','النوع','الكمية','الوحدة','السعر','القيمة','الرصيد التراكمي','المشروع','المستند','البيان'],rows);
-
-  } else if(type==='inventory-value'){
-    const rows=allInventory.filter(i=>i.qty>0&&(!fGroup||String(i.group_id)===fGroup)).sort((a,b)=>b.fifo_value-a.fifo_value).map(i=>[i.code||'-',i.name,i.group_name||'-',i.cost_center||'-',i.unit||'-',i.qty,i.fifo_value>0?i.fifo_value.toFixed(2):0]);
-    const total=allInventory.filter(i=>!fGroup||String(i.group_id)===fGroup).reduce((s,i)=>s+i.fifo_value,0);
-    rows.push(['','الإجمالي','','','','',total.toFixed(2)]);
-    renderReport('تقرير قيمة المخزون'+(fGroup?' <span style="font-size:11px;color:var(--text3);font-weight:400">(مفلتر بالمجموعة)</span>':''),['الكود','الصنف','المجموعة','اسم التكلفة','الوحدة','الرصيد','القيمة (ج)'],rows);
-
-  } else if(type==='snapshot'){
-    const snapDate=document.getElementById('rep-snapshot-date')?.value;
-    if(!snapDate){toast('اختر تاريخ الـ Snapshot','error');return;}
-    const {data:movs}=await sb.from('movements').select('item_id,type,qty,unit_price,move_kind,items(name,code,unit,groups(name))').lte('created_at',new Date(snapDate+'T23:59:59').toISOString());
-    const snap={};
-    (movs||[]).forEach(m=>{
-      if(!snap[m.item_id])snap[m.item_id]={name:m.items?.name||'-',code:m.items?.code||'-',group:m.items?.groups?.name||'-',unit:m.items?.unit||'-',qty:0,value:0};
-      if(isInMov(m)){snap[m.item_id].qty+=m.qty;snap[m.item_id].value+=(m.qty*(m.unit_price||0));}
-      else if(m.type==='صادر'||m.type==='تحويل'||m.type==='مرتجع'){snap[m.item_id].qty-=m.qty;snap[m.item_id].value-=(m.qty*(m.unit_price||0));}
-    });
-    const rows=Object.values(snap).filter(i=>i.qty>0).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>[i.code,i.name,i.group,i.unit,i.qty,Math.max(0,i.value).toFixed(2)]);
-    renderReport('Snapshot المخزون بتاريخ '+new Date(snapDate).toLocaleDateString('ar-EG'),['الكود','الصنف','المجموعة','الوحدة','الرصيد','القيمة (ج)'],rows);
-  }
+  return out;
+}
+const itemOf=id=>allItems.find(x=>x.id===id)||{};
+const grpName=gid=>allGroups.find(g=>g.id===gid)?.name||'-';
+function movLabel(m){
+  if(m.type==='مرتجع') return 'مرتجع '+(m.move_kind==='للمورد'?'للمورد':'للمخزن');
+  if(m.move_kind==='تحويل') return m.type==='صادر'?'تحويل (صادر)':'تحويل (وارد)';
+  return m.type;
 }
 
-function renderReport(title,headers,rows){
-  const cleanTitle=title.replace(/<[^>]*>/g,'').replace(/'/g,"\\'");
-  let h=`<div class="card"><div class="card-header"><h3>📊 ${title}</h3><button class="btn btn-ghost btn-sm" onclick="exportReport('${cleanTitle}')">📥 Excel</button></div><div class="tbl-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
-  rows.forEach(r=>{h+=`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`;});
-  h+='</tbody></table></div></div>';
-  document.getElementById('report-out').innerHTML=h;
+// ---- كل الحركات المالية في شكل موحّد (دفتر + مخزن + مستخلصات) ----
+const REP_COST_KINDS=['مصروف','مستخلص','صرف مخزن','مرتجع مخزن','مستخلص (موديول)'];
+async function unifiedEntries(f,use){
+  use=use||{ledger:true,wh:true,ex:true};
+  await repNeedCOA();
+  const out=[];
+  if(use.ledger){
+    await repNeedLedger();
+    allLedger.forEach(r=>{
+      if(!repOkD(r.entry_date,f)||!repOkP(r.project_id,f)) return;
+      out.push({src:'دفتر',kind:r.entry_type,date:r.entry_date,project_id:r.project_id,cc_id:r.cost_center2_id||r.cost_center_id,account_code:r.account_code||'',holder_code:r.holder_code||'',party_id:r.vendor_id,party_name:repVen(r.vendor_id,r.vendor_name),doc:r.entry_number||r.doc_number||'',desc:r.description||'',amount:+r.total||0,review:r.needs_review});
+    });
+  }
+  if(use.wh){
+    const movs=await repMovs(f,{types:['صادر','مرتجع'].concat(use.purch?['وارد']:[])});
+    movs.forEach(m=>{
+      if(m.move_kind==='تحويل') return;
+      const it=itemOf(m.item_id);
+      if(m.type==='وارد'){
+        out.push({src:'مخزن',kind:'توريد مخزن',date:m.created_at,project_id:m.project_id,cc_id:null,account_code:groupAccountOf(m.item_id)||'',party_id:m.vendor_id,party_name:repVen(m.vendor_id,m.supplier),doc:m.doc_number||'',desc:(it.name||'')+' × '+m.qty,amount:(+m.qty||0)*(+m.unit_price||0)});
+      } else if(m.type==='صادر'){
+        out.push({src:'مخزن',kind:'صرف مخزن',date:m.created_at,project_id:m.project_id,cc_id:m.cost_center2_id||m.cost_center_id,account_code:m.account_code||groupAccountOf(m.item_id)||'',party_id:m.vendor_id,party_name:repVen(m.vendor_id,m.supplier),doc:m.doc_number||'',desc:(it.name||'')+' × '+m.qty,amount:repVal(m)});
+      } else if(m.type==='مرتجع'&&m.move_kind!=='للمورد'){
+        out.push({src:'مخزن',kind:'مرتجع مخزن',date:m.created_at,project_id:m.project_id,cc_id:m.cost_center2_id||m.cost_center_id,account_code:m.account_code||groupAccountOf(m.item_id)||'',party_id:m.vendor_id,party_name:repVen(m.vendor_id,m.supplier),doc:m.doc_number||'',desc:'مرتجع '+(it.name||'')+' × '+m.qty,amount:-(+m.qty||0)*(+m.unit_price||0)});
+      }
+    });
+  }
+  if(use.ex){
+    await repNeedEx();
+    const bMap={};allBoqs.forEach(b=>bMap[b.id]=b);
+    const iMap={};allBoqItems.forEach(i=>iMap[i.id]=i);
+    const eMap={};allExtracts.forEach(e=>eMap[e.id]=e);
+    allExtractItems.forEach(x=>{
+      const e=eMap[x.extract_id]; if(!e||e.status!=='معتمد') return;
+      const b=bMap[e.boq_id]||{}; const bi=iMap[x.boq_item_id]||{};
+      const amt=(+x.current_qty||0)*(+bi.unit_price||0); if(!amt) return;
+      if(!repOkD(e.extract_date,f)||!repOkP(b.project_id,f)) return;
+      out.push({src:'مستخلصات',kind:'مستخلص (موديول)',date:e.extract_date,project_id:b.project_id,cc_id:b.cost_center_id,account_code:bi.account_code||'',party_id:b.vendor_id,party_name:repVen(b.vendor_id,b.vendors?.name),doc:'مستخلص رقم '+e.extract_number,desc:bi.description||'',amount:amt});
+    });
+  }
+  return out;
 }
-function exportReport(title){
-  const table=document.querySelector('#report-out table');if(!table)return;
-  const wb=XLSX.utils.table_to_book(table);
-  const safeTitle=title.replace(/<[^>]*>/g,'').replace(/[\\/:*?"<>|]/g,'-').slice(0,60);
-  XLSX.writeFile(wb,safeTitle+'.xlsx');
+const REP_ANC_LENS=[1,2,3,6,9,12];
+function repAncestors(code){
+  const s=new Set(); if(!code) return [];
+  REP_ANC_LENS.forEach(L=>{ if(L<=code.length) s.add(code.slice(0,L).padEnd(code.length,'0')); });
+  s.add(code);
+  return [...s];
+}
+
+// ---------------- تعريف التقارير ----------------
+const REPORTS={wh:[],ex:[],lg:[],all:[]};
+
+// ===== المخزن =====
+REPORTS.wh.push({id:'bal',icon:'📦',title:'أرصدة المخزون',hint:'كمية وقيمة FIFO لكل مخزن أو الإجمالي',run:async f=>{
+  const d=await repView(f.project?'item_balances_wh':'item_balances_v2',f.project);
+  const rows=d.map(r=>[r.code||'',r.name,grpName(r.group_id),r.unit||'',+r.qty_in||0,+r.qty_out||0,+r.qty_ret||0,+r.qty_ret_sup||0,+r.qty_trans||0,+r.qty||0,Math.max(0,+r.fifo_value||0)]);
+  const t=['','الإجمالي','','',0,0,0,0,0,0,rows.reduce((s,r)=>s+r[10],0)];
+  return {headers:['الكود','الصنف','المجموعة','الوحدة','وارد','صادر','مرتجع للمخزن','مرتجع للمورد','تحويل','الرصيد','القيمة (FIFO)'],rows,total:t,title:'أرصدة المخزون'+(f.project?' - '+repPN(f.project):' - الإجمالي')};
+}});
+REPORTS.wh.push({id:'snap',icon:'📸',title:'قيمة المخزون بتاريخ معيّن',hint:'اختر "تاريخ الرصيد" فوق',run:async f=>{
+  if(!f.snap) throw new Error('اختر تاريخ الرصيد (Snapshot) من الخانة فوق');
+  const movs=await repMovs(f,{noFrom:true,to:f.snap});
+  const S={};
+  movs.forEach(m=>{
+    const k=m.item_id; const s=S[k]||(S[k]={qty:0,val:0});
+    if(isInMov(m)){s.qty+=+m.qty||0;s.val+=(+m.qty||0)*(+m.unit_price||0);}
+    else{s.qty-=+m.qty||0;s.val-=repVal(m);}
+  });
+  const rows=Object.entries(S).filter(([k,s])=>s.qty>0.0001).map(([k,s])=>{const it=itemOf(+k);return [it.code||'',it.name||k,grpName(it.group_id),it.unit||'',s.qty,Math.max(0,s.val)];}).sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'ar'));
+  return {headers:['الكود','الصنف','المجموعة','الوحدة','الرصيد','القيمة'],rows,total:['','الإجمالي','','','',rows.reduce((s,r)=>s+r[5],0)],title:'رصيد المخزون بتاريخ '+f.snap+(f.project?' - '+repPN(f.project):'')};
+}});
+REPORTS.wh.push({id:'item',icon:'🔍',title:'حركة صنف',hint:'اكتب اسم أو كود الصنف فوق',run:async f=>{
+  if(!f.item) throw new Error('اكتب اسم أو كود الصنف في خانة الصنف فوق');
+  const t=f.item.toLowerCase();
+  const items=allItems.filter(x=>(x.name||'').toLowerCase().includes(t)||(x.code||'').toLowerCase()===t||(x.code||'').toLowerCase().includes(t));
+  if(!items.length) throw new Error('مفيش صنف بالاسم أو الكود ده');
+  if(items.length>20) throw new Error('الاسم ده بيطابق '+items.length+' صنف، اكتب اسم أدق أو الكود');
+  const movs=(await repMovs(f,{itemIds:items.map(i=>i.id)})).sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))||a.id-b.id);
+  const bal={};
+  const rows=movs.map(m=>{
+    const inn=isInMov(m); bal[m.item_id]=(bal[m.item_id]||0)+(inn?1:-1)*(+m.qty||0);
+    const it=itemOf(m.item_id);
+    return [String(m.created_at).slice(0,10),it.name||'',movLabel(m),+m.qty||0,it.unit||'',+m.unit_price||0,(+m.qty||0)*(+m.unit_price||0),bal[m.item_id],repPN(m.project_id),repVen(m.vendor_id,m.supplier),m.doc_number||'',m.notes||''];
+  });
+  return {headers:['التاريخ','الصنف','النوع','الكمية','الوحدة','السعر','القيمة','الرصيد التراكمي','المخزن','المورد/المقاول','المستند','البيان'],rows,title:'حركة صنف: '+items.map(i=>i.name).slice(0,3).join('، ')};
+}});
+REPORTS.wh.push({id:'low',icon:'⚠️',title:'أصناف رصيدها صفر أو تحت حد الطلب',run:async f=>{
+  const d=await repView(f.project?'item_balances_wh':'item_balances_v2',f.project);
+  const rows=d.filter(r=>(+r.qty||0)<=0||((+r.min_qty||0)>0&&(+r.qty||0)<=(+r.min_qty||0))).map(r=>[r.code||'',r.name,grpName(r.group_id),r.unit||'',+r.qty||0,+r.min_qty||0,(+r.qty||0)<=0?'رصيد صفر':'تحت حد الطلب']);
+  return {headers:['الكود','الصنف','المجموعة','الوحدة','الرصيد','حد الطلب','الحالة'],rows,title:'أصناف رصيدها صفر أو تحت حد الطلب'};
+}});
+REPORTS.wh.push({id:'inv',icon:'🚚',title:'الوارد حسب المورد',run:async f=>{
+  const movs=await repMovs(f,{types:['وارد']});
+  const G={};
+  movs.filter(m=>m.move_kind!=='تحويل').forEach(m=>{
+    const key=m.vendor_id?('v'+m.vendor_id):('n'+(m.supplier||''));
+    const g=G[key]||(G[key]={code:repVenCode(m.vendor_id),name:repVen(m.vendor_id,m.supplier)||'بدون مورد',n:0,qty:0,val:0});
+    g.n++;g.qty+=+m.qty||0;g.val+=(+m.qty||0)*(+m.unit_price||0);
+  });
+  const rows=Object.values(G).sort((a,b)=>b.val-a.val).map(g=>[g.code,g.name,g.n,g.qty,g.val]);
+  return {headers:['كود المورد','المورد','عدد البنود','إجمالي الكمية','إجمالي القيمة'],rows,total:['','الإجمالي',rows.reduce((s,r)=>s+r[2],0),'',rows.reduce((s,r)=>s+r[4],0)],title:'الوارد حسب المورد'};
+}});
+REPORTS.wh.push({id:'out',icon:'🏗️',title:'الصرف حسب المقاول ومركز التكلفة والحساب',run:async f=>{
+  const movs=await repMovs(f,{types:['صادر']});
+  await repNeedCOA();
+  const G={};
+  movs.filter(m=>m.move_kind!=='تحويل').forEach(m=>{
+    const acc=m.account_code||groupAccountOf(m.item_id)||'';
+    const cc=repCCN(m.cost_center2_id||m.cost_center_id);
+    const con=repVen(m.vendor_id,m.supplier)||'بدون مقاول';
+    const key=[con,cc,acc].join('|');
+    const g=G[key]||(G[key]={con,cc,acc,qty:0,val:0});
+    g.qty+=+m.qty||0;g.val+=repVal(m);
+  });
+  const rows=Object.values(G).sort((a,b)=>b.val-a.val).map(g=>[g.con,g.cc||'-',g.acc?(g.acc+' - '+repAN(g.acc)):'بدون حساب',g.qty,g.val]);
+  return {headers:['المقاول','مركز التكلفة','حساب التكلفة','إجمالي الكمية','التكلفة (FIFO)'],rows,total:['','','الإجمالي','',rows.reduce((s,r)=>s+r[4],0)],title:'الصرف حسب المقاول ومركز التكلفة والحساب'};
+}});
+REPORTS.wh.push({id:'rt',icon:'↩️',title:'المرتجعات والتحويلات',run:async f=>{
+  const movs=(await repMovs(f,{types:['مرتجع','صادر','وارد']})).filter(m=>m.type==='مرتجع'||m.move_kind==='تحويل').sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));
+  const rows=movs.map(m=>{const it=itemOf(m.item_id);return [String(m.created_at).slice(0,10),movLabel(m),it.code||'',it.name||'',+m.qty||0,it.unit||'',(+m.qty||0)*(+m.unit_price||0),repPN(m.project_id),repVen(m.vendor_id,m.supplier),m.doc_number||'',m.notes||''];});
+  return {headers:['التاريخ','النوع','كود الصنف','الصنف','الكمية','الوحدة','القيمة','المخزن','المورد/المقاول','المستند','البيان'],rows,title:'المرتجعات والتحويلات'};
+}});
+REPORTS.wh.push({id:'po',icon:'🛒',title:'أوامر التوريد (المطلوب والمستلم والمتبقي)',run:async f=>{
+  const r=await pagedQuery(()=>{let q=sb.from('purchase_orders').select('*,items(name,code,unit),projects(name),vendors(name,code)');
+    if(f.from) q=q.gte('created_at',new Date(f.from+'T00:00:00').toISOString());
+    if(f.to) q=q.lte('created_at',new Date(f.to+'T23:59:59').toISOString());
+    if(f.project) q=q.eq('project_id',parseInt(f.project)); return q;});
+  if(r.error) throw new Error(r.error.message);
+  const rows=r.data.map(p=>[p.po_number||'',String(p.created_at).slice(0,10),p.items?.code||'',p.items?.name||'',p.projects?.name||'',p.vendors?.name||'',+p.qty_requested||0,+p.qty_received||0,(+p.qty_requested||0)-(+p.qty_received||0),(+p.qty_requested||0)>0?Math.round((+p.qty_received||0)/(+p.qty_requested)*100)+'%':'',(+p.qty_requested||0)*(+p.expected_price||0)]);
+  return {headers:['رقم الطلب','التاريخ','كود الصنف','الصنف','المشروع','المورد','المطلوب','المستلم','المتبقي','%','القيمة المتوقعة'],rows,total:['','','','','','الإجمالي',rows.reduce((s,r)=>s+r[6],0),rows.reduce((s,r)=>s+r[7],0),rows.reduce((s,r)=>s+r[8],0),'',rows.reduce((s,r)=>s+r[10],0)],title:'أوامر التوريد'};
+}});
+REPORTS.wh.push({id:'audit',icon:'🧾',title:'مراجعة: مجموعات بدون حساب وحركات بدون مورد/مقاول',run:async f=>{
+  const rows=[];
+  allGroups.filter(g=>!g.account_code).forEach(g=>rows.push(['مجموعة بدون حساب','','',g.name,'']));
+  const movs=await repMovs(f,{});
+  movs.filter(m=>m.move_kind!=='تحويل').forEach(m=>{
+    const d=String(m.created_at).slice(0,10), it=itemOf(m.item_id);
+    if(m.type==='وارد'){
+      if(!m.vendor_id&&!m.supplier) rows.push(['وارد بدون مورد',d,m.doc_number||'',it.name||'','']);
+      else if(!m.vendor_id) rows.push(['وارد بمورد غير مربوط بالكود',d,m.doc_number||'',it.name||'',m.supplier||'']);
+    } else if(m.type==='صادر'||(m.type==='مرتجع'&&m.move_kind!=='للمورد')){
+      if(!m.vendor_id) rows.push([m.type+' بدون مقاول مربوط بالكود',d,m.doc_number||'',it.name||'',m.supplier||'']);
+      if(!m.account_code&&!groupAccountOf(m.item_id)) rows.push([m.type+' بدون حساب تكلفة',d,m.doc_number||'',it.name||'','']);
+    }
+  });
+  return {headers:['نوع المشكلة','التاريخ','المستند','الصنف / المجموعة','الاسم المكتوب'],rows,title:'مراجعة المخزن'};
+}});
+
+// ===== المستخلصات =====
+function repExRows(f){
+  const bMap={};allBoqs.forEach(b=>bMap[b.id]=b);
+  return allExtracts.filter(e=>{const b=bMap[e.boq_id]||{};
+    if(!repOkD(e.extract_date,f)||!repOkP(b.project_id,f)) return false;
+    if(f.q&&!String(b.vendors?.name||'').toLowerCase().includes(f.q)) return false; return true;}).map(e=>({e,b:bMap[e.boq_id]||{},m:extractModel(e)}));
+}
+REPORTS.ex.push({id:'list',icon:'📋',title:'كشف مستخلصات المقاول',run:async f=>{
+  await repNeedEx();
+  const vs={};allVouchers.forEach(v=>vs[v.extract_id]=(vs[v.extract_id]||0)+(+v.amount||0));
+  const rows=repExRows(f).sort((a,b)=>String(a.b.vendors?.name||'').localeCompare(String(b.b.vendors?.name||''),'ar')||a.e.extract_number-b.e.extract_number).map(({e,b,m})=>[b.vendors?.name||'',b.boq_number||'',b.projects?.name||'',e.extract_number,e.extract_date||'',e.status||'',m.T.v_cur,m.T.v_tot,m.net_tot,m.net_due,vs[e.id]||0]);
+  return {headers:['المقاول','المقايسة','المشروع','رقم المستخلص','التاريخ','الحالة','أعمال المستخلص','إجمالي الأعمال حتى تاريخه','صافي بعد الاستقطاعات','صافي المستحق','المنصرف (أذون صرف)'],rows,total:['','','','','','الإجمالي',rows.reduce((s,r)=>s+r[6],0),'','',rows.reduce((s,r)=>s+r[9],0),rows.reduce((s,r)=>s+r[10],0)],title:'كشف مستخلصات المقاول'};
+}});
+REPORTS.ex.push({id:'pos',icon:'🧮',title:'موقف المقاول: المنفذ والمدفوع والمتبقي',run:async f=>{
+  await repNeedEx();
+  const rows=[];
+  allBoqs.filter(b=>b.kind!=='رئيسية'&&repOkP(b.project_id,f)&&(!f.q||String(b.vendors?.name||'').toLowerCase().includes(f.q))).forEach(b=>{
+    const exs=allExtracts.filter(e=>e.boq_id===b.id&&e.status==='معتمد'&&(!f.to||String(e.extract_date||'').slice(0,10)<=f.to)).sort((a,c)=>a.extract_number-c.extract_number);
+    if(!exs.length) return;
+    const last=exs[exs.length-1], m=extractModel(last);
+    const ids=new Set(allExtracts.filter(e=>e.boq_id===b.id).map(e=>e.id));
+    const paid=allVouchers.filter(v=>ids.has(v.extract_id)).reduce((s,v)=>s+(+v.amount||0),0);
+    rows.push([b.vendors?.name||'',b.boq_number||'',b.projects?.name||'',m.T.contract,m.T.v_tot,m.percent,m.net_tot,paid,m.net_tot-paid]);
+  });
+  rows.sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ar'));
+  return {headers:['المقاول','المقايسة','المشروع','قيمة التعاقد','المنفذ حتى تاريخه','نسبة التنفيذ %','صافي المستحق التراكمي','المدفوع','المتبقي'],rows,total:['','','الإجمالي',rows.reduce((s,r)=>s+r[3],0),rows.reduce((s,r)=>s+r[4],0),'',rows.reduce((s,r)=>s+r[6],0),rows.reduce((s,r)=>s+r[7],0),rows.reduce((s,r)=>s+r[8],0)],title:'موقف المقاولين'};
+}});
+REPORTS.ex.push({id:'pend',icon:'⏳',title:'المستخلصات المعلقة (غير المعتمدة)',run:async f=>{
+  await repNeedEx();
+  const rows=repExRows(f).filter(x=>x.e.status!=='معتمد').map(({e,b,m})=>[b.vendors?.name||'',b.boq_number||'',b.projects?.name||'',e.extract_number,e.extract_date||'',e.status||'مسودة',m.T.v_cur,m.net_due]);
+  return {headers:['المقاول','المقايسة','المشروع','رقم المستخلص','التاريخ','الحالة','أعمال المستخلص','صافي المستحق'],rows,total:['','','','','','الإجمالي',rows.reduce((s,r)=>s+r[6],0),rows.reduce((s,r)=>s+r[7],0)],title:'المستخلصات المعلقة'};
+}});
+REPORTS.ex.push({id:'boqcost',icon:'📊',title:'تكلفة المقايسة: التقدير مقابل الفعلي',hint:'بيفتح شاشة تقرير المقايسة',go:"showPage('cost-reports')"});
+
+// ===== دفتر التكاليف =====
+const LG_TYPES=['عهدة','مصروف','استحقاق','مستخلص','أصل'];
+function lgRows(f){
+  const accCode=repAccCode(f.acc);
+  return allLedger.filter(r=>{
+    if(!repOkD(r.entry_date,f)||!repOkP(r.project_id,f)) return false;
+    if(f.q&&!((r.description||'')+' '+(r.vendor_name||'')+' '+repVen(r.vendor_id,'')+' '+(r.entry_number||'')).toLowerCase().includes(f.q)) return false;
+    return true;
+  });
+}
+REPORTS.lg.push({id:'acc',icon:'📒',title:'دفتر حساب معيّن من الشجرة',hint:'اختر الحساب فوق (بيشمل فروعه)',run:async f=>{
+  await repNeedCOA(); await repNeedLedger();
+  const code=repAccCode(f.acc); if(!code) throw new Error('اختر الحساب من القائمة اللي بتظهر وانت بتكتب في خانة الحساب');
+  const codes=new Set(getDescendantCodes(code));
+  const rows=lgRows(f).filter(r=>codes.has(r.account_code)).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))).map(r=>[r.entry_date||'',r.entry_type,r.account_code,repAN(r.account_code),repPN(r.project_id),repCCN(r.cost_center2_id||r.cost_center_id),repVen(r.vendor_id,r.vendor_name),r.entry_number||'',r.description||'',+r.total||0]);
+  return {headers:['التاريخ','النوع','كود الحساب','الحساب','المشروع','مركز التكلفة','المورد','رقم القيد','البيان','الإجمالي'],rows,total:['','','','','','','','','الإجمالي',rows.reduce((s,r)=>s+r[9],0)],title:'دفتر الحساب: '+repAN(code)+' ('+code+')'};
+}});
+REPORTS.lg.push({id:'tree',icon:'🌳',title:'الإجمالي حسب الحساب (شجرة)',run:async f=>{
+  await repNeedCOA(); await repNeedLedger();
+  const M={}, none=LG_TYPES.map(()=>0);
+  lgRows(f).forEach(r=>{
+    const ti=LG_TYPES.indexOf(r.entry_type); if(ti<0) return;
+    const amt=+r.total||0;
+    if(!r.account_code){none[ti]+=amt;return;}
+    repAncestors(r.account_code).forEach(k=>{(M[k]||(M[k]=LG_TYPES.map(()=>0)))[ti]+=amt;});
+  });
+  const rows=[];
+  (allCOA||[]).slice().sort((a,b)=>a.account_code.localeCompare(b.account_code)).forEach(a=>{
+    const v=M[a.account_code]; if(!v||v.every(x=>!x)) return;
+    rows.push(['— '.repeat(Math.max(0,(a.level||1)-1))+a.account_name,a.account_code].concat(v));
+  });
+  if(none.some(x=>x)) rows.push(['بدون حساب','—'].concat(none));
+  return {headers:['الحساب','الكود'].concat(LG_TYPES),rows,title:'الإجمالي حسب الحساب',note:'إجمالي الأب = مجموع الفروع. المستحقات والأصول بره المصروفات.'};
+}});
+REPORTS.lg.push({id:'holder',icon:'💵',title:'رصيد كل عهدة',run:async f=>{
+  await repNeedCOA(); await repNeedLedger();
+  const G={};
+  lgRows(f).filter(r=>r.holder_code||r.holder_name).forEach(r=>{
+    const k=r.holder_code||('n'+r.holder_name);
+    const g=G[k]||(G[k]={code:r.holder_code||'',name:r.holder_code?repAN(r.holder_code):r.holder_name,h:0,x:0});
+    if(r.entry_type==='عهدة') g.h+=+r.total||0; else if(r.entry_type==='مصروف') g.x+=+r.total||0;
+  });
+  const rows=Object.values(G).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')).map(g=>[g.code,g.name,g.h,g.x,g.h-g.x]);
+  return {headers:['كود الحساب','صاحب العهدة / الخزينة','عهدة','مصروف','الفرق (عهدة - مصروف)'],rows,total:['','الإجمالي',rows.reduce((s,r)=>s+r[2],0),rows.reduce((s,r)=>s+r[3],0),rows.reduce((s,r)=>s+r[4],0)],title:'رصيد العهد'};
+}});
+REPORTS.lg.push({id:'vendor',icon:'🤝',title:'حسب المورد / المقاول',run:async f=>{
+  await repNeedLedger();
+  const G={};
+  lgRows(f).forEach(r=>{
+    const k=r.vendor_id?('v'+r.vendor_id):('n'+(r.vendor_name||''));
+    const g=G[k]||(G[k]={code:repVenCode(r.vendor_id),name:repVen(r.vendor_id,r.vendor_name)||'بدون طرف',v:LG_TYPES.map(()=>0)});
+    const ti=LG_TYPES.indexOf(r.entry_type); if(ti>=0) g.v[ti]+=+r.total||0;
+  });
+  const rows=Object.values(G).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')).map(g=>[g.code,g.name].concat(g.v));
+  return {headers:['الكود','الطرف'].concat(LG_TYPES),rows,total:['','الإجمالي'].concat(LG_TYPES.map((t,i)=>rows.reduce((s,r)=>s+r[2+i],0))),title:'الدفتر حسب المورد/المقاول'};
+}});
+REPORTS.lg.push({id:'proj',icon:'🏢',title:'حسب المشروع ومركز التكلفة',run:async f=>{
+  await repNeedLedger();
+  const G={};
+  lgRows(f).forEach(r=>{
+    const p=repPN(r.project_id)||'بدون مشروع', c=repCCN(r.cost_center2_id||r.cost_center_id)||'بدون مركز';
+    const g=G[p+'|'+c]||(G[p+'|'+c]={p,c,v:LG_TYPES.map(()=>0)});
+    const ti=LG_TYPES.indexOf(r.entry_type); if(ti>=0) g.v[ti]+=+r.total||0;
+  });
+  const rows=Object.values(G).sort((a,b)=>a.p.localeCompare(b.p,'ar')||a.c.localeCompare(b.c,'ar')).map(g=>[g.p,g.c].concat(g.v));
+  return {headers:['المشروع','مركز التكلفة'].concat(LG_TYPES),rows,total:['','الإجمالي'].concat(LG_TYPES.map((t,i)=>rows.reduce((s,r)=>s+r[2+i],0))),title:'الدفتر حسب المشروع ومركز التكلفة'};
+}});
+REPORTS.lg.push({id:'month',icon:'📅',title:'شهري',run:async f=>{
+  await repNeedLedger();
+  const G={};
+  lgRows(f).forEach(r=>{
+    const m=r.entry_date?String(r.entry_date).slice(0,7):'بلانك';
+    const g=G[m]||(G[m]=LG_TYPES.map(()=>0));
+    const ti=LG_TYPES.indexOf(r.entry_type); if(ti>=0) g[ti]+=+r.total||0;
+  });
+  const rows=Object.keys(G).sort().map(m=>[m].concat(G[m]));
+  return {headers:['الشهر'].concat(LG_TYPES),rows,total:['الإجمالي'].concat(LG_TYPES.map((t,i)=>rows.reduce((s,r)=>s+r[1+i],0))),title:'الدفتر شهرياً'};
+}});
+REPORTS.lg.push({id:'accr',icon:'🏦',title:'المستحقات والأصول',hint:'منفصلة عن المصروفات',run:async f=>{
+  await repNeedCOA(); await repNeedLedger();
+  const rows=lgRows(f).filter(r=>r.entry_type==='استحقاق'||r.entry_type==='أصل').sort((a,b)=>a.entry_type.localeCompare(b.entry_type,'ar')||String(a.entry_date||'').localeCompare(String(b.entry_date||''))).map(r=>[r.entry_type,r.entry_date||'',r.account_code?(r.account_code+' - '+repAN(r.account_code)):'',repPN(r.project_id),repVen(r.vendor_id,r.vendor_name),r.entry_number||'',r.description||'',+r.total||0]);
+  const sA=rows.filter(r=>r[0]==='استحقاق').reduce((s,r)=>s+r[7],0), sB=rows.filter(r=>r[0]==='أصل').reduce((s,r)=>s+r[7],0);
+  return {headers:['النوع','التاريخ','الحساب','المشروع','الطرف','رقم القيد','البيان','الإجمالي'],rows,total:['','','','','','','إجمالي المستحقات '+REP_NUM(sA)+' | إجمالي الأصول '+REP_NUM(sB),sA+sB],title:'المستحقات والأصول'};
+}});
+REPORTS.lg.push({id:'rev',icon:'🔎',title:'مراجعة: قيود بدون حساب أو بلانك أو مكررة محتملة',run:async f=>{
+  await repNeedLedger();
+  const L=lgRows(f), seen={}, dup=new Set();
+  L.forEach(r=>{const k=[r.entry_date,r.entry_type,r.total,r.entry_number,r.description,r.vendor_name||r.vendor_id].join('|');if(seen[k]) {dup.add(k);} seen[k]=1;});
+  const rows=[];
+  L.forEach(r=>{
+    const why=[];
+    if(!r.account_code) why.push('بدون حساب');
+    if(!r.entry_date) why.push('بدون تاريخ');
+    if(!r.vendor_id&&r.vendor_name) why.push('طرف غير مربوط بالكود');
+    if(r.needs_review) why.push(r.review_reason||'للمراجعة');
+    if(dup.has([r.entry_date,r.entry_type,r.total,r.entry_number,r.description,r.vendor_name||r.vendor_id].join('|'))) why.push('مكرر محتمل');
+    if(why.length) rows.push([why.join(' + '),r.entry_date||'',r.entry_type,r.entry_number||'',repVen(r.vendor_id,r.vendor_name),r.description||'',+r.total||0]);
+  });
+  return {headers:['السبب','التاريخ','النوع','رقم القيد','الطرف','البيان','الإجمالي'],rows,title:'مراجعة الدفتر'};
+}});
+
+// ===== المجمّعة =====
+REPORTS.all.push({id:'tree',icon:'🌳',title:'تقرير التكلفة الإجمالي بالشجرة',hint:'الدفتر + صرف المخزن + المستخلصات',run:async f=>{
+  const E=await unifiedEntries(f);
+  const cols=['مصروف دفتر','مستخلصات دفتر','صرف مخزن (صافي)','مستخلصات (موديول)'];
+  const colOf=e=>e.kind==='مصروف'?0:(e.kind==='مستخلص'?1:((e.kind==='صرف مخزن'||e.kind==='مرتجع مخزن')?2:(e.kind==='مستخلص (موديول)'?3:-1)));
+  const oth=['عهدة','استحقاق','أصل'];
+  const M={}, none=[0,0,0,0,0,0,0], mk=()=>[0,0,0,0,0,0,0];
+  E.forEach(e=>{
+    const ci=colOf(e), oi=oth.indexOf(e.kind);
+    const idx=ci>=0?ci:(oi>=0?4+oi:-1); if(idx<0) return;
+    if(!e.account_code){none[idx]+=e.amount;return;}
+    repAncestors(e.account_code).forEach(k=>{(M[k]||(M[k]=mk()))[idx]+=e.amount;});
+  });
+  const fin=v=>[v[0],v[1],v[2],v[3],v[0]+v[1]+v[2]+v[3],v[4],v[5],v[6]];
+  const rows=[];
+  (allCOA||[]).slice().sort((a,b)=>a.account_code.localeCompare(b.account_code)).forEach(a=>{
+    const v=M[a.account_code]; if(!v||v.every(x=>!x)) return;
+    rows.push(['— '.repeat(Math.max(0,(a.level||1)-1))+a.account_name,a.account_code].concat(fin(v)));
+  });
+  if(none.some(x=>x)) rows.push(['بدون حساب','—'].concat(fin(none)));
+  const tot=mk(); E.forEach(e=>{const ci=colOf(e),oi=oth.indexOf(e.kind);const idx=ci>=0?ci:(oi>=0?4+oi:-1);if(idx>=0)tot[idx]+=e.amount;});
+  return {headers:['الحساب','الكود'].concat(cols,['إجمالي التكلفة','عهدة (خارج الإجمالي)','استحقاق (خارج الإجمالي)','أصل (خارج الإجمالي)']),rows,total:['الإجمالي الكلي',''].concat(fin(tot)),title:'تقرير التكلفة الإجمالي بالشجرة',note:'إجمالي التكلفة = مصروف + مستخلصات الدفتر + صرف المخزن (بعد المرتجعات) + مستخلصات الموديول المعتمدة. العهدة والاستحقاق والأصل منفصلة. لو نفس المستخلص متسجل في الدفتر وفي الموديول هيتحسب مرتين، راجع عمودي المستخلصات.'};
+}});
+REPORTS.all.push({id:'party',icon:'🤝',title:'كشف حساب موحد لمورد / مقاول',hint:'اختر الطرف فوق',run:async f=>{
+  if(!f.party) throw new Error('اختر المورد / المقاول من الخانة فوق');
+  const E=(await unifiedEntries(f,{ledger:true,wh:true,ex:true,purch:true})).filter(e=>String(e.party_id)===String(f.party));
+  E.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  const rows=E.map(e=>[String(e.date||'').slice(0,10),e.src,e.kind,e.doc,repPN(e.project_id),e.account_code?(e.account_code+' - '+repAN(e.account_code)):'',e.desc,e.amount]);
+  const sums={}; E.forEach(e=>sums[e.src+' / '+e.kind]=(sums[e.src+' / '+e.kind]||0)+e.amount);
+  Object.keys(sums).forEach(k=>rows.push(['','','','','','','إجمالي '+k,sums[k]]));
+  return {headers:['التاريخ','المصدر','النوع','المستند','المشروع','الحساب','البيان','المبلغ'],rows,title:'كشف حساب: '+repVen(f.party,'')+' ('+repVenCode(f.party)+')'};
+}});
+REPORTS.all.push({id:'proj',icon:'🏗️',title:'ملخص تكلفة كل مشروع (فعلي مقابل تقدير)',run:async f=>{
+  const E=await unifiedEntries(f);
+  await repNeedEx();
+  const G={};
+  E.forEach(e=>{
+    const k=e.project_id||0; const g=G[k]||(G[k]={m:0,x:0,w:0,e2:0,h:0,a:0,s:0});
+    if(e.kind==='مصروف') g.m+=e.amount; else if(e.kind==='مستخلص') g.x+=e.amount;
+    else if(e.kind==='صرف مخزن'||e.kind==='مرتجع مخزن') g.w+=e.amount;
+    else if(e.kind==='مستخلص (موديول)') g.e2+=e.amount;
+    else if(e.kind==='عهدة') g.h+=e.amount; else if(e.kind==='استحقاق') g.a+=e.amount; else if(e.kind==='أصل') g.s+=e.amount;
+  });
+  const rows=Object.entries(G).map(([pid,g])=>{
+    const mb=+pid?masterBoqOf(+pid):null, est=mb?boqTotal(mb.id):0, tot=g.m+g.x+g.w+g.e2;
+    return [+pid?repPN(+pid):'بدون مشروع',est,g.m,g.x,g.w,g.e2,tot,est?tot-est:'',g.h,g.a,g.s];
+  }).sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ar'));
+  const sm=i=>rows.reduce((s,r)=>s+(+r[i]||0),0);
+  return {headers:['المشروع','التقدير (المقايسة الرئيسية)','مصروف دفتر','مستخلصات دفتر','صرف مخزن','مستخلصات موديول','إجمالي التكلفة','الانحراف عن التقدير','عهدة','استحقاق','أصل'],rows,total:['الإجمالي',sm(1),sm(2),sm(3),sm(4),sm(5),sm(6),'',sm(8),sm(9),sm(10)],title:'ملخص تكلفة المشاريع'};
+}});
+REPORTS.all.push({id:'dash',icon:'📈',title:'لوحة إجمالية: عهد، مصروفات، مخزون، مستحقات',run:async f=>{
+  const E=await unifiedEntries(f);
+  const S=k=>E.filter(e=>e.kind===k).reduce((s,e)=>s+e.amount,0);
+  let inv=0; try{ inv=(await repView('item_balances_v2','')).reduce((s,r)=>s+Math.max(0,+r.fifo_value||0),0);}catch(e){inv=0;}
+  const rows=[['عهدة (الدفتر)',S('عهدة')],['مصروفات (الدفتر)',S('مصروف')],['مستخلصات (الدفتر)',S('مستخلص')],['مستخلصات معتمدة (موديول)',S('مستخلص (موديول)')],['صرف المخزن (صافي المرتجعات)',S('صرف مخزن')+S('مرتجع مخزن')],['مستحقات (الدفتر)',S('استحقاق')],['أصول (الدفتر)',S('أصل')],['قيمة المخزون الحالية (FIFO، كل المخازن)',inv]];
+  return {headers:['البند','المبلغ'],rows,title:'اللوحة الإجمالية',note:'المخزون الحالي لحظي ومش بيتأثر بفلتر التاريخ.'};
+}});
+
+// ---------------- التشغيل والعرض والتصدير ----------------
+async function repRun(sec,id){
+  const def=REPORTS[sec].find(r=>r.id===id); if(!def) return;
+  const out=document.getElementById('ro-'+sec); if(!out) return;
+  out.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const res=await def.run(repF(sec));
+    REP_LAST[sec]=res; repShow(sec,res);
+  }catch(e){
+    out.innerHTML='<div class="card" style="padding:14px;color:#fcd34d;font-size:13px">⚠️ '+escHtml(e.message||String(e))+'</div>';
+  }
+}
+function repShow(sec,res){
+  const out=document.getElementById('ro-'+sec); if(!out) return;
+  const MAX=1500, rows=res.rows.slice(0,MAX);
+  let h=`<div class="card"><div class="card-header"><h3>📊 ${escHtml(res.title)}</h3><button class="btn btn-ghost btn-sm" onclick="repExport('${sec}')">📥 Excel</button></div>`;
+  if(res.note) h+=`<div style="padding:8px 14px;font-size:12px;color:var(--text3)">${escHtml(res.note)}</div>`;
+  if(!res.rows.length) h+='<div class="empty"><div class="ico">📭</div><p>مفيش بيانات بالفلاتر دي</p></div>';
+  else{
+    h+='<div class="tbl-wrap"><table><thead><tr>'+res.headers.map(x=>`<th>${escHtml(x)}</th>`).join('')+'</tr></thead><tbody>';
+    rows.forEach(r=>{h+='<tr>'+r.map(c=>`<td>${repCell(c)}</td>`).join('')+'</tr>';});
+    if(res.total) h+='<tr style="font-weight:800;background:var(--bg3)">'+res.total.map(c=>`<td>${c===''?'':repCell(c)}</td>`).join('')+'</tr>';
+    h+='</tbody></table></div>';
+    h+=`<div style="padding:8px 14px;font-size:11px;color:var(--text3)">${res.rows.length} صف${res.rows.length>MAX?' (معروض أول '+MAX+'، والـ Excel فيه الكل)':''}</div>`;
+  }
+  out.innerHTML=h+'</div>';
+}
+function repExport(sec){
+  const res=REP_LAST[sec]; if(!res){toast('اعرض تقرير الأول','error');return;}
+  const aoa=[res.headers].concat(res.rows); if(res.total) aoa.push(res.total);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const wb=XLSX.utils.book_new(); if(wb.Workbook===undefined) wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'تقرير');
+  XLSX.writeFile(wb,String(res.title).replace(/[\\/:*?"<>|]/g,'-').slice(0,80)+'.xlsx');
+}
+// كشف الحساب الموحد: يقرا الدفتر + صرف المخزن + المستخلصات
+async function showAccountStatement(accountCode){
+  const acc=allCOA.find(a=>a.account_code===accountCode);
+  const card=document.getElementById('coa-statement-card'), body=document.getElementById('coa-statement-body');
+  document.getElementById('coa-statement-title').textContent='📊 كشف الحساب: '+(acc?.account_name||accountCode)+' ('+accountCode+')';
+  card.style.display='block';
+  body.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const codes=new Set(getDescendantCodes(accountCode));
+    const E=(await unifiedEntries({from:'',to:'',project:''},{ledger:true,wh:true,ex:true})).filter(e=>codes.has(e.account_code)||(e.holder_code&&codes.has(e.holder_code)));
+    E.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const S={}; E.forEach(e=>{const k=e.src+' / '+e.kind;S[k]=(S[k]||0)+e.amount;});
+    const costTot=E.filter(e=>REP_COST_KINDS.includes(e.kind)).reduce((s,e)=>s+e.amount,0);
+    let h=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px"><div class="stat-card"><div class="stat-icon" style="background:#3b82f620">💰</div><div><h3 style="font-size:16px">${REP_NUM(costTot)}</h3><p>إجمالي التكلفة (دفتر + مخزن + مستخلصات)</p></div></div>`+
+      Object.keys(S).map(k=>`<div class="stat-card"><div><h3 style="font-size:15px">${REP_NUM(S[k])}</h3><p>${escHtml(k)}</p></div></div>`).join('')+'</div>';
+    const rows=E.map(e=>[String(e.date||'').slice(0,10),e.src,e.kind,e.doc,repPN(e.project_id),e.account_code?(e.account_code+' - '+repAN(e.account_code)):'',e.party_name||'',e.desc,e.amount]);
+    REP_LAST.stmt={headers:['التاريخ','المصدر','النوع','المستند','المشروع','الحساب','الطرف','البيان','المبلغ'],rows,title:'كشف حساب '+(acc?.account_name||accountCode)};
+    if(!rows.length) h+='<div class="empty"><div class="ico">📭</div><p>مفيش حركات متسجلة على الحساب ده</p></div>';
+    else{
+      h+='<div style="margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="repExport(\'stmt\')">📥 Excel</button> <span style="font-size:11px;color:var(--text3)">'+rows.length+' حركة'+(rows.length>1000?' (معروض أول 1000، والـ Excel فيه الكل)':'')+'</span></div><div class="tbl-wrap"><table><thead><tr>'+REP_LAST.stmt.headers.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+rows.slice(0,1000).map(r=>'<tr>'+r.map(c=>`<td>${repCell(c)}</td>`).join('')+'</tr>').join('')+'</tbody></table></div>';
+    }
+    body.innerHTML=h;
+  }catch(e){ body.innerHTML='<div class="empty"><div class="ico">⚠️</div><p>'+escHtml(e.message||String(e))+'</p></div>'; }
+}
+
+async function openRepPage(sec){
+  try{ if(sec==='lg'||sec==='all'||sec==='ex'){ await repNeedCOA(); } }catch(e){}
+  repInit(sec);
 }
 
 // GROUPS
@@ -6185,10 +6390,10 @@ function showPage(name){
   if(name==='ledger') loadLedger();
   if(name==='extracts'||name==='boqs'||name==='vouchers'||name==='cost-reports') loadExtractsData();
   if(name==='dashboard') loadDashboard();
-  if(name==='reports'){
-    const rp=document.getElementById('rep-project');if(rp&&rp.options.length<=1)allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;rp.appendChild(o);});
-    const rg=document.getElementById('rep-group');if(rg&&rg.options.length<=1)allGroups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;rg.appendChild(o);});
-  }
+  if(name==='reports') openRepPage('all');
+  if(name==='rep-wh') openRepPage('wh');
+  if(name==='rep-ex') openRepPage('ex');
+  if(name==='rep-lg') openRepPage('lg');
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
