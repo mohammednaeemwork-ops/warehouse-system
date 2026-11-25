@@ -4543,10 +4543,17 @@ async function runCostReport(){
   const mv=await pagedQuery(()=>sb.from('movements').select('qty,unit_price,fifo_cost,cost_center_id,cost_center2_id,type,move_kind').in('type',['صادر','مرتجع']).eq('project_id',pid));
   if(mv.error) warnings.push('تعذّر تحميل صادر المخزن: '+mv.error.message);
   else mv.data=(mv.data||[]).filter(m=>m.move_kind!=='تحويل'&&(m.type==='صادر'||m.move_kind==='للمخزن')).map(m=>m.type==='مرتجع'?{...m,qty:-m.qty,fifo_cost:null}:m);
-  const cu=await pagedQuery(()=>sb.from('custody_transactions').select('amount,cost_center_id').eq('type','تسوية').eq('project_id',pid));
-  if(cu.error) warnings.push('العهد: عمود مركز التكلفة مش موجود لسه (شغّل master_boq_upgrade.sql)');
-  const xp=await pagedQuery(()=>sb.from('expense_transactions').select('amount,cost_center_id').eq('type','مصروف').eq('project_id',pid));
-  if(xp.error) warnings.push('المصروفات: عمود مركز التكلفة مش موجود لسه (شغّل master_boq_upgrade.sql)');
+  // العهد والمصروفات بتاعة محاسب العهد: مخفية عن محاسب التكاليف (قاعدة "ما يشوفوش شغل بعض")
+  const seeLg=can('ledger_general','view');
+  let cu={data:[]},xp={data:[]};
+  if(seeLg){
+    cu=await pagedQuery(()=>sb.from('custody_transactions').select('amount,cost_center_id').eq('type','تسوية').eq('project_id',pid));
+    if(cu.error) warnings.push('العهد: عمود مركز التكلفة مش موجود لسه (شغّل master_boq_upgrade.sql)');
+    xp=await pagedQuery(()=>sb.from('expense_transactions').select('amount,cost_center_id').eq('type','مصروف').eq('project_id',pid));
+    if(xp.error) warnings.push('المصروفات: عمود مركز التكلفة مش موجود لسه (شغّل master_boq_upgrade.sql)');
+  } else {
+    warnings.push('ملحوظة: العهد والمصروفات مش ظاهرة في الصفحة دي لدورك، فالتكلفة الفعلية هنا من غيرهم.');
+  }
   const data={ccs:projCCs(pid),masterItems:allBoqItems.filter(i=>i.boq_id===master.id).sort((a,b)=>a.seq-b.seq),
     subBoqs:subs.map(b=>({id:b.id,cost_center_id:b.cost_center_id||null})),subItems,
     extractItems:allExtractItems.filter(x=>approved.has(x.extract_id)),moves:mv.data||[],custody:cu.data||[],expenses:xp.data||[],contractorOf};
@@ -4608,6 +4615,7 @@ function exportCostReport(){
   const head=['مركز التكلفة','المقدّر','المتعاقد عليه','انحراف التعاقد','مستخلصات','مخزن','مصروفات','عهد','إجمالي الفعلي','الانحراف','نسبة الانحراف %'];
   const rows=R.rows.map(r=>[r.name,+r.est||0,+r.contracted||0,+r.var_contract||0,+r.extracts||0,+r.warehouse||0,+r.expenses||0,+r.custody||0,+r.actual||0,+r.var_actual||0,pc(r.var_pct)]);
   const total=['الإجمالي',+t.est||0,+t.contracted||0,+t.var_contract||0,+t.extracts||0,+t.warehouse||0,+t.expenses||0,+t.custody||0,+t.actual||0,+t.var_actual||0,pc(t.var_pct)];
+  if(!can('ledger_general','view')){const dropLg=a=>a.filter((_,ix)=>ix!==6&&ix!==7);head.splice(6,2);rows.forEach((r,ix)=>{rows[ix]=dropLg(r);});total.splice(6,2);}
   const ih=['القسم','م','البند','الوحدة','إجمالي الكمية','سعر تقديري','المقدّر','المتعاقد عليه','انحراف التعاقد','المنفذ (مستخلصات)','الفلل','المقاولين'];
   const irows=R.items.map(i=>[i.section,i.seq,i.description,i.unit||'',+i.total_qty||0,+i.unit_price||0,+i.est||0,+i.contracted||0,+i.var_contract||0,+i.executed||0,i.villas.join('، '),i.contractors.join('، ')]);
   const sh=['القسم','عدد البنود','المقدّر','المتعاقد عليه','انحراف التعاقد','المنفذ (مستخلصات)'];
