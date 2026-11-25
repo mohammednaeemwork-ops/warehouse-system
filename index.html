@@ -772,6 +772,11 @@ tr:hover td{background:#ffffff05;}
       </div>
     </div>
 
+    <div class="page" id="page-perms">
+      <div class="page-header"><div><h2>🔐 الصلاحيات</h2><p>كل دور يشوف ويعمل إيه في كل موديول</p></div></div>
+      <div id="perms-box"></div>
+    </div>
+
     <!-- REPORTS -->
     <div class="page" id="page-reports">
       <div class="page-header"><div><h2>التقارير المجمّعة</h2><p>تقارير تجمع الدفتر والمخزن والمستخلصات. كل تقرير ليه تصدير Excel</p></div></div>
@@ -1375,15 +1380,143 @@ async function showApp(){
   document.getElementById('sb-name').textContent=CP.name;
   const rb=document.getElementById('sb-role');
   rb.textContent=CP.role;rb.className='role-badge '+CP.role;
+  await loadPerms();
   applyRoles();
   showPage('hub');
   await loadAll();
 }
-function canSeePage(pageKey){
-  const adminOnly=['users','items','groups','projects','cost-centers','vendors'];
-  if(adminOnly.includes(pageKey)) return CP?.role==='مدير';
-  if(pageKey==='bulk-movement') return CP?.role!=='مشرف'&&CP?.role!=='محاسب';
-  return true;
+// ================= PERMISSIONS (v14) =================
+// الأدوار والصلاحيات: بتتقرا من جدول role_perms في Supabase وبتتعدل من شاشة "الصلاحيات". المدير له كل حاجة دايمًا.
+const ROLES=['مدير','أمين مخزن','محاسب تكاليف','محاسب عهد','مدير مالي'];
+const PERM_MODULES=[
+  ['coding','التكويد (الأصناف، المجموعات، المشاريع، الأطراف، مراكز التكلفة، الشجرة)'],
+  ['warehouse','المخزن (الحركات، الأرصدة، طلبات التوريد)'],
+  ['warehouse_prices','أسعار وقيم المخزن'],
+  ['extracts','المستخلصات والمقايسات وأذون الصرف'],
+  ['ledger_extracts','دفتر التكاليف: قيود المستخلصات'],
+  ['ledger_general','دفتر التكاليف: المصروفات والعهد والمستحقات والأصول'],
+  ['reports','التقارير المجمّعة والتحليلات'],
+  ['dashboard','لوحة التحكم'],
+  ['users','المستخدمين']
+];
+const PERM_ACTIONS=[['view','عرض'],['add','إضافة'],['edit','تعديل'],['delete','حذف'],['approve','اعتماد'],['import','استيراد'],['export','تصدير']];
+// قيم احتياطية لو جدول role_perms مش موجود (نفس اللي في SQL)
+const PERM_DEFAULTS={};
+(function(){
+  const set=(r,m,a)=>{const o={};PERM_ACTIONS.forEach(x=>o['can_'+x[0]]=a.includes(x[0]));PERM_DEFAULTS[r+'|'+m]=o;};
+  set('أمين مخزن','warehouse',['view','add','edit','import','export']);
+  set('محاسب تكاليف','extracts',['view','add','edit','export']);
+  set('محاسب تكاليف','ledger_extracts',['view','add','edit','export']);
+  set('محاسب عهد','ledger_general',['view','add','edit','export']);
+  set('مدير مالي','reports',['view','export']);
+  set('مدير مالي','dashboard',['view','export']);
+  set('مدير مالي','warehouse_prices',['view']);
+})();
+let PERMS=null;
+async function loadPerms(){
+  PERMS=null;
+  try{
+    const {data,error}=await sb.from('role_perms').select('*');
+    if(error||!data||!data.length) return;
+    PERMS={}; data.forEach(r=>{PERMS[r.role+'|'+r.module]=r;});
+  }catch(e){ console.warn('role_perms',e); }
+}
+function can(mod,act){
+  if(!CP||!CP.role) return false;
+  if(CP.role==='مدير') return true;
+  const row=(PERMS||PERM_DEFAULTS)[CP.role+'|'+mod];
+  return !!(row&&row['can_'+act]);
+}
+function needPerm(mod,act,msg){
+  if(can(mod,act)) return true;
+  toast(msg||'ليس لديك صلاحية لهذا الإجراء','error'); return false;
+}
+function canLedgerType(t,act){ return can(t==='مستخلص'?'ledger_extracts':'ledger_general',act||'view'); }
+function lgAllowedTypes(act){ return LEDGER_TYPES.filter(t=>canLedgerType(t,act||'view')); }
+const PAGE_MODULE={
+  'coa':'coding','vendors':'coding','projects':'coding','cost-centers':'coding','items':'coding','groups':'coding','import-items':'coding',
+  'purchase-orders':'warehouse','bulk-movement':'warehouse','movements':'warehouse','inventory':'warehouse',
+  'extracts':'extracts','boqs':'extracts','vouchers':'extracts','rep-ex':'extracts','cost-reports':'extracts','extract-sheet':'extracts','extract-voucher':'extracts',
+  'dashboard':'dashboard','reports':'reports','analytics':'reports','coa-statement':'reports','users':'users','perms':'users'
+};
+function canSeePage(p){
+  if(!CP) return false;
+  if(p==='hub') return true;
+  if(CP.role==='مدير') return true;
+  if(p==='perms'||p==='users') return false;
+  if(p==='bulk-movement') return can('warehouse','add');
+  if(p==='price-quotes'||p==='rep-wh') return can('warehouse','view')&&can('warehouse_prices','view');
+  if(p==='ledger') return can('ledger_general','view')||can('ledger_extracts','view');
+  if(p==='rep-lg') return can('ledger_general','view')&&can('ledger_extracts','view');
+  const m=PAGE_MODULE[p]; return m?can(m,'view'):false;
+}
+// إخفاء أعمدة الأسعار والقيم لمن ليس له صلاحية "أسعار وقيم المخزن" (في جداول القراءة بس، مش الفورم)
+const PX_RX=/^(سعر|السعر|سعره|قيمة|القيمة|تكلفة FIFO|الإجمالي|اجمالي القيمة|المبلغ)/;
+function stripPriceCols(root){
+  root.querySelectorAll('table').forEach(t=>{
+    if(t.dataset.px==='1'||t.querySelector('input,select,textarea')) return;
+    const ths=[...t.querySelectorAll('thead th')]; const idx=[];
+    ths.forEach((th,i)=>{ if(PX_RX.test(th.textContent.trim())) idx.push(i); });
+    t.dataset.px='1'; if(!idx.length) return;
+    t.querySelectorAll('tr').forEach(tr=>{
+      const cells=[...tr.children]; if(cells.some(c=>c.hasAttribute('colspan'))) return;
+      idx.slice().reverse().forEach(i=>{ if(cells[i]) cells[i].remove(); });
+    });
+  });
+}
+let pxObserver=null;
+function applyPriceHiding(){
+  const hide=!can('warehouse_prices','view');
+  document.body.classList.toggle('no-prices',hide);
+  if(pxObserver){pxObserver.disconnect();pxObserver=null;}
+  if(!hide) return;
+  const ids=['page-movements','page-inventory','page-purchase-orders','page-bulk-movement'];
+  pxObserver=new MutationObserver(()=>{ ids.forEach(id=>{const el=document.getElementById(id); if(el) stripPriceCols(el);}); });
+  ids.forEach(id=>{const el=document.getElementById(id); if(el) pxObserver.observe(el,{childList:true,subtree:true}); });
+  ids.forEach(id=>{const el=document.getElementById(id); if(el) stripPriceCols(el);});
+}
+function applyHubTiles(){
+  document.querySelectorAll('.hub-tile').forEach(t=>{
+    const oc=t.getAttribute('onclick')||''; let ok=true;
+    let m=oc.match(/showPage\('([^']+)'\)/);
+    if(m) ok=canSeePage(m[1]);
+    else{ m=oc.match(/enterModule\('([^']+)'\)/); if(m){const mod=findModule(m[1]); ok=!!mod&&mod.children.some(c=>!c.hidden&&canSeePage(c.page));} }
+    t.style.display=ok?'':'none';
+  });
+}
+function applyActionButtons(){
+  const imp=can('ledger_general','import')&&can('ledger_extracts','import');
+  document.querySelectorAll('button[onclick*="ledger-import"],button[onclick*="lgiTemplate"]').forEach(b=>{b.style.display=imp?'':'none';});
+  const lgAdd=lgAllowedTypes('add').length>0;
+  document.querySelectorAll('button[onclick*="openLedgerModal()"],button[onclick*="openLedgerModal(null)"]').forEach(b=>{b.style.display=lgAdd?'':'none';});
+}
+// شاشة الصلاحيات (للمدير بس)
+async function loadPermsScreen(){
+  const box=document.getElementById('perms-box'); if(!box) return;
+  if(CP?.role!=='مدير'){box.innerHTML='';return;}
+  box.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  await loadPerms();
+  const {error}=await sb.from('role_perms').select('role').limit(1);
+  if(error){box.innerHTML='<div class="empty"><div class="ico">⚠️</div><p>جدول role_perms مش موجود. شغّل permissions-step1-2.sql الأول ('+escHtml(error.message)+')</p></div>';return;}
+  let h='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.9">المدير له كل الصلاحيات دايمًا ومش بيتعدل من هنا. علّم ✔ للمسموح وشيله للممنوع، والحفظ بيتم أول ما تضغط. التغيير بيتطبق للمستخدم في الدخول الجاي (أو بعد تحديث الصفحة).<br>⚠️ دلوقتي المنع بيتطبق في الشاشة. منع قاعدة البيانات نفسها (RLS على الجداول) خطوة جاية.</div>';
+  ROLES.filter(r=>r!=='مدير').forEach(role=>{
+    h+=`<div class="card" style="margin-bottom:16px"><div class="card-header"><h3>👤 ${escHtml(role)}</h3></div><div class="tbl-wrap"><table><thead><tr><th>الموديول</th>${PERM_ACTIONS.map(a=>`<th style="text-align:center">${a[1]}</th>`).join('')}</tr></thead><tbody>`;
+    PERM_MODULES.forEach(m=>{
+      const row=(PERMS&&PERMS[role+'|'+m[0]])||{};
+      h+=`<tr data-role="${escHtml(role)}" data-mod="${m[0]}"><td style="font-size:13px">${escHtml(m[1])}</td>${PERM_ACTIONS.map(a=>`<td style="text-align:center"><input type="checkbox" ${row['can_'+a[0]]?'checked':''} onchange="savePermRow(this)"></td>`).join('')}</tr>`;
+    });
+    h+='</tbody></table></div></div>';
+  });
+  box.innerHTML=h;
+}
+async function savePermRow(cb){
+  if(CP?.role!=='مدير'){toast('الصلاحية للمدير بس','error');return;}
+  const tr=cb.closest('tr'); const rec={role:tr.dataset.role,module:tr.dataset.mod};
+  const boxes=tr.querySelectorAll('input[type=checkbox]');
+  PERM_ACTIONS.forEach((a,i)=>{rec['can_'+a[0]]=boxes[i].checked;});
+  const {error}=await sb.from('role_perms').upsert(rec,{onConflict:'role,module'});
+  if(error){toast('تعذر الحفظ: '+error.message,'error');cb.checked=!cb.checked;return;}
+  toast('تم الحفظ ✅','success');
 }
 
 // وصف الأقسام: عناصر مستقلة (standalone) تظهر مباشرة في القائمة العليا،
@@ -1429,6 +1562,7 @@ const NAV_STRUCTURE=[
   ]},
   {type:'module', key:'admin', icon:'👥', label:'الإدارة', children:[
     {page:'users', icon:'👥', label:'المستخدمين'},
+    {page:'perms', icon:'🔐', label:'الصلاحيات'},
   ]},
 ];
 
@@ -1478,6 +1612,8 @@ function applyRoles(){
   const isAdmin=r==='مدير';
 
   renderTopNav();
+  applyHubTiles(); applyPriceHiding(); applyActionButtons();
+  if(!ROLES.includes(r)) toast('دورك ('+r+') غير معروف. كلّم المدير','error');
 
   // تحميل إذن للتعديل (إضافة سعر) — مدير فقط
   const loadEditBtn=document.getElementById('bulk-load-edit-btn');
@@ -1486,7 +1622,7 @@ function applyRoles(){
 async function loadAll(){
   await Promise.all([loadProjects(),loadCostCenters(),loadGroups(),loadVendors(),loadPOs(),loadPriceQuotes()]);
   populateSelects();
-  await Promise.all([loadDashboard(),loadMovements(),loadInventory(),loadItems()]);
+  await Promise.all([can('dashboard','view')?loadDashboard():Promise.resolve(),loadMovements(),loadInventory(),loadItems()]);
   if(CP.role==='مدير') loadUsers();
   loadAlerts();
 }
@@ -1779,6 +1915,7 @@ async function saveProject(){
   closeModal('project-modal');await loadProjects();populateSelects();
 }
 async function deleteProject(id){
+  if(!needPerm('coding','delete'))return;
   const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('project_id',id);
   const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('project_id',id);
   const total=(count||0)+(poCount||0);
@@ -1854,6 +1991,7 @@ async function saveCC(){
   closeModal('cc-modal');await loadCostCenters();populateSelects();
 }
 async function deleteCC(id){
+  if(!needPerm('coding','delete'))return;
   const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('cost_center_id',id);
   const {count:childCount}=await sb.from('cost_centers').select('id',{count:'exact',head:true}).eq('parent_id',id);
   const total=(count||0)+(childCount||0);
@@ -1871,7 +2009,7 @@ function updateBulkType(){
   const isOut=type==='صادر';
   const isRet=type==='مرتجع';
   const isTrans=type==='تحويل';
-  const hidePrice=isIn&&CP?.role==='أمين مخزن';
+  const hidePrice=isIn&&!can('warehouse_prices','view');
   const retKind=document.getElementById('bulk-return-kind')?.value||'للمخزن';
   const rkw=document.getElementById('bulk-retkind-wrap'); if(rkw) rkw.style.display=isRet?'block':'none';
   const supWrap=document.getElementById('bulk-supplier-wrap');
@@ -1951,7 +2089,7 @@ function renderBulkRows(){
     if(isIn){
       const itemUnit=allItems.find(x=>x.id===parseInt(row.item_id))?.unit||'وحدة';
       const lineValue=((parseFloat(row.qty)||0)*(parseFloat(row.price)||0)).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
-      const hidePrice=CP?.role==='أمين مخزن';
+      const hidePrice=!can('warehouse_prices','view');
       h+=`
       ${hidePrice?'':`<td><input type="number" value="${row.price||''}" min="0" step="0.01" placeholder="0" oninput="bulkRows[${i}].price=this.value;updateRowValue(${i})" id="bulk-price-${i}"></td>
       <td><span id="bulk-value-${i}" style="font-weight:700;color:#10b981">${lineValue}</span></td>`}
@@ -2620,6 +2758,7 @@ async function saveBulkMovements(){
 
 // MOVEMENTS LOG
 async function deleteMov(id){
+  if(!needPerm('warehouse','delete'))return;
   const {data:mv,error:e0}=await sb.from('movements').select('*').eq('id',id).maybeSingle();
   if(e0||!mv){toast('تعذّر قراءة الحركة','error');return;}
   const inflow=isInMov(mv);
@@ -2827,6 +2966,7 @@ function renderCustodyLog(){
   el.innerHTML=h;
 }
 async function deleteCustodyTransaction(id){
+  if(!needPerm('ledger_general','delete'))return;
   if(!confirm('متأكد إنك عايز تمسح المعاملة دي؟ الإجراء ده مش هينفع يترجع.'))return;
   const {error}=await sb.from('custody_transactions').delete().eq('id',id);
   if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
@@ -3249,6 +3389,7 @@ function renderXpLog(){
   el.innerHTML=h;
 }
 async function deleteXpTransaction(id){
+  if(!needPerm('ledger_general','delete'))return;
   if(!confirm('متأكد إنك عايز تمسح المعاملة دي؟ الإجراء ده مش هينفع يترجع.')) return;
   const {error}=await sb.from('expense_transactions').delete().eq('id',id);
   if(error){ toast('خطأ في الحذف: '+error.message,'error'); return; }
@@ -3959,6 +4100,7 @@ async function saveBoq(){
   await loadExtractsData();
 }
 async function deleteBoq(id){
+  if(!needPerm('extracts','delete'))return;
   const b=allBoqs.find(x=>x.id===id);
   if(allExtracts.some(e=>e.boq_id===id)){toast('المقايسة دي عليها مستخلصات، امسح المستخلصات الأول','error');return;}
   let msg='متأكد إنك عايز تمسح المقايسة وكل بنودها؟';
@@ -4050,6 +4192,7 @@ async function newExtract(boqId){
   await openExtract(data.id);
 }
 async function deleteExtract(id){
+  if(!needPerm('extracts','delete'))return;
   const e=allExtracts.find(x=>x.id===id);
   if(!e||e.status==='معتمد'){toast('المستخلص المعتمد مينفعش يتمسح، ألغي الاعتماد الأول','error');return;}
   if(!confirm('متأكد إنك عايز تمسح المستخلص ده؟')) return;
@@ -4100,7 +4243,7 @@ function renderExtractSheet(){
   const st=dis?'<span class="badge badge-in">معتمد</span>':'<span class="badge" style="background:#f59e0b20;color:#f59e0b">مسودة</span>';
   const btns=`<button class="btn btn-ghost" onclick="showPage('extracts')">→ رجوع للقائمة</button><button class="btn btn-ghost" onclick="printExtract()">🖨️ طباعة</button>`
     +(dis?`<button class="btn btn-accent" onclick="openVoucher(${ex.id})">🧾 إذن الصرف</button>`:'')
-    +(dis?(CP?.role==='مدير'?'<button class="btn btn-ghost" onclick="unapproveExtract()">↩️ إلغاء الاعتماد</button>':'')
+    +(dis?(can('extracts','approve')?'<button class="btn btn-ghost" onclick="unapproveExtract()">↩️ إلغاء الاعتماد</button>':'')
           :'<button class="btn btn-ghost" onclick="saveExtract().then(ok=>ok&&toast(\'✅ تم حفظ المسودة\',\'success\'))">💾 حفظ مسودة</button><button class="btn btn-success" onclick="approveExtract()">✅ اعتماد المستخلص</button>');
   root.innerHTML=`<div class="page-header"><div><h2>مستخلص أعمال رقم ${ex.extract_number} ${st}</h2><p>مقايسة ${escHtml(boq.boq_number||'')} — ${escHtml(boq.projects?.name||'')}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div></div>
   <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
@@ -4144,12 +4287,12 @@ async function saveExtract(status){
   return true;
 }
 async function approveExtract(){
-  if(CP?.role!=='مدير'){toast('اعتماد المستخلص للمدير بس','error');return;}
+  if(!can('extracts','approve')){toast('ليس لديك صلاحية اعتماد المستخلص','error');return;}
   if(!confirm('اعتماد المستخلص هيقفل التعديل عليه ويدخل أرقامه في الكشف الموحد وملخص لوحة التحكم. تكمل؟')) return;
   if(await saveExtract('معتمد')){ toast('✅ تم اعتماد المستخلص','success'); renderExtractSheet(); }
 }
 async function unapproveExtract(){
-  if(CP?.role!=='مدير'){toast('الصلاحية للمدير بس','error');return;}
+  if(!can('extracts','approve')){toast('ليس لديك صلاحية','error');return;}
   if(allVouchers.some(v=>v.extract_id===xsState.ex.id)){toast('المستخلص ده ليه إذن صرف. امسح الإذن الأول من صفحة أذون الصرف قبل إلغاء الاعتماد','error');return;}
   if(!confirm('إلغاء الاعتماد هيرجّع المستخلص مسودة ويطلعه من الكشف الموحد. تكمل؟')) return;
   if(await saveExtract('مسودة')){ toast('تم إلغاء الاعتماد','success'); renderExtractSheet(); }
@@ -4262,6 +4405,7 @@ async function saveVoucher(){
   renderVoucher();
 }
 async function deleteVoucher(){
+  if(!needPerm('extracts','delete'))return;
   if(!vcState||!vcState.id) return;
   if(!confirm('متأكد إنك عايز تمسح إذن الصرف؟ المبلغ ده هيتشال من "ماسبق صرفه" في المستخلصات اللي بعده.')) return;
   const {error}=await sb.from('payment_vouchers').delete().eq('id',vcState.id);
@@ -5514,7 +5658,7 @@ async function loadGroups(){
 }
 function renderGroupsTable(){
   if(!allGroups.length){document.getElementById('groups-table').innerHTML='<div class="empty"><div class="ico">📁</div><p>لا توجد مجموعات</p></div>';return;}
-  const canEdit=CP.role==='مدير';
+  const canEdit=can('coding','edit');
   const unl=allGroups.filter(g=>!g.account_code);
   let h=unl.length?`<div style="background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.8">⚠️ <b>${unl.length}</b> مجموعة من ${allGroups.length} مش مربوطة بحساب في شجرة الحسابات، وتكلفة أصنافها مش هتظهر في كشف أي حساب: ${unl.slice(0,40).map(g=>escHtml(g.name||g.code||'')).join('، ')}${unl.length>40?' ...':''}<br><span style="color:var(--text3)">اضغط ✏️ جنب المجموعة واختار الحساب.</span></div>`:'';
   h+='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>الحساب المرتبط</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
@@ -5558,6 +5702,7 @@ async function saveGroup(){
   toast('تم الحفظ ✅','success');closeModal('group-modal');await loadGroups();populateSelects();
 }
 async function deleteGroup(id){
+  if(!needPerm('coding','delete'))return;
   const {count}=await sb.from('items').select('id',{count:'exact',head:true}).eq('group_id',id);
   const warn=count>0?`\n\n⚠️ تنبيه: المجموعة دي مربوطة بـ ${count} صنف. حذفها ممكن يبوّظ تصنيف الأصناف دي.`:'';
   if(!confirm('حذف هذه المجموعة؟'+warn))return;
@@ -5600,7 +5745,7 @@ function renderItemsTable(data){
   const total=data.length,pages=Math.ceil(total/PS)||1;
   const slice=data.slice((itemsPage-1)*PS,itemsPage*PS);
   if(!slice.length){document.getElementById('items-table').innerHTML='<div class="empty"><div class="ico">🗂️</div><p>لا توجد أصناف</p></div>';document.getElementById('items-pag').innerHTML='';return;}
-  const canEdit=CP.role==='مدير';
+  const canEdit=can('coding','edit');
   let h='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>المجموعة</th><th>مركز التكلفة</th><th>الوحدة</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
   slice.forEach(i=>{
     h+=`<tr><td style="font-size:11px;color:var(--text3)">${i.code||'-'}</td><td>${i.name}</td><td>${i.groups?.name||'-'}</td><td style="font-size:12px">${i.cost_center||'-'}</td><td>${i.unit||'وحدة'}</td>${canEdit?`<td><button class="btn btn-ghost btn-sm" onclick="openItemModal(${i.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteItem(${i.id})">🗑️</button></td>`:''}</tr>`;
@@ -5647,6 +5792,7 @@ async function saveItem(){
   closeModal('item-modal');await loadItems();
 }
 async function deleteItem(id){
+  if(!needPerm('coding','delete'))return;
   const {count}=await sb.from('movements').select('id',{count:'exact',head:true}).eq('item_id',id);
   const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('item_id',id);
   const total=(count||0)+(poCount||0);
@@ -5711,7 +5857,7 @@ function renderUsersTable(){
     <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
     <td><select onchange="updateRole('${u.id}',this.value)" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-family:Cairo,sans-serif;font-size:12px;" ${isSelf?'disabled':''}>
       <option value="">— بدون دور —</option>
-      ${['مدير','أمين مخزن','مشرف','محاسب'].map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}
+      ${ROLES.concat(ROLES.includes(u.role)||!u.role?[]:[u.role]).map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}
     </select></td>
     <td><span class="badge ${isActive?'badge-in':isPending?'badge-ret':'badge-out'}">${isActive?'مفعّل':isPending?'⏳ انتظار':'موقوف'}</span></td>
     <td>${fmtDate(u.created_at)}</td>
@@ -5757,9 +5903,10 @@ async function loadLedger(){
     return;
   }
   allLedger=r.data||r;
+  if(CP?.role!=='مدير'){const okT=lgAllowedTypes('view'); allLedger=allLedger.filter(x=>okT.includes(x.entry_type));}
   ledgerLoaded=true;
   const ft=document.getElementById('lg-f-type');
-  if(ft&&ft.options.length<=1) LEDGER_TYPES.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o);});
+  if(ft&&ft.options.length<=1) lgAllowedTypes('view').forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o);});
   const fp=document.getElementById('lg-f-project');
   if(fp&&fp.options.length<=1) allProjects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;fp.appendChild(o);});
   renderLedger();
@@ -5782,9 +5929,9 @@ function ledgerFiltered(){
 }
 function renderLedger(){
   const rows=ledgerFiltered().sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||b.id-a.id);
-  const sums={};LEDGER_TYPES.forEach(t=>sums[t]={n:0,total:0,rev:0});
+  const sums={};LEDGER_TYPES.forEach(t=>sums[t]={n:0,total:0,rev:0});const LT=lgAllowedTypes('view');
   rows.forEach(r=>{const s=sums[r.entry_type];if(!s)return;s.n++;s.total+=+r.total||0;if(r.needs_review)s.rev++;});
-  document.getElementById('ledger-totals').innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap">'+LEDGER_TYPES.map(t=>`<div style="flex:1;min-width:150px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:12px;color:var(--text3)">${t} (${sums[t].n} قيد${sums[t].rev?'، '+sums[t].rev+' للمراجعة':''})</div><div style="font-weight:700;font-size:16px">${fnum(sums[t].total)}</div></div>`).join('')+'</div><div style="font-size:11px;color:var(--text3);margin-top:8px">كل نوع بيتحسب لوحده ومش بيتجمع مع التاني.</div>';
+  document.getElementById('ledger-totals').innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap">'+LT.map(t=>`<div style="flex:1;min-width:150px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:12px;color:var(--text3)">${t} (${sums[t].n} قيد${sums[t].rev?'، '+sums[t].rev+' للمراجعة':''})</div><div style="font-weight:700;font-size:16px">${fnum(sums[t].total)}</div></div>`).join('')+'</div><div style="font-size:11px;color:var(--text3);margin-top:8px">كل نوع بيتحسب لوحده ومش بيتجمع مع التاني.</div>';
   const pages=Math.max(1,Math.ceil(rows.length/LEDGER_PS));if(ledgerPg>pages)ledgerPg=pages;
   const slice=rows.slice((ledgerPg-1)*LEDGER_PS,ledgerPg*LEDGER_PS);
   if(!slice.length){document.getElementById('ledger-table').innerHTML='<div class="empty"><div class="ico">📒</div><p>لا توجد قيود</p></div>';document.getElementById('ledger-pager').innerHTML='';return;}
@@ -5794,7 +5941,7 @@ function renderLedger(){
     const v=r.vendor_id?(allVendors.find(x=>x.id===r.vendor_id)?.name||r.vendor_name||'-'):(r.vendor_name||'-');
     h+=`<tr style="${r.needs_review?'background:#f59e0b12':''}"><td>${r.entry_date||'<span style="color:var(--text3)">بلانك</span>'}</td><td>${escHtml(r.entry_type)}</td><td style="font-size:12px">${escHtml(pn(r.project_id))}</td><td style="font-size:12px">${escHtml(cn(r.cost_center2_id||r.cost_center_id))}</td><td style="font-size:12px">${escHtml(r.account_name||r.account_code||'')||'<span style="color:var(--text3)">بلانك</span>'}</td><td style="font-size:12px">${escHtml(v)}</td><td style="font-size:12px;max-width:260px">${escHtml(r.description||'')||'<span style="color:var(--text3)">بلانك</span>'}</td><td style="font-weight:700">${fnum(r.total)}</td><td style="font-size:12px">${escHtml(r.entry_number||'')}</td>
     <td>${r.needs_review?`<span title="${escHtml(r.review_reason||'')}" style="color:#f59e0b;font-size:12px">⚠️ ${escHtml(r.review_reason||'للمراجعة')}</span>`:''}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="openLedgerModal(${r.id})">✏️</button>${CP?.role==='مدير'?` <button class="btn btn-danger btn-sm" onclick="deleteLedger(${r.id})">🗑️</button>`:''}</td></tr>`;
+    <td>${canLedgerType(r.entry_type,'edit')?`<button class="btn btn-ghost btn-sm" onclick="openLedgerModal(${r.id})">✏️</button>`:''}${canLedgerType(r.entry_type,'delete')?` <button class="btn btn-danger btn-sm" onclick="deleteLedger(${r.id})">🗑️</button>`:''}</td></tr>`;
   });
   h+='</tbody></table></div>';
   document.getElementById('ledger-table').innerHTML=h;
@@ -5805,7 +5952,7 @@ async function openLedgerModal(id=null){
   editLedgerId=id;
   const r=id?allLedger.find(x=>x.id===id):null;
   document.getElementById('lg-title').textContent=id?'تعديل قيد':'قيد جديد';
-  document.getElementById('lg-type').innerHTML=LEDGER_TYPES.map(t=>`<option>${t}</option>`).join('');
+  {const _a=lgAllowedTypes(id?'edit':'add'); if(!_a.length){toast('ليس لديك صلاحية','error');return;} if(id&&r&&!_a.includes(r.entry_type)){toast('ليس لديك صلاحية تعديل هذا القيد','error');return;} document.getElementById('lg-type').innerHTML=_a.map(t=>`<option>${t}</option>`).join('');}
   document.getElementById('lg-project').innerHTML=lgOpt(allProjects,'id','name');
   const ccl=c=>c.name+' (مستوى '+(c.level||'-')+(c.projects?.name?' - '+c.projects.name:'')+')';
   document.getElementById('lg-cc').innerHTML=lgOpt(allCostCenters,'id',ccl);
@@ -5823,6 +5970,7 @@ async function openLedgerModal(id=null){
   openModal('ledger-modal');
 }
 async function saveLedger(){
+  {const _t=document.getElementById('lg-type').value; if(!canLedgerType(_t,editLedgerId?'edit':'add')){toast('ليس لديك صلاحية على هذا النوع','error');return;}}
   const g=k=>document.getElementById(k).value.trim();
   const num=k=>{const v=parseFloat(g(k));return isNaN(v)?null:v;};
   const intv=k=>{const v=parseInt(g(k));return isNaN(v)?null:v;};
@@ -5842,6 +5990,7 @@ async function saveLedger(){
   toast('تم الحفظ ✅','success');closeModal('ledger-modal');await loadLedger();
 }
 async function deleteLedger(id){
+  {const _r=allLedger.find(x=>x.id===id); if(!_r||!canLedgerType(_r.entry_type,'delete')){toast('ليس لديك صلاحية حذف هذا القيد','error');return;}}
   if(!confirm('حذف القيد ده؟'))return;
   const {error}=await sb.from('cost_ledger').delete().eq('id',id);
   if(error){toast('تعذّر الحذف: '+error.message,'error');return;}
@@ -6063,6 +6212,7 @@ function lgiRenderBatches(){
   el.innerHTML=keys.length?keys.map(k=>`<div style="font-size:13px;padding:4px 0">${escHtml(k)}: ${b[k].n} سطر، ${fnum(b[k].t)} ${CP?.role==='مدير'?`<button class="btn btn-danger btn-sm" onclick="lgiDeleteBatch('${escHtml(k)}')">🗑 امسح الدفعة دي</button>`:''}</div>`).join(''):'<div style="font-size:13px;color:var(--text3)">مفيش</div>';
 }
 async function lgiDeleteBatch(k){
+  if(!(can('ledger_general','delete')&&can('ledger_extracts','delete'))){toast('ليس لديك صلاحية','error');return;}
   if(!confirm('هتمسح كل سطور الدفعة '+k+'. متأكد؟')) return;
   const {error}=await sb.from('cost_ledger').delete().eq('import_batch',k);
   if(error){ toast('تعذّر المسح: '+error.message,'error'); return; }
@@ -6080,7 +6230,7 @@ function lgiPickTest(fresh){
   return fresh.filter((o,i)=>pick.has(i)).slice(0,20);
 }
 async function lgiRun(mode){
-  if(CP?.role!=='مدير'){ toast('الرفع للمدير بس','error'); return; }
+  if(!(can('ledger_general','import')&&can('ledger_extracts','import'))){ toast('ليس لديك صلاحية استيراد الدفتر','error'); return; }
   await loadLedger();
   const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
   const batch=(mode==='test'?'test-':'full-')+stamp;
@@ -6174,6 +6324,7 @@ async function saveVendor(){
   closeModal('vendor-modal');await loadVendors();
 }
 async function deleteVendor(id){
+  if(!needPerm('coding','delete'))return;
   const {count:poCount}=await sb.from('purchase_orders').select('id',{count:'exact',head:true}).eq('vendor_id',id);
   const {count:pqCount}=await sb.from('price_quotes').select('id',{count:'exact',head:true}).eq('vendor_id',id);
   const total=(poCount||0)+(pqCount||0);
@@ -6572,10 +6723,7 @@ function downloadBulkTemplate(){
 }
 
 function showPage(name){
-  const codingPages=['items','groups','projects','cost-centers','vendors','import-items'];
-  if(name==='bulk-movement'&&(CP?.role==='مشرف'||CP?.role==='محاسب')){toast('ليس لديك صلاحية تسجيل الحركات','error');return;}
-  if(codingPages.includes(name)&&CP?.role!=='مدير'){toast('ليس لديك صلاحية التكويد','error');return;}
-  if(name==='users'&&CP?.role!=='مدير'){toast('ليس لديك صلاحية إدارة المستخدمين','error');return;}
+  if(!canSeePage(name)){toast('ليس لديك صلاحية لهذه الصفحة','error');return;}
   // لو الصفحة دي تابعة لموديول مش هو الموديول المفتوح دلوقتي في القائمة، افتح الموديول الصح الأول
   const targetModule=findModuleByPage(name);
   if(targetModule&&targetModule.key!==currentModuleKey){
@@ -6600,6 +6748,7 @@ function showPage(name){
   if(name==='purchase-orders') setTimeout(initPOBulk,50);
   if(name==='price-quotes') setTimeout(initPQBulk,50);
   if(name==='bulk-movement'&&CP?.role==='مدير') loadPendingPricingList();
+  if(name==='perms') loadPermsScreen();
   if(name==='inventory') loadInventory();
   if(name==='analytics') loadAnalytics();
   if(name==='coa'||(name==='coa-statement'&&!allCOA.length)) loadCOA();
@@ -6658,6 +6807,7 @@ async function printPO(id){
 }
 
 async function deletePO(id,name){
+  if(!needPerm('warehouse','delete'))return;
   if(!confirm('حذف طلب التوريد "'+name+'" نهائياً؟ لا يمكن التراجع عن هذا الإجراء'))return;
   const {error}=await sb.from('purchase_orders').delete().eq('id',id);
   if(error){toast('خطأ في الحذف: '+error.message,'error');return;}
