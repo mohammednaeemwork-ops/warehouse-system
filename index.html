@@ -2856,7 +2856,7 @@ function removeCustodyRow(i){ custodyRows.splice(i,1); if(!custodyRows.length)cu
 function onExpenseInput(i,el){
   const v=el.value.trim();
   custodyRows[i].expense_label=el.value;
-  const m=expenseAccounts.find(a=>(a.account_code+' - '+a.account_name)===v)||expenseAccounts.find(a=>a.account_code===v);
+  const m=expenseAccounts.find(a=>a.level>=4&&(a.account_code+' - '+a.account_name)===v)||expenseAccounts.find(a=>a.level>=4&&a.account_code===v);
   custodyRows[i].expense_account=m?m.account_code:'';
   el.style.borderColor=(!v||m)?'':'#ef4444';
 }
@@ -2941,8 +2941,8 @@ async function saveCustodyBatch(){
   const validRows=custodyRows.filter(r=>r.amount&&parseFloat(r.amount)>0);
   if(!validRows.length){toast('اكتب مبلغ صحيح في صف واحد على الأقل','error');return;}
   if(type==='تسوية'){
-    const bad=validRows.findIndex(r=>(r.expense_label||'').trim()&&!r.expense_account);
-    if(bad>=0){toast('حساب المصروف في أحد الصفوف مش مطابق لأي حساب في الشجرة، اختاره من القائمة اللي بتظهر وانت بتكتب','error');return;}
+    const bad=validRows.findIndex(r=>!r.expense_account);
+    if(bad>=0){toast('حساب المصروف في الصف رقم '+(bad+1)+' ناقص أو مش مطابق لحساب تفصيلي في الشجرة، اختاره من القائمة اللي بتظهر وانت بتكتب','error');return;}
   }
   const toInsert=validRows.map(r=>({
     account_code, type, entry_number, receipt_link,
@@ -3284,7 +3284,7 @@ function removeXpRow(i){ xpRows.splice(i,1); if(!xpRows.length) xpRows.push({});
 function onXpAccInput(i,el){
   const v=el.value.trim();
   xpRows[i].acc_label=el.value;
-  const m=expenseAccounts.find(a=>(a.account_code+' - '+a.account_name)===v)||expenseAccounts.find(a=>a.account_code===v);
+  const m=expenseAccounts.find(a=>a.level>=4&&(a.account_code+' - '+a.account_name)===v)||expenseAccounts.find(a=>a.level>=4&&a.account_code===v);
   xpRows[i].expense_account=m?m.account_code:'';
   el.style.borderColor=(!v||m)?'':'#ef4444';
 }
@@ -5195,7 +5195,9 @@ async function loadGroups(){
 function renderGroupsTable(){
   if(!allGroups.length){document.getElementById('groups-table').innerHTML='<div class="empty"><div class="ico">📁</div><p>لا توجد مجموعات</p></div>';return;}
   const canEdit=CP.role==='مدير';
-  let h='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>الحساب المرتبط</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
+  const unl=allGroups.filter(g=>!g.account_code);
+  let h=unl.length?`<div style="background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.8">⚠️ <b>${unl.length}</b> مجموعة من ${allGroups.length} مش مربوطة بحساب في شجرة الحسابات، وتكلفة أصنافها مش هتظهر في كشف أي حساب: ${unl.slice(0,40).map(g=>escHtml(g.name||g.code||'')).join('، ')}${unl.length>40?' ...':''}<br><span style="color:var(--text3)">اضغط ✏️ جنب المجموعة واختار الحساب.</span></div>`:'';
+  h+='<div class="tbl-wrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>الحساب المرتبط</th>'+(canEdit?'<th>إجراءات</th>':'')+'</tr></thead><tbody>';
   allGroups.forEach(g=>{
     const accBadge=g.account_code?`<span class="badge badge-in">✓ مرتبطة</span>`:`<span class="badge badge-out">⚠️ بدون ربط</span>`;
     h+=`<tr><td style="font-family:monospace">${g.code||'-'}</td><td>${g.name}</td><td>${accBadge}</td>${canEdit?`<td><button class="btn btn-ghost btn-sm" onclick="openGroupModal(${g.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteGroup(${g.id})">🗑️</button></td>`:''}</tr>`;
